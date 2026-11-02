@@ -4,9 +4,10 @@
   "type": "module",
   "scripts": {
     "dev": "DATABASE_URL=postgres://booking:booking@localhost:5433/booking tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "start": "node dist/index.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc",
+    "test": "vitest run"
   },
   "dependencies": {
     "express": "^5.3.0",
@@ -16,7 +17,10 @@
     "@types/express": "^5.0.6",
     "@types/node": "^24.0.0",
     "@types/pg": "^8.23.1",
+    "@types/supertest": "^7.2.1",
+    "supertest": "^7.3.1",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
   }
 }

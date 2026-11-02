@@ -15,5 +15,17 @@ services:
       timeout: 3s
       retries: 15
 
+  test:
+    build:
+      context: .
+      target: test
+    profiles: ["test"]
+    pull_policy: build
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      TEST_DATABASE_URL: postgres://booking:booking@db:5432/booking_test
+
 volumes:
   db-data:
