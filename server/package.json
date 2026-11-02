@@ -1,0 +1,22 @@
+{
+  "name": "server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "DATABASE_URL=postgres://booking:booking@localhost:5433/booking tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "express": "^5.3.0",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.23.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "session-booking",
+  "private": true,
+  "workspaces": [
+    "server",
+    "web"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev:server": "npm run dev -w server",
+    "dev:web": "npm run dev -w web",
+    "typecheck": "npm run typecheck -w server && npm run typecheck -w web",
+    "build": "npm run build -w web && npm run build -w server"
+  }
+}
