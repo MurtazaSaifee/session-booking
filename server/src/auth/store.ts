@@ -75,18 +75,16 @@ export async function saveRefreshToken(
 }
 
 // The refresh token is single-use, so a stolen copy stops working once the real user refreshes.
-// The update revokes and reads in one statement, so two racing refreshes can't both win.
+// One statement revokes the token and reads its user, so two racing refreshes can't both win.
 export async function redeemRefreshToken(db: Db, tokenHash: string, now: Date): Promise<PublicUser | null> {
-  const revoked = await db.raw<{ rows: { user_id: string }[] }>(
-    `update refresh_tokens set revoked_at = :now
-     where token_hash = :hash and revoked_at is null and expires_at > :now
-     returning user_id`,
+  const revoked = await db.raw<{ rows: PublicUser[] }>(
+    `update refresh_tokens t set revoked_at = :now
+     from users u
+     where u.id = t.user_id and t.token_hash = :hash and t.revoked_at is null and t.expires_at > :now
+     returning u.id, u.role, u.name, u.email, u.timezone, u.title, u.bio`,
     { now, hash: tokenHash },
   );
-  const userId = revoked.rows[0]?.user_id;
-  if (!userId) return null;
-
-  return (await db<PublicUser>("users").select(publicColumns).where({ id: userId }).first()) ?? null;
+  return revoked.rows[0] ?? null;
 }
 
 export async function revokeRefreshToken(db: Db, tokenHash: string, now: Date): Promise<void> {

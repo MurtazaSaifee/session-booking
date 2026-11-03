@@ -2,6 +2,7 @@ import express, { type Request, type Response } from "express";
 import { IANAZone } from "luxon";
 import { z } from "zod";
 import type { AppDeps } from "../app.js";
+import type { Db } from "../db.js";
 import { HttpError } from "../errors.js";
 import { AUTH_PATH } from "../paths.js";
 import { Role } from "../roles.js";
@@ -99,19 +100,26 @@ function cookieOptions(deps: AppDeps) {
   return { httpOnly: true, sameSite: "lax" as const, secure: deps.secureCookies };
 }
 
-async function startSignIn(res: Response, user: { id: string; role: Role }, deps: AppDeps): Promise<void> {
+async function createSignIn(
+  db: Db,
+  user: { id: string; role: Role },
+  deps: AppDeps,
+): Promise<{ accessToken: string; refreshToken: string }> {
   const now = deps.now();
   const accessToken = await signAccessToken(user, deps.jwtSecret, now);
   const refreshToken = newRefreshToken();
-  await saveRefreshToken(deps.db, {
+  await saveRefreshToken(db, {
     userId: user.id,
     tokenHash: hashRefreshToken(refreshToken),
     expiresAt: new Date(now.getTime() + REFRESH_TOKEN_DAYS * DAY_MS),
   });
+  return { accessToken, refreshToken };
+}
 
+function setSignInCookies(res: Response, tokens: { accessToken: string; refreshToken: string }, deps: AppDeps): void {
   const cookie = cookieOptions(deps);
-  res.cookie("access_token", accessToken, { ...cookie, path: "/", maxAge: ACCESS_TOKEN_MINUTES * MINUTE_MS });
-  res.cookie("refresh_token", refreshToken, { ...cookie, path: AUTH_PATH, maxAge: REFRESH_TOKEN_DAYS * DAY_MS });
+  res.cookie("access_token", tokens.accessToken, { ...cookie, path: "/", maxAge: ACCESS_TOKEN_MINUTES * MINUTE_MS });
+  res.cookie("refresh_token", tokens.refreshToken, { ...cookie, path: AUTH_PATH, maxAge: REFRESH_TOKEN_DAYS * DAY_MS });
 }
 
 // Browsers only drop a cookie when the path and flags match the ones it was set with.
@@ -140,7 +148,7 @@ export function authRoutes(deps: AppDeps): express.Router {
     });
     if (!row) throw new HttpError(409, "EMAIL_TAKEN", "An account with this email already exists.");
 
-    await startSignIn(res, row, deps);
+    setSignInCookies(res, await createSignIn(deps.db, row, deps), deps);
     res.status(201).json({ user: publicUser(row) });
   });
 
@@ -153,7 +161,7 @@ export function authRoutes(deps: AppDeps): express.Router {
       throw new HttpError(401, "BAD_CREDENTIALS", "Email or password is incorrect.");
     }
 
-    await startSignIn(res, row, deps);
+    setSignInCookies(res, await createSignIn(deps.db, row, deps), deps);
     res.json({ user: publicUser(row) });
   });
 
@@ -167,14 +175,20 @@ export function authRoutes(deps: AppDeps): express.Router {
 
   router.post("/refresh", async (req, res) => {
     const token = req.cookies.refresh_token;
-    const user = typeof token === "string" ? await redeemRefreshToken(deps.db, hashRefreshToken(token), deps.now()) : null;
-    if (!user) {
+    // Revoking the old token and saving the new one succeed or fail together.
+    const result = typeof token === "string"
+      ? await deps.db.transaction(async (trx) => {
+          const user = await redeemRefreshToken(trx, hashRefreshToken(token), deps.now());
+          return user && { user, tokens: await createSignIn(trx, user, deps) };
+        })
+      : null;
+    if (!result) {
       clearSignIn(res, deps);
       throw notSignedIn();
     }
 
-    await startSignIn(res, user, deps);
-    res.json({ user: publicUser(user) });
+    setSignInCookies(res, result.tokens, deps);
+    res.json({ user: publicUser(result.user) });
   });
 
   router.post("/logout", async (req, res) => {
