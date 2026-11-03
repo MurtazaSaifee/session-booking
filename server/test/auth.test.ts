@@ -1,6 +1,7 @@
 import request from "supertest";
 import { afterAll, beforeEach, expect, it } from "vitest";
 import { signAccessToken, hashRefreshToken } from "../src/auth/tokens.js";
+import { ErrorCode } from "../src/errors.js";
 import { Role } from "../src/roles.js";
 import { createTestApp, resetDb, testClock } from "./app.js";
 import { createTestDb } from "./db.js";
@@ -92,7 +93,7 @@ it("professional sign-up needs a title and bio", async () => {
 
   const missing = await request(app).post("/api/v1/auth/signup").send(withoutProfile);
   expect(missing.status).toBe(400);
-  expect(missing.body.error).toBe("VALIDATION");
+  expect(missing.body.error).toBe(ErrorCode.VALIDATION);
 
   const res = await request(app).post("/api/v1/auth/signup").send(professional);
   expect(res.status).toBe(201);
@@ -111,7 +112,7 @@ it.each([
   const res = await request(app).post("/api/v1/auth/signup").send(body);
 
   expect(res.status).toBe(400);
-  expect(res.body.error).toBe("VALIDATION");
+  expect(res.body.error).toBe(ErrorCode.VALIDATION);
 });
 
 it.each([
@@ -121,7 +122,7 @@ it.each([
   const res = await request(app).post("/api/v1/auth/signup").send(body);
 
   expect(res.status).toBe(400);
-  expect(res.body).toEqual({ error: "VALIDATION", message: "Please choose member or professional." });
+  expect(res.body).toEqual({ error: ErrorCode.VALIDATION, message: "Please choose member or professional." });
 });
 
 it("emails are unique regardless of case", async () => {
@@ -135,7 +136,7 @@ it("emails are unique regardless of case", async () => {
     .send({ ...member, email: "sam@example.com" });
   expect(second.status).toBe(409);
   expect(second.body).toEqual({
-    error: "EMAIL_TAKEN",
+    error: ErrorCode.EMAIL_TAKEN,
     message: "An account with this email already exists.",
   });
 });
@@ -163,7 +164,7 @@ it("wrong password and unknown email give the same 401", async () => {
     .post("/api/v1/auth/login")
     .send({ email: "nobody@example.com", password: member.password });
 
-  const expected = { error: "BAD_CREDENTIALS", message: "Email or password is incorrect." };
+  const expected = { error: ErrorCode.BAD_CREDENTIALS, message: "Email or password is incorrect." };
   expect(wrongPassword.status).toBe(401);
   expect(wrongPassword.body).toEqual(expected);
   expect(unknownEmail.status).toBe(401);
@@ -194,7 +195,7 @@ it("GET /me returns the signed-in user, and 401 without cookies", async () => {
 
   const anonymous = await request(app).get("/api/v1/auth/me");
   expect(anonymous.status).toBe(401);
-  expect(anonymous.body).toEqual({ error: "UNAUTHENTICATED", message: "Please log in." });
+  expect(anonymous.body).toEqual({ error: ErrorCode.UNAUTHENTICATED, message: "Please log in." });
 });
 
 it("the access token expires 15 minutes after sign-in", async () => {
@@ -221,7 +222,7 @@ it("an access token signed with another secret is rejected", async () => {
   const res = await request(app).get("/api/v1/auth/me").set("Cookie", `access_token=${forged}`);
 
   expect(res.status).toBe(401);
-  expect(res.body.error).toBe("UNAUTHENTICATED");
+  expect(res.body.error).toBe(ErrorCode.UNAUTHENTICATED);
 });
 
 it("only the hash of the refresh token is stored", async () => {
@@ -273,7 +274,7 @@ it("the old refresh token is refused after it has rotated", async () => {
     .send({})
     .set("Cookie", `refresh_token=${oldRefresh}`);
   expect(reused.status).toBe(401);
-  expect(reused.body).toEqual({ error: "UNAUTHENTICATED", message: "Please log in." });
+  expect(reused.body).toEqual({ error: ErrorCode.UNAUTHENTICATED, message: "Please log in." });
 });
 
 it("a refresh token expires after 7 days", async () => {
@@ -324,7 +325,7 @@ it("log out revokes the refresh token and clears both cookies", async () => {
 it("refresh without a cookie is 401, and log out without a cookie is 204", async () => {
   const refresh = await request(app).post("/api/v1/auth/refresh").send({});
   expect(refresh.status).toBe(401);
-  expect(refresh.body).toEqual({ error: "UNAUTHENTICATED", message: "Please log in." });
+  expect(refresh.body).toEqual({ error: ErrorCode.UNAUTHENTICATED, message: "Please log in." });
 
   const logout = await request(app).post("/api/v1/auth/logout").send({});
   expect(logout.status).toBe(204);

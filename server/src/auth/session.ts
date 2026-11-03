@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import type { AppDeps } from "../app.js";
 import type { Db } from "../db.js";
-import { HttpError } from "../errors.js";
+import { ErrorCode, HttpError } from "../errors.js";
 import { AUTH_PATH } from "../paths.js";
 import type { Role } from "../roles.js";
 import { saveRefreshToken } from "./store.js";
@@ -18,7 +18,7 @@ const MINUTE_MS = 60_000;
 const DAY_MS = 24 * 60 * MINUTE_MS;
 
 export function notSignedIn() {
-  return new HttpError(401, "UNAUTHENTICATED", "Please log in.");
+  return new HttpError(401, ErrorCode.UNAUTHENTICATED, "Please log in.");
 }
 
 // The server only trusts the user id inside the access token cookie.

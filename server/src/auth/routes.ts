@@ -1,6 +1,6 @@
 import express from "express";
 import type { AppDeps } from "../app.js";
-import { HttpError } from "../errors.js";
+import { ErrorCode, HttpError } from "../errors.js";
 import { Role } from "../roles.js";
 import { parseBody } from "../validation.js";
 import { hashPassword, verifyPassword } from "./passwords.js";
@@ -38,7 +38,7 @@ export function authRoutes(deps: AppDeps): express.Router {
         title: details.title,
         bio: details.bio,
       });
-      if (!row) throw new HttpError(409, "EMAIL_TAKEN", "An account with this email already exists.");
+      if (!row) throw new HttpError(409, ErrorCode.EMAIL_TAKEN, "An account with this email already exists.");
       return { user: row, tokens: await createSignIn(trx, row, deps) };
     });
 
@@ -52,7 +52,7 @@ export function authRoutes(deps: AppDeps): express.Router {
     const passwordOk = await verifyPassword(password, found ? found.passwordHash : await dummyHash);
 
     if (!found || !passwordOk) {
-      throw new HttpError(401, "BAD_CREDENTIALS", "Email or password is incorrect.");
+      throw new HttpError(401, ErrorCode.BAD_CREDENTIALS, "Email or password is incorrect.");
     }
 
     setSignInCookies(res, await createSignIn(deps.db, found.user, deps), deps);

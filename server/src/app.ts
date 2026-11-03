@@ -3,7 +3,7 @@ import cookieParser from "cookie-parser";
 import { authRoutes } from "./auth/routes.js";
 import { healthRoutes } from "./health/routes.js";
 import { API_V1 } from "./paths.js";
-import { HttpError } from "./errors.js";
+import { ErrorCode, HttpError } from "./errors.js";
 import type { Db } from "./db.js";
 
 export type AppDeps = {
@@ -21,7 +21,9 @@ export function createApp(deps: AppDeps) {
   app.use("/api", (req, res, next) => {
     const mutating = ["POST", "PUT", "PATCH", "DELETE"].includes(req.method);
     if (mutating && !req.is("application/json")) {
-      res.status(415).json({ error: "UNSUPPORTED_MEDIA_TYPE", message: "Requests must be sent as JSON." });
+      res
+        .status(415)
+        .json({ error: ErrorCode.UNSUPPORTED_MEDIA_TYPE, message: "Requests must be sent as JSON." });
       return;
     }
     next();
@@ -37,7 +39,7 @@ export function createApp(deps: AppDeps) {
   app.use(API_V1, v1);
 
   app.use("/api", (_req, res) => {
-    res.status(404).json({ error: "NOT_FOUND", message: "Not found." });
+    res.status(404).json({ error: ErrorCode.NOT_FOUND, message: "Not found." });
   });
 
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
@@ -46,11 +48,11 @@ export function createApp(deps: AppDeps) {
       return;
     }
     if (typeof err === "object" && err !== null && "type" in err && err.type === "entity.parse.failed") {
-      res.status(400).json({ error: "VALIDATION", message: "The request body isn't valid JSON." });
+      res.status(400).json({ error: ErrorCode.VALIDATION, message: "The request body isn't valid JSON." });
       return;
     }
     console.error(err);
-    res.status(500).json({ error: "INTERNAL", message: "Something went wrong." });
+    res.status(500).json({ error: ErrorCode.INTERNAL, message: "Something went wrong." });
   });
 
   return app;

@@ -1,6 +1,7 @@
 import request from "supertest";
 import { afterAll, expect, it } from "vitest";
 import type { Db } from "../src/db.js";
+import { ErrorCode } from "../src/errors.js";
 import { createTestApp } from "./app.js";
 import { createTestDb } from "./db.js";
 
@@ -25,5 +26,5 @@ it("GET /api/v1/health returns 503 when the database can't be reached", async ()
   const res = await request(brokenApp).get("/api/v1/health");
 
   expect(res.status).toBe(503);
-  expect(res.body).toEqual({ error: "DATABASE_UNAVAILABLE", message: "Can't reach the database." });
+  expect(res.body).toEqual({ error: ErrorCode.DATABASE_UNAVAILABLE, message: "Can't reach the database." });
 });
