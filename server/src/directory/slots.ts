@@ -10,7 +10,9 @@ const SESSION_MS = SESSION_MINUTES * MINUTE_MS;
 // A 50-minute session plus a 10-minute gap.
 const SLOT_STEP_MS = 60 * MINUTE_MS;
 
-export type Slot = { start: Date; end: Date };
+// A span of real time: a slot, or a booked session that makes a professional or member busy.
+export type Interval = { start: Date; end: Date };
+export type Slot = Interval;
 
 // Turns an "HH:MM" clock time on a local day into an instant.
 function atClock(day: DateTime, time: string): number {
@@ -27,7 +29,7 @@ export function buildSlots(input: {
   timezone: string;
   now: Date;
   windowEnd: Date;
-  busy: { start: Date; end: Date }[];
+  busy: Interval[];
 }): Slot[] {
   const { ranges, timezone, now, windowEnd, busy } = input;
   const lastDay = DateTime.fromJSDate(windowEnd, { zone: timezone }).startOf("day");
