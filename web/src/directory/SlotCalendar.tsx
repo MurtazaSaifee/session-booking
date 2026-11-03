@@ -5,9 +5,9 @@ import { calendarWeeks, groupByLocalDay, localDate } from "./calendar";
 import { CalendarGrid } from "./CalendarGrid";
 import { DayTimes } from "./DayTimes";
 
-// Mirrors the server's booking window; the server still enforces the real rules.
+// Mirrors bookingWindowEnd on the server, only to size the grid; the server decides which slots exist.
 const BOOKING_WINDOW_DAYS = 28;
-const DAY_MS = 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60_000;
 
 export function SlotCalendar({ professionalId, timeZone }: { professionalId: string; timeZone: string }) {
   const [now] = useState(() => new Date());
