@@ -11,7 +11,7 @@ export class ApiError extends Error {
   }
 }
 
-type Method = "GET" | "POST" | "PUT" | "DELETE";
+type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 const noRefreshPaths = ["/auth/login", "/auth/signup", "/auth/refresh"];
 
