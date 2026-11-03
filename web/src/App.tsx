@@ -24,7 +24,7 @@ function Shell() {
       <main className="narrow">
         {!loading && (
           <Routes>
-            <Route path="/" element={user ? <HomePage /> : <Navigate to="/login" replace />} />
+            <Route path="/" element={user ? <HomePage user={user} /> : <Navigate to="/login" replace />} />
             <Route path="/login" element={user ? <Navigate to="/" replace /> : <LogInPage />} />
             <Route path="/signup" element={user ? <Navigate to="/" replace /> : <SignUpPage />} />
           </Routes>

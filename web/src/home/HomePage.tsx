@@ -1,9 +1,6 @@
-import { useAuth } from "../auth/AuthProvider";
+import type { User } from "../auth/AuthProvider";
 
-export function HomePage() {
-  const { user } = useAuth();
-  if (!user) return null;
-
+export function HomePage({ user }: { user: User }) {
   const firstName = user.name.split(" ")[0];
   return (
     <section className="card">
