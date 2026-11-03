@@ -1,6 +1,7 @@
 import express, { type NextFunction, type Request, type Response } from "express";
 import cookieParser from "cookie-parser";
-import { API_V1, authRoutes } from "./auth/routes.js";
+import { authRoutes } from "./auth/routes.js";
+import { API_V1 } from "./paths.js";
 import { HttpError } from "./errors.js";
 import type { Db } from "./db.js";
 
@@ -32,7 +33,7 @@ export function createApp(deps: AppDeps) {
 
   v1.get("/health", async (_req, res) => {
     try {
-      await db.query("select 1");
+      await db.raw("select 1");
       res.json({ status: "ok", time: now().toISOString() });
     } catch {
       res.status(503).json({ error: "DATABASE_UNAVAILABLE", message: "Can't reach the database." });

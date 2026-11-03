@@ -9,7 +9,7 @@ const now = () => new Date("2027-01-15T09:00:00Z");
 const db = createTestDb();
 const app = createTestApp(db, now);
 
-afterAll(() => db.end());
+afterAll(() => db.destroy());
 
 it("GET /api/v1/health returns ok with the injected time", async () => {
   const res = await request(app).get("/api/v1/health");
@@ -19,7 +19,7 @@ it("GET /api/v1/health returns ok with the injected time", async () => {
 });
 
 it("GET /api/v1/health returns 503 when the database can't be reached", async () => {
-  const brokenDb = { query: () => Promise.reject(new Error("connection refused")) } as unknown as Db;
+  const brokenDb = { raw: () => Promise.reject(new Error("connection refused")) } as unknown as Db;
   const brokenApp = createTestApp(brokenDb, now);
 
   const res = await request(brokenApp).get("/api/v1/health");

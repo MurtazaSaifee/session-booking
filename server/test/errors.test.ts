@@ -1,14 +1,13 @@
 import request from "supertest";
-import { afterAll, expect, it } from "vitest";
+import { expect, it } from "vitest";
+import type { Db } from "../src/db.js";
 import { createTestApp } from "./app.js";
-import { createTestDb } from "./db.js";
 
 const now = () => new Date("2027-01-15T09:00:00Z");
 
-const db = createTestDb();
+// None of these tests touch the database.
+const db = {} as Db;
 const app = createTestApp(db, now);
-
-afterAll(() => db.end());
 
 it("unknown API routes return a JSON 404", async () => {
   const res = await request(app).get("/api/v1/nope");

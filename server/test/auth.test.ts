@@ -3,6 +3,7 @@ import { afterAll, beforeEach, expect, it } from "vitest";
 import { signAccessToken, hashRefreshToken } from "../src/auth/tokens.js";
 import { createTestApp, resetDb, testClock } from "./app.js";
 import { createTestDb } from "./db.js";
+import { Role } from "../src/roles.js";
 
 const START = "2027-01-15T09:00:00Z";
 const clock = testClock(START);
@@ -15,10 +16,10 @@ beforeEach(async () => {
   await resetDb(db);
 });
 
-afterAll(() => db.end());
+afterAll(() => db.destroy());
 
 const member = {
-  role: "member",
+  role: Role.MEMBER,
   name: "Sam Member",
   email: "sam@example.com",
   password: "correct horse",
@@ -26,7 +27,7 @@ const member = {
 };
 
 const professional = {
-  role: "professional",
+  role: Role.PROFESSIONAL,
   name: "Priya Pro",
   email: "priya@example.com",
   password: "correct horse",
@@ -55,7 +56,7 @@ it("member sign-up returns the user and sets HttpOnly cookies", async () => {
   expect(res.status).toBe(201);
   expect(res.body.user).toEqual({
     id: expect.any(String),
-    role: "member",
+    role: Role.MEMBER,
     name: "Sam Member",
     email: "sam@example.com",
     timezone: "Europe/London",
@@ -74,6 +75,14 @@ it("member sign-up returns the user and sets HttpOnly cookies", async () => {
   expect(refresh).toMatch(/Path=\/api\/v1\/auth/);
 });
 
+// Pins the API contract: the wire value is "MEMBER", so changing the constant's value breaks this test.
+it("sign-up takes and returns the uppercase MEMBER role", async () => {
+  const res = await request(app).post("/api/v1/auth/signup").send({ ...member, role: "MEMBER" });
+
+  expect(res.status).toBe(201);
+  expect(res.body.user.role).toBe("MEMBER");
+});
+
 it("professional sign-up needs a title and bio", async () => {
   const { title: _title, bio: _bio, ...withoutProfile } = professional;
 
@@ -83,7 +92,7 @@ it("professional sign-up needs a title and bio", async () => {
 
   const res = await request(app).post("/api/v1/auth/signup").send(professional);
   expect(res.status).toBe(201);
-  expect(res.body.user).toMatchObject({ role: "professional", title: "Counsellor", bio: "I help people plan their week." });
+  expect(res.body.user).toMatchObject({ role: Role.PROFESSIONAL, title: "Counsellor", bio: "I help people plan their week." });
 });
 
 it.each([
@@ -143,7 +152,7 @@ it("GET /me returns the signed-in user, and 401 without cookies", async () => {
 
   const me = await agent.get("/api/v1/auth/me");
   expect(me.status).toBe(200);
-  expect(me.body.user).toMatchObject({ email: "sam@example.com", role: "member" });
+  expect(me.body.user).toMatchObject({ email: "sam@example.com", role: Role.MEMBER });
 
   const anonymous = await request(app).get("/api/v1/auth/me");
   expect(anonymous.status).toBe(401);
@@ -165,7 +174,7 @@ it("the access token expires 15 minutes after sign-in", async () => {
 
 it("an access token signed with another secret is rejected", async () => {
   const signup = await request(app).post("/api/v1/auth/signup").send(member);
-  const forged = await signAccessToken({ id: signup.body.user.id, role: "member" }, "wrong-secret", clock.now());
+  const forged = await signAccessToken({ id: signup.body.user.id, role: Role.MEMBER }, "wrong-secret", clock.now());
 
   const res = await request(app).get("/api/v1/auth/me").set("Cookie", `access_token=${forged}`);
 
@@ -178,8 +187,8 @@ it("only the hash of the refresh token is stored", async () => {
   const refresh = cookieNamed(setCookies(res), "refresh_token");
   const value = refresh.slice("refresh_token=".length).split(";")[0];
 
-  const stored = await db.query<{ token_hash: string }>("select token_hash from refresh_tokens");
-  const hashes = stored.rows.map((row) => row.token_hash);
+  const stored = await db("refresh_tokens").select("token_hash");
+  const hashes = stored.map((row) => row.token_hash);
 
   expect(hashes).not.toContain(value);
   expect(hashes).toContain(hashRefreshToken(value));
@@ -196,7 +205,7 @@ it("refresh issues a new pair of cookies", async () => {
   clock.advanceMinutes(15);
   const res = await agent.post("/api/v1/auth/refresh").send({});
   expect(res.status).toBe(200);
-  expect(res.body.user).toMatchObject({ email: "sam@example.com", role: "member" });
+  expect(res.body.user).toMatchObject({ email: "sam@example.com", role: Role.MEMBER });
 
   const cookies = setCookies(res);
   expect(cookieValue(cookies, "access_token")).not.toBe(oldAccess);

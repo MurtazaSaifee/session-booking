@@ -3,6 +3,8 @@ import { IANAZone } from "luxon";
 import { z } from "zod";
 import type { AppDeps } from "../app.js";
 import { HttpError } from "../errors.js";
+import { API_V1 } from "../paths.js";
+import { Role } from "../roles.js";
 import { parseBody } from "../validation.js";
 import { hashPassword, verifyPassword } from "./passwords.js";
 import {
@@ -12,16 +14,14 @@ import {
   newRefreshToken,
   signAccessToken,
   verifyAccessToken,
-  type Role,
 } from "./tokens.js";
 
 const MINUTE_MS = 60_000;
 const DAY_MS = 24 * 60 * MINUTE_MS;
 
-export const API_V1 = "/api/v1";
 export const AUTH_PATH = `${API_V1}/auth`;
 
-const publicColumns = "id, role, name, email, timezone, title, bio";
+const publicColumns: (keyof PublicUser)[] = ["id", "role", "name", "email", "timezone", "title", "bio"];
 
 type PublicUser = {
   id: string;
@@ -63,8 +63,8 @@ const professionalFields = {
 const signupSchema = z.discriminatedUnion(
   "role",
   [
-    z.object({ role: z.literal("member"), ...common }),
-    z.object({ role: z.literal("professional"), ...common, ...professionalFields }),
+    z.object({ role: z.literal(Role.MEMBER), ...common }),
+    z.object({ role: z.literal(Role.PROFESSIONAL), ...common, ...professionalFields }),
   ],
   "Please choose member or professional.",
 );
@@ -115,11 +115,11 @@ async function startSignIn(res: Response, user: { id: string; role: Role }, deps
   const now = deps.now();
   const accessToken = await signAccessToken(user, deps.jwtSecret, now);
   const refreshToken = newRefreshToken();
-  await deps.db.query("insert into refresh_tokens (user_id, token_hash, expires_at) values ($1, $2, $3)", [
-    user.id,
-    hashRefreshToken(refreshToken),
-    new Date(now.getTime() + REFRESH_TOKEN_DAYS * DAY_MS),
-  ]);
+  await deps.db("refresh_tokens").insert({
+    user_id: user.id,
+    token_hash: hashRefreshToken(refreshToken),
+    expires_at: new Date(now.getTime() + REFRESH_TOKEN_DAYS * DAY_MS),
+  });
 
   const cookie = cookieOptions(deps);
   res.cookie("access_token", accessToken, { ...cookie, path: "/", maxAge: ACCESS_TOKEN_MINUTES * MINUTE_MS });
@@ -136,17 +136,17 @@ function clearSignIn(res: Response, deps: AppDeps): void {
 // The refresh token is single-use, so a stolen copy stops working once the real user refreshes.
 // The update revokes and reads in one statement, so two racing refreshes can't both win.
 async function redeemRefreshToken(token: string, deps: AppDeps): Promise<PublicUser | null> {
-  const revoked = await deps.db.query<{ user_id: string }>(
-    `update refresh_tokens set revoked_at = $2
-     where token_hash = $1 and revoked_at is null and expires_at > $2
+  const now = deps.now();
+  const revoked = await deps.db.raw<{ rows: { user_id: string }[] }>(
+    `update refresh_tokens set revoked_at = :now
+     where token_hash = :hash and revoked_at is null and expires_at > :now
      returning user_id`,
-    [hashRefreshToken(token), deps.now()],
+    { now, hash: hashRefreshToken(token) },
   );
   const userId = revoked.rows[0]?.user_id;
   if (!userId) return null;
 
-  const result = await deps.db.query<PublicUser>(`select ${publicColumns} from users where id = $1`, [userId]);
-  return result.rows[0] ?? null;
+  return (await deps.db<PublicUser>("users").select(publicColumns).where({ id: userId }).first()) ?? null;
 }
 
 export function authRoutes(deps: AppDeps): express.Router {
@@ -155,17 +155,21 @@ export function authRoutes(deps: AppDeps): express.Router {
   router.post("/signup", async (req, res) => {
     const input = parseBody(signupSchema, req.body);
     const passwordHash = await hashPassword(input.password);
-    const details = input.role === "professional" ? { title: input.title, bio: input.bio } : { title: null, bio: null };
+    const details = input.role === Role.PROFESSIONAL ? { title: input.title, bio: input.bio } : { title: null, bio: null };
 
     let row: PublicUser;
     try {
-      const result = await deps.db.query<PublicUser>(
-        `insert into users (role, name, email, password_hash, timezone, title, bio)
-         values ($1, $2, $3, $4, $5, $6, $7)
-         returning ${publicColumns}`,
-        [input.role, input.name, input.email, passwordHash, input.timezone, details.title, details.bio],
-      );
-      row = result.rows[0];
+      [row] = await deps.db<UserRow>("users")
+        .insert({
+          role: input.role,
+          name: input.name,
+          email: input.email,
+          password_hash: passwordHash,
+          timezone: input.timezone,
+          title: details.title,
+          bio: details.bio,
+        })
+        .returning(publicColumns);
     } catch (err) {
       if (emailTaken(err)) {
         throw new HttpError(409, "EMAIL_TAKEN", "An account with this email already exists.");
@@ -179,11 +183,11 @@ export function authRoutes(deps: AppDeps): express.Router {
 
   router.post("/login", async (req, res) => {
     const { email, password } = parseBody(loginSchema, req.body);
-    const result = await deps.db.query<UserRow>(
-      `select ${publicColumns}, password_hash from users where lower(email) = lower($1)`,
-      [email],
-    );
-    const row = result.rows[0];
+    const row: UserRow | undefined = await deps
+      .db<UserRow>("users")
+      .select([...publicColumns, "password_hash"])
+      .whereRaw("lower(email) = lower(?)", [email])
+      .first();
     const passwordOk = await verifyPassword(password, row ? row.password_hash : await dummyHash);
 
     if (!row || !passwordOk) {
@@ -196,8 +200,7 @@ export function authRoutes(deps: AppDeps): express.Router {
 
   router.get("/me", async (req, res) => {
     const { id } = await signedInUser(req, deps);
-    const result = await deps.db.query<PublicUser>(`select ${publicColumns} from users where id = $1`, [id]);
-    const row = result.rows[0];
+    const row: PublicUser | undefined = await deps.db<PublicUser>("users").select(publicColumns).where({ id }).first();
     if (!row) throw notSignedIn();
 
     res.json({ user: publicUser(row) });
@@ -218,10 +221,11 @@ export function authRoutes(deps: AppDeps): express.Router {
   router.post("/logout", async (req, res) => {
     const token = req.cookies.refresh_token;
     if (typeof token === "string") {
-      await deps.db.query(
-        "update refresh_tokens set revoked_at = $2 where token_hash = $1 and revoked_at is null",
-        [hashRefreshToken(token), deps.now()],
-      );
+      await deps
+        .db("refresh_tokens")
+        .where({ token_hash: hashRefreshToken(token) })
+        .whereNull("revoked_at")
+        .update({ revoked_at: deps.now() });
     }
     clearSignIn(res, deps);
     res.status(204).end();

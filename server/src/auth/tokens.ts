@@ -1,10 +1,9 @@
 import { createHash, randomBytes } from "node:crypto";
 import { SignJWT, jwtVerify } from "jose";
+import { Role } from "../roles.js";
 
 export const ACCESS_TOKEN_MINUTES = 15;
 export const REFRESH_TOKEN_DAYS = 7;
-
-export type Role = "member" | "professional";
 
 export async function signAccessToken(user: { id: string; role: Role }, secret: string, now: Date): Promise<string> {
   const iat = Math.floor(now.getTime() / 1000);
@@ -21,7 +20,7 @@ export async function verifyAccessToken(token: string, secret: string, now: Date
     algorithms: ["HS256"],
     currentDate: now,
   });
-  if (typeof payload.sub !== "string" || (payload.role !== "member" && payload.role !== "professional")) {
+  if (typeof payload.sub !== "string" || (payload.role !== Role.MEMBER && payload.role !== Role.PROFESSIONAL)) {
     throw new Error("Token has no valid user");
   }
   return { id: payload.sub, role: payload.role };

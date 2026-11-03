@@ -9,7 +9,8 @@ if (!jwtSecret) throw new Error("JWT_SECRET is not set");
 
 const port = Number(process.env.PORT ?? 3000);
 const db = createDb(databaseUrl);
-await migrate(db);
+const applied = await migrate(db);
+if (applied.length) console.log(`Applied migrations: ${applied.join(", ")}`);
 const app = createApp({
   db,
   now: () => new Date(),

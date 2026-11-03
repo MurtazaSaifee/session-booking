@@ -21,5 +21,5 @@ export function createTestApp(db: Db, now: () => Date) {
 }
 
 export async function resetDb(db: Db) {
-  await db.query("truncate users, refresh_tokens cascade");
+  await db.raw("truncate users, refresh_tokens cascade");
 }

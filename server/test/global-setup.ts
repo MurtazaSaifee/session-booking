@@ -28,6 +28,6 @@ export default async function globalSetup(): Promise<void> {
   try {
     await migrate(db);
   } finally {
-    await db.end();
+    await db.destroy();
   }
 }

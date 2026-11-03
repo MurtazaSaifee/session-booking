@@ -1,43 +1,50 @@
-import { readdir, readFile } from "node:fs/promises";
+import { readdir } from "node:fs/promises";
+import type { Knex } from "knex";
 import type { Db } from "./db.js";
 
+const MIGRATIONS_DIR = new URL("./migrations/", import.meta.url);
+
 // Any fixed number works, as long as every app instance uses the same one.
-const LOCK_ID = 727274;
+const MIGRATION_LOCK_ID = 727274;
 
-export async function migrate(db: Db): Promise<void> {
-  const dir = new URL("../migrations/", import.meta.url);
-  const names = (await readdir(dir)).filter((name) => name.endsWith(".sql")).sort();
+// Names have no extension, so dev (.ts) and prod (.js) record the same names.
+async function migrationFiles(): Promise<Map<string, string>> {
+  const files = (await readdir(MIGRATIONS_DIR))
+    .filter((file) => /\.(ts|js)$/.test(file) && !file.endsWith(".d.ts"))
+    .sort();
+  return new Map(files.map((file) => [file.replace(/\.(ts|js)$/, ""), file]));
+}
 
-  const client = await db.connect();
-  try {
-    // Holds for the whole run, so two instances starting together can't apply the same file twice.
-    await client.query("select pg_advisory_lock($1)", [LOCK_ID]);
-    try {
-      await client.query(
-        "create table if not exists schema_migrations (name text primary key, applied_at timestamptz not null default now())",
-      );
-      const done = await client.query<{ name: string }>("select name from schema_migrations");
-      const applied = new Set(done.rows.map((row) => row.name));
+const migrationSource: Knex.MigrationSource<string> = {
+  async getMigrations() {
+    return [...(await migrationFiles()).keys()];
+  },
+  getMigrationName(name) {
+    return name;
+  },
+  async getMigration(name) {
+    const file = (await migrationFiles()).get(name);
+    if (!file) throw new Error(`Migration ${name} not found`);
+    return import(new URL(file, MIGRATIONS_DIR).href);
+  },
+};
 
-      for (const name of names) {
-        if (applied.has(name)) continue;
-        const sql = await readFile(new URL(name, dir), "utf8");
+// Knex's own lock throws instead of waiting, and its table creation can race, so one advisory lock serialises both.
+// The lock lives in a transaction on one connection; the migrations run on other pool connections.
+async function runLocked(db: Db, run: () => Promise<[number, string[]]>): Promise<string[]> {
+  let ran: string[] = [];
+  await db.transaction(async (trx) => {
+    // A second process blocks here, then finds nothing left to run.
+    await trx.raw("select pg_advisory_xact_lock(?)", [MIGRATION_LOCK_ID]);
+    [, ran] = await run();
+  });
+  return ran;
+}
 
-        await client.query("begin");
-        try {
-          await client.query(sql);
-          await client.query("insert into schema_migrations (name) values ($1)", [name]);
-          await client.query("commit");
-        } catch (err) {
-          await client.query("rollback");
-          throw err;
-        }
-        console.log(`Applied migration ${name}`);
-      }
-    } finally {
-      await client.query("select pg_advisory_unlock($1)", [LOCK_ID]);
-    }
-  } finally {
-    client.release();
-  }
+export function migrate(db: Db): Promise<string[]> {
+  return runLocked(db, () => db.migrate.latest({ migrationSource }));
+}
+
+export function rollback(db: Db, { all = false } = {}): Promise<string[]> {
+  return runLocked(db, () => db.migrate.rollback({ migrationSource }, all));
 }

@@ -1,10 +1,13 @@
-import pg from "pg";
+import knex, { type Knex } from "knex";
 
-export type Db = pg.Pool;
+export type Db = Knex;
 
-export function createDb(connectionString: string, options: pg.PoolConfig = {}): Db {
-  const pool = new pg.Pool({ connectionString, connectionTimeoutMillis: 5000, ...options });
-  // Without a listener, a dropped idle connection (e.g. Postgres restarting) crashes the process.
-  pool.on("error", (err) => console.error("Database connection lost:", err.message));
-  return pool;
+// Knex drops idle connections that error, so no pool error listener is needed.
+export function createDb(connectionString: string, options: { max?: number } = {}): Db {
+  return knex({
+    client: "pg",
+    connection: { connectionString },
+    pool: { min: 0, max: options.max ?? 10 },
+    acquireConnectionTimeout: 5000,
+  });
 }
