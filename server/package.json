@@ -3,18 +3,24 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "DATABASE_URL=postgres://booking:booking@localhost:5433/booking tsx watch src/index.ts",
+    "dev": "DATABASE_URL=postgres://booking:booking@localhost:5433/booking JWT_SECRET=dev-only-secret tsx watch src/index.ts",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/index.js",
     "typecheck": "tsc",
     "test": "vitest run"
   },
   "dependencies": {
+    "cookie-parser": "^1.4.7",
     "express": "^5.3.0",
-    "pg": "^8.23.1"
+    "jose": "^6.2.15",
+    "luxon": "^3.7.2",
+    "pg": "^8.23.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",
+    "@types/luxon": "^3.7.6",
     "@types/node": "^24.0.0",
     "@types/pg": "^8.23.1",
     "@types/supertest": "^7.2.1",

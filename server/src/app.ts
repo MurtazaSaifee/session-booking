@@ -1,4 +1,6 @@
 import express, { type NextFunction, type Request, type Response } from "express";
+import cookieParser from "cookie-parser";
+import { authRoutes } from "./auth/routes.js";
 import { HttpError } from "./errors.js";
 import type { Db } from "./db.js";
 
@@ -6,9 +8,12 @@ export type AppDeps = {
   db: Db;
   // Every business rule reads the time from here, so tests can control it.
   now: () => Date;
+  jwtSecret: string;
+  secureCookies: boolean;
 };
 
-export function createApp({ db, now }: AppDeps) {
+export function createApp(deps: AppDeps) {
+  const { db, now } = deps;
   const app = express();
 
   // With SameSite cookies, this blocks cross-site form posts (a CSRF defence).
@@ -21,6 +26,7 @@ export function createApp({ db, now }: AppDeps) {
     next();
   });
   app.use(express.json());
+  app.use(cookieParser());
 
   app.get("/api/health", async (_req, res) => {
     try {
@@ -30,6 +36,8 @@ export function createApp({ db, now }: AppDeps) {
       res.status(503).json({ error: "DATABASE_UNAVAILABLE", message: "Can't reach the database." });
     }
   });
+
+  app.use("/api/auth", authRoutes(deps));
 
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: "NOT_FOUND", message: "Not found." });

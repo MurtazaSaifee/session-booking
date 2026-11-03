@@ -1,12 +1,12 @@
 import request from "supertest";
 import { afterAll, expect, it } from "vitest";
-import { createApp } from "../src/app.js";
+import { createTestApp } from "./app.js";
 import { createTestDb } from "./db.js";
 
 const now = () => new Date("2027-01-15T09:00:00Z");
 
 const db = createTestDb();
-const app = createApp({ db, now });
+const app = createTestApp(db, now);
 
 afterAll(() => db.end());
 
