@@ -1,6 +1,7 @@
 import express, { type NextFunction, type Request, type Response } from "express";
 import cookieParser from "cookie-parser";
 import { authRoutes } from "./auth/routes.js";
+import { healthRoutes } from "./health/routes.js";
 import { API_V1 } from "./paths.js";
 import { HttpError } from "./errors.js";
 import type { Db } from "./db.js";
@@ -14,7 +15,6 @@ export type AppDeps = {
 };
 
 export function createApp(deps: AppDeps) {
-  const { db, now } = deps;
   const app = express();
 
   // With SameSite cookies, this blocks cross-site form posts (a CSRF defence).
@@ -31,15 +31,7 @@ export function createApp(deps: AppDeps) {
 
   const v1 = express.Router();
 
-  v1.get("/health", async (_req, res) => {
-    try {
-      await db.raw("select 1");
-      res.json({ status: "ok", time: now().toISOString() });
-    } catch {
-      res.status(503).json({ error: "DATABASE_UNAVAILABLE", message: "Can't reach the database." });
-    }
-  });
-
+  v1.use("/health", healthRoutes(deps));
   v1.use("/auth", authRoutes(deps));
 
   app.use(API_V1, v1);
