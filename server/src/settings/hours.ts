@@ -1,5 +1,7 @@
 import { Info } from "luxon";
-import type { TimeRange } from "./store.js";
+
+// A working-hours range on the professional's own clock, e.g. Monday (1) "09:00" to "12:00".
+export type TimeRange = { weekday: number; start: string; end: string };
 
 // Returns the first weekday with overlapping ranges, or null. Ranges that only touch
 // (one ends at 12:00, the next starts at 12:00) don't overlap.

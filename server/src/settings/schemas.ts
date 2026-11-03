@@ -14,14 +14,17 @@ const timeOfDay = z
   .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Times must look like 09:00.");
 
 const timeRange = z
-  .object({
-    weekday: z
-      .int("Please choose a weekday from Monday to Sunday.")
-      .min(1, "Please choose a weekday from Monday to Sunday.")
-      .max(7, "Please choose a weekday from Monday to Sunday."),
-    start: timeOfDay,
-    end: timeOfDay,
-  })
+  .object(
+    {
+      weekday: z
+        .int("Please choose a weekday from Monday to Sunday.")
+        .min(1, "Please choose a weekday from Monday to Sunday.")
+        .max(7, "Please choose a weekday from Monday to Sunday."),
+      start: timeOfDay,
+      end: timeOfDay,
+    },
+    "Each time range needs a weekday, a start and an end.",
+  )
   // Zero-padded "HH:MM" strings compare in time order. This also refuses ranges that cross midnight.
   .refine((range) => range.start < range.end, "Each time range must end after it starts, on the same day.");
 

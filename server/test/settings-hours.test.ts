@@ -128,6 +128,11 @@ it.each([
     range: { weekday: 1.5, start: "09:00", end: "12:00" },
     message: WEEKDAY_MESSAGE,
   },
+  {
+    case: "a range that isn't an object",
+    range: "09:00",
+    message: "Each time range needs a weekday, a start and an end.",
+  },
 ])("refuses $case", async ({ range, message }) => {
   const professional = await signUpAgent(app, testProfessional);
 

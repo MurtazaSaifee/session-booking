@@ -1,4 +1,5 @@
 import type { Db } from "../db.js";
+import type { TimeRange } from "./hours.js";
 
 export type Profile = { title: string | null; bio: string | null };
 
@@ -20,9 +21,6 @@ export async function updateProfile(
     .returning(["title", "bio"]);
   return rows[0];
 }
-
-// A working-hours range on the professional's own clock, e.g. Monday (1) "09:00" to "12:00".
-export type TimeRange = { weekday: number; start: string; end: string };
 
 type WorkingHoursRow = {
   professional_id: string;
