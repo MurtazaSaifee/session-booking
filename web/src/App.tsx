@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
-import { AuthProvider, useAuth } from "./auth/AuthProvider";
+import { AuthProvider, useAuth, type User } from "./auth/AuthProvider";
 import { LogInPage } from "./auth/LogInPage";
 import { SignUpPage } from "./auth/SignUpPage";
 import { Header } from "./components/Header";
@@ -44,8 +44,11 @@ function Shell() {
                 )
               }
             />
-            <Route path="/professionals" element={<MembersOnly page={<ProfessionalsPage />} />} />
-            <Route path="/professionals/:id" element={<MembersOnly page={<ProfessionalPage />} />} />
+            <Route path="/professionals" element={<MembersOnly page={() => <ProfessionalsPage />} />} />
+            <Route
+              path="/professionals/:id"
+              element={<MembersOnly page={(user) => <ProfessionalPage user={user} />} />}
+            />
           </Routes>
         )}
       </main>
@@ -53,9 +56,9 @@ function Shell() {
   );
 }
 
-function MembersOnly({ page }: { page: ReactNode }) {
+function MembersOnly({ page }: { page: (user: User) => ReactNode }) {
   const { user } = useAuth();
 
   if (!user) return <Navigate to="/login" replace />;
-  return user.role === Role.MEMBER ? page : <Navigate to="/" replace />;
+  return user.role === Role.MEMBER ? page(user) : <Navigate to="/" replace />;
 }

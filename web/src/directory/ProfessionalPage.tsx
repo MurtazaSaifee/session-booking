@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
+import type { User } from "../auth/AuthProvider";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { getProfessional, type Professional } from "./api";
 import { placeName } from "./place";
+import { SlotCalendar } from "./SlotCalendar";
 
-export function ProfessionalPage() {
+export function ProfessionalPage({ user }: { user: User }) {
   const { id } = useParams();
   const [professional, setProfessional] = useState<Professional | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -39,6 +41,7 @@ export function ProfessionalPage() {
           {professional.title && <p className="profile-title">{professional.title}</p>}
           <p className="hint">Based in {placeName(professional.timezone)}</p>
           {professional.bio && <p className="profile-bio">{professional.bio}</p>}
+          <SlotCalendar professionalId={professional.id} timeZone={user.timezone} />
         </>
       )}
     </section>
