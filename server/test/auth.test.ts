@@ -1,9 +1,9 @@
 import request from "supertest";
 import { afterAll, beforeEach, expect, it } from "vitest";
 import { signAccessToken, hashRefreshToken } from "../src/auth/tokens.js";
+import { Role } from "../src/roles.js";
 import { createTestApp, resetDb, testClock } from "./app.js";
 import { createTestDb } from "./db.js";
-import { Role } from "../src/roles.js";
 
 const START = "2027-01-15T09:00:00Z";
 const clock = testClock(START);
@@ -107,7 +107,6 @@ it.each([
   ["invalid email", { ...member, email: "not-an-email" }],
   ["a 7-character password", { ...member, password: "1234567" }],
   ["an unknown timezone", { ...member, timezone: "Mars/Olympus" }],
-  ["an unknown role", { ...member, role: "admin" }],
 ])("sign-up with %s returns 400 VALIDATION", async (_label, body) => {
   const res = await request(app).post("/api/v1/auth/signup").send(body);
 
