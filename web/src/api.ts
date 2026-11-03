@@ -46,7 +46,10 @@ async function toApiError(res: Response): Promise<ApiError> {
 // Requests that fail together share one refresh, because a refresh token works only once.
 function refreshSession(): Promise<boolean> {
   refreshing ??= send("/auth/refresh", "POST", {})
-    .then((res) => res.ok, () => false)
+    .then(
+      (res) => res.ok,
+      () => false,
+    )
     .finally(() => {
       refreshing = null;
     });
@@ -59,10 +62,7 @@ async function parse<T>(res: Response): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export async function api<T>(
-  path: string,
-  options: { method?: Method; body?: unknown } = {},
-): Promise<T> {
+export async function api<T>(path: string, options: { method?: Method; body?: unknown } = {}): Promise<T> {
   const method = options.method ?? "GET";
   const res = await send(path, method, options.body);
   if (res.status !== 401 || noRefreshPaths.includes(path)) return parse<T>(res);

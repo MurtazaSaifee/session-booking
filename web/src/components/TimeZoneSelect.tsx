@@ -5,7 +5,9 @@ const timeZones = zoneNames.includes(browserTimeZone) ? zoneNames : [browserTime
 export function TimeZoneSelect({ name, defaultValue }: { name: string; defaultValue: string }) {
   return (
     <select name={name} defaultValue={defaultValue}>
-      {timeZones.map((zone) => <option key={zone}>{zone}</option>)}
+      {timeZones.map((zone) => (
+        <option key={zone}>{zone}</option>
+      ))}
     </select>
   );
 }

@@ -5,7 +5,11 @@ import { Role } from "../roles.js";
 export const ACCESS_TOKEN_MINUTES = 15;
 export const REFRESH_TOKEN_DAYS = 7;
 
-export async function signAccessToken(user: { id: string; role: Role }, secret: string, now: Date): Promise<string> {
+export async function signAccessToken(
+  user: { id: string; role: Role },
+  secret: string,
+  now: Date,
+): Promise<string> {
   const iat = Math.floor(now.getTime() / 1000);
   return new SignJWT({ role: user.role })
     .setProtectedHeader({ alg: "HS256" })
@@ -15,12 +19,19 @@ export async function signAccessToken(user: { id: string; role: Role }, secret: 
     .sign(new TextEncoder().encode(secret));
 }
 
-export async function verifyAccessToken(token: string, secret: string, now: Date): Promise<{ id: string; role: Role }> {
+export async function verifyAccessToken(
+  token: string,
+  secret: string,
+  now: Date,
+): Promise<{ id: string; role: Role }> {
   const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
     algorithms: ["HS256"],
     currentDate: now,
   });
-  if (typeof payload.sub !== "string" || (payload.role !== Role.MEMBER && payload.role !== Role.PROFESSIONAL)) {
+  if (
+    typeof payload.sub !== "string" ||
+    (payload.role !== Role.MEMBER && payload.role !== Role.PROFESSIONAL)
+  ) {
     throw new Error("Token has no valid user");
   }
   return { id: payload.sub, role: payload.role };

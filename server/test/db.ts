@@ -7,7 +7,9 @@ export const testDatabaseUrl =
 export function testDatabaseName(url: string): string {
   const name = decodeURIComponent(new URL(url).pathname.slice(1));
   if (!/^[a-z0-9_]+_test$/.test(name)) {
-    throw new Error(`Refusing to run tests against "${name}". The test database name must be lowercase letters, digits and underscores, ending in _test.`);
+    throw new Error(
+      `Refusing to run tests against "${name}". The test database name must be lowercase letters, digits and underscores, ending in _test.`,
+    );
   }
   return name;
 }

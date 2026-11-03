@@ -30,7 +30,11 @@ const MINUTE_MS = 60_000;
 const DAY_MS = 24 * 60 * MINUTE_MS;
 
 const common = {
-  name: z.string("Please enter your name.").trim().min(1, "Please enter your name.").max(100, "Name must be 100 characters or fewer."),
+  name: z
+    .string("Please enter your name.")
+    .trim()
+    .min(1, "Please enter your name.")
+    .max(100, "Name must be 100 characters or fewer."),
   email: z.email("Please enter a valid email address."),
   password: z
     .string("Password must be at least 8 characters.")
@@ -116,10 +120,22 @@ async function createSignIn(
   return { accessToken, refreshToken };
 }
 
-function setSignInCookies(res: Response, tokens: { accessToken: string; refreshToken: string }, deps: AppDeps): void {
+function setSignInCookies(
+  res: Response,
+  tokens: { accessToken: string; refreshToken: string },
+  deps: AppDeps,
+): void {
   const cookie = cookieOptions(deps);
-  res.cookie("access_token", tokens.accessToken, { ...cookie, path: "/", maxAge: ACCESS_TOKEN_MINUTES * MINUTE_MS });
-  res.cookie("refresh_token", tokens.refreshToken, { ...cookie, path: AUTH_PATH, maxAge: REFRESH_TOKEN_DAYS * DAY_MS });
+  res.cookie("access_token", tokens.accessToken, {
+    ...cookie,
+    path: "/",
+    maxAge: ACCESS_TOKEN_MINUTES * MINUTE_MS,
+  });
+  res.cookie("refresh_token", tokens.refreshToken, {
+    ...cookie,
+    path: AUTH_PATH,
+    maxAge: REFRESH_TOKEN_DAYS * DAY_MS,
+  });
 }
 
 // Browsers only drop a cookie when the path and flags match the ones it was set with.
@@ -135,7 +151,8 @@ export function authRoutes(deps: AppDeps): express.Router {
   router.post("/signup", async (req, res) => {
     const input = parseBody(signupSchema, req.body);
     const passwordHash = await hashPassword(input.password);
-    const details = input.role === Role.PROFESSIONAL ? { title: input.title, bio: input.bio } : { title: null, bio: null };
+    const details =
+      input.role === Role.PROFESSIONAL ? { title: input.title, bio: input.bio } : { title: null, bio: null };
 
     const row = await createUser(deps.db, {
       role: input.role,
@@ -176,12 +193,13 @@ export function authRoutes(deps: AppDeps): express.Router {
   router.post("/refresh", async (req, res) => {
     const token = req.cookies.refresh_token;
     // Revoking the old token and saving the new one succeed or fail together.
-    const result = typeof token === "string"
-      ? await deps.db.transaction(async (trx) => {
-          const user = await redeemRefreshToken(trx, hashRefreshToken(token), deps.now());
-          return user && { user, tokens: await createSignIn(trx, user, deps) };
-        })
-      : null;
+    const result =
+      typeof token === "string"
+        ? await deps.db.transaction(async (trx) => {
+            const user = await redeemRefreshToken(trx, hashRefreshToken(token), deps.now());
+            return user && { user, tokens: await createSignIn(trx, user, deps) };
+          })
+        : null;
     if (!result) {
       clearSignIn(res, deps);
       throw notSignedIn();

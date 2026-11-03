@@ -47,7 +47,9 @@ function cookieNamed(cookies: string[], name: string): string {
 }
 
 function cookieValue(cookies: string[], name: string): string {
-  return cookieNamed(cookies, name).slice(name.length + 1).split(";")[0];
+  return cookieNamed(cookies, name)
+    .slice(name.length + 1)
+    .split(";")[0];
 }
 
 it("member sign-up returns the user and sets HttpOnly cookies", async () => {
@@ -77,7 +79,9 @@ it("member sign-up returns the user and sets HttpOnly cookies", async () => {
 
 // Pins the API contract: the wire value is "MEMBER", so changing the constant's value breaks this test.
 it("sign-up takes and returns the uppercase MEMBER role", async () => {
-  const res = await request(app).post("/api/v1/auth/signup").send({ ...member, role: "MEMBER" });
+  const res = await request(app)
+    .post("/api/v1/auth/signup")
+    .send({ ...member, role: "MEMBER" });
 
   expect(res.status).toBe(201);
   expect(res.body.user.role).toBe("MEMBER");
@@ -92,7 +96,11 @@ it("professional sign-up needs a title and bio", async () => {
 
   const res = await request(app).post("/api/v1/auth/signup").send(professional);
   expect(res.status).toBe(201);
-  expect(res.body.user).toMatchObject({ role: Role.PROFESSIONAL, title: "Counsellor", bio: "I help people plan their week." });
+  expect(res.body.user).toMatchObject({
+    role: Role.PROFESSIONAL,
+    title: "Counsellor",
+    bio: "I help people plan their week.",
+  });
 });
 
 it.each([
@@ -118,12 +126,19 @@ it.each([
 });
 
 it("emails are unique regardless of case", async () => {
-  const first = await request(app).post("/api/v1/auth/signup").send({ ...member, email: "Sam@Example.com" });
+  const first = await request(app)
+    .post("/api/v1/auth/signup")
+    .send({ ...member, email: "Sam@Example.com" });
   expect(first.status).toBe(201);
 
-  const second = await request(app).post("/api/v1/auth/signup").send({ ...member, email: "sam@example.com" });
+  const second = await request(app)
+    .post("/api/v1/auth/signup")
+    .send({ ...member, email: "sam@example.com" });
   expect(second.status).toBe(409);
-  expect(second.body).toEqual({ error: "EMAIL_TAKEN", message: "An account with this email already exists." });
+  expect(second.body).toEqual({
+    error: "EMAIL_TAKEN",
+    message: "An account with this email already exists.",
+  });
 });
 
 it("wrong password and unknown email give the same 401", async () => {
@@ -147,7 +162,9 @@ it("GET /me returns the signed-in user, and 401 without cookies", async () => {
   await request(app).post("/api/v1/auth/signup").send(member);
 
   const agent = request.agent(app);
-  const login = await agent.post("/api/v1/auth/login").send({ email: member.email, password: member.password });
+  const login = await agent
+    .post("/api/v1/auth/login")
+    .send({ email: member.email, password: member.password });
   expect(login.status).toBe(200);
 
   const me = await agent.get("/api/v1/auth/me");
@@ -174,7 +191,11 @@ it("the access token expires 15 minutes after sign-in", async () => {
 
 it("an access token signed with another secret is rejected", async () => {
   const signup = await request(app).post("/api/v1/auth/signup").send(member);
-  const forged = await signAccessToken({ id: signup.body.user.id, role: Role.MEMBER }, "wrong-secret", clock.now());
+  const forged = await signAccessToken(
+    { id: signup.body.user.id, role: Role.MEMBER },
+    "wrong-secret",
+    clock.now(),
+  );
 
   const res = await request(app).get("/api/v1/auth/me").set("Cookie", `access_token=${forged}`);
 
@@ -198,7 +219,9 @@ it("refresh issues a new pair of cookies", async () => {
   await request(app).post("/api/v1/auth/signup").send(member);
 
   const agent = request.agent(app);
-  const login = await agent.post("/api/v1/auth/login").send({ email: member.email, password: member.password });
+  const login = await agent
+    .post("/api/v1/auth/login")
+    .send({ email: member.email, password: member.password });
   const oldAccess = cookieValue(setCookies(login), "access_token");
   const oldRefresh = cookieValue(setCookies(login), "refresh_token");
 
@@ -217,12 +240,17 @@ it("the old refresh token is refused after it has rotated", async () => {
   await request(app).post("/api/v1/auth/signup").send(member);
 
   const agent = request.agent(app);
-  const login = await agent.post("/api/v1/auth/login").send({ email: member.email, password: member.password });
+  const login = await agent
+    .post("/api/v1/auth/login")
+    .send({ email: member.email, password: member.password });
   const oldRefresh = cookieValue(setCookies(login), "refresh_token");
 
   expect((await agent.post("/api/v1/auth/refresh").send({})).status).toBe(200);
 
-  const reused = await request(app).post("/api/v1/auth/refresh").send({}).set("Cookie", `refresh_token=${oldRefresh}`);
+  const reused = await request(app)
+    .post("/api/v1/auth/refresh")
+    .send({})
+    .set("Cookie", `refresh_token=${oldRefresh}`);
   expect(reused.status).toBe(401);
   expect(reused.body).toEqual({ error: "UNAUTHENTICATED", message: "Please log in." });
 });
@@ -235,11 +263,16 @@ it("a refresh token expires after 7 days", async () => {
   clock.advanceMinutes(7 * 24 * 60 - 1);
   expect((await agent.post("/api/v1/auth/refresh").send({})).status).toBe(200);
 
-  const login = await agent.post("/api/v1/auth/login").send({ email: member.email, password: member.password });
+  const login = await agent
+    .post("/api/v1/auth/login")
+    .send({ email: member.email, password: member.password });
   const refresh = cookieValue(setCookies(login), "refresh_token");
   clock.advanceMinutes(7 * 24 * 60 + 1);
 
-  const expired = await request(app).post("/api/v1/auth/refresh").send({}).set("Cookie", `refresh_token=${refresh}`);
+  const expired = await request(app)
+    .post("/api/v1/auth/refresh")
+    .send({})
+    .set("Cookie", `refresh_token=${refresh}`);
   expect(expired.status).toBe(401);
 });
 
@@ -247,7 +280,9 @@ it("log out revokes the refresh token and clears both cookies", async () => {
   await request(app).post("/api/v1/auth/signup").send(member);
 
   const agent = request.agent(app);
-  const login = await agent.post("/api/v1/auth/login").send({ email: member.email, password: member.password });
+  const login = await agent
+    .post("/api/v1/auth/login")
+    .send({ email: member.email, password: member.password });
   const refresh = cookieValue(setCookies(login), "refresh_token");
 
   const out = await agent.post("/api/v1/auth/logout").send({});
@@ -258,7 +293,10 @@ it("log out revokes the refresh token and clears both cookies", async () => {
 
   expect((await agent.get("/api/v1/auth/me")).status).toBe(401);
 
-  const reused = await request(app).post("/api/v1/auth/refresh").send({}).set("Cookie", `refresh_token=${refresh}`);
+  const reused = await request(app)
+    .post("/api/v1/auth/refresh")
+    .send({})
+    .set("Cookie", `refresh_token=${refresh}`);
   expect(reused.status).toBe(401);
 });
 
