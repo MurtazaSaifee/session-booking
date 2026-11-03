@@ -11,7 +11,7 @@ export type PublicUser = {
   bio: string | null;
 };
 
-export type UserRow = PublicUser & { password_hash: string };
+type UserRow = PublicUser & { password_hash: string };
 
 const publicColumns: (keyof PublicUser)[] = ["id", "role", "name", "email", "timezone", "title", "bio"];
 
@@ -52,11 +52,17 @@ export async function createUser(
   }
 }
 
-export async function findUserByEmail(db: Db, email: string): Promise<UserRow | undefined> {
-  return db<UserRow>("users")
+export async function findUserByEmail(
+  db: Db,
+  email: string,
+): Promise<{ user: PublicUser; passwordHash: string } | undefined> {
+  const row = await db<UserRow>("users")
     .select([...publicColumns, "password_hash"])
     .whereRaw("lower(email) = lower(?)", [email])
     .first();
+  if (!row) return undefined;
+  const { password_hash: passwordHash, ...user } = row;
+  return { user, passwordHash };
 }
 
 export async function findUserById(db: Db, id: string): Promise<PublicUser | undefined> {
@@ -77,14 +83,15 @@ export async function saveRefreshToken(
 // The refresh token is single-use, so a stolen copy stops working once the real user refreshes.
 // One statement revokes the token and reads its user, so two racing refreshes can't both win.
 export async function redeemRefreshToken(db: Db, tokenHash: string, now: Date): Promise<PublicUser | null> {
-  const revoked = await db.raw<{ rows: PublicUser[] }>(
-    `update refresh_tokens t set revoked_at = :now
-     from users u
-     where u.id = t.user_id and t.token_hash = :hash and t.revoked_at is null and t.expires_at > :now
-     returning u.id, u.role, u.name, u.email, u.timezone, u.title, u.bio`,
-    { now, hash: tokenHash },
-  );
-  return revoked.rows[0] ?? null;
+  const rows: PublicUser[] = await db("refresh_tokens as t")
+    .where("u.id", db.ref("t.user_id"))
+    .where("t.token_hash", tokenHash)
+    .whereNull("t.revoked_at")
+    .where("t.expires_at", ">", now)
+    .update({ revoked_at: now })
+    .updateFrom("users as u")
+    .returning(publicColumns.map((column) => `u.${column}`));
+  return rows[0] ?? null;
 }
 
 export async function revokeRefreshToken(db: Db, tokenHash: string, now: Date): Promise<void> {

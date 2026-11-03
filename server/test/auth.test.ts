@@ -166,6 +166,15 @@ it("GET /me returns the signed-in user, and 401 without cookies", async () => {
     .post("/api/v1/auth/login")
     .send({ email: member.email, password: member.password });
   expect(login.status).toBe(200);
+  expect(login.body.user).toEqual({
+    id: expect.any(String),
+    role: Role.MEMBER,
+    name: "Sam Member",
+    email: "sam@example.com",
+    timezone: "Europe/London",
+    title: null,
+    bio: null,
+  });
 
   const me = await agent.get("/api/v1/auth/me");
   expect(me.status).toBe(200);

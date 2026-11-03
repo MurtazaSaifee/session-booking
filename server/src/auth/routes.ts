@@ -12,24 +12,11 @@ import {
   findUserById,
   redeemRefreshToken,
   revokeRefreshToken,
-  type PublicUser,
 } from "./store.js";
 import { hashRefreshToken } from "./tokens.js";
 
 // Checked against when the email is unknown, so a login takes about as long either way.
 const dummyHash = hashPassword("not-the-password");
-
-function publicUser(row: PublicUser): PublicUser {
-  return {
-    id: row.id,
-    role: row.role,
-    name: row.name,
-    email: row.email,
-    timezone: row.timezone,
-    title: row.title,
-    bio: row.bio,
-  };
-}
 
 export function authRoutes(deps: AppDeps): express.Router {
   const router = express.Router();
@@ -52,20 +39,20 @@ export function authRoutes(deps: AppDeps): express.Router {
     if (!row) throw new HttpError(409, "EMAIL_TAKEN", "An account with this email already exists.");
 
     setSignInCookies(res, await createSignIn(deps.db, row, deps), deps);
-    res.status(201).json({ user: publicUser(row) });
+    res.status(201).json({ user: row });
   });
 
   router.post("/login", async (req, res) => {
     const { email, password } = parseBody(loginSchema, req.body);
-    const row = await findUserByEmail(deps.db, email);
-    const passwordOk = await verifyPassword(password, row ? row.password_hash : await dummyHash);
+    const found = await findUserByEmail(deps.db, email);
+    const passwordOk = await verifyPassword(password, found ? found.passwordHash : await dummyHash);
 
-    if (!row || !passwordOk) {
+    if (!found || !passwordOk) {
       throw new HttpError(401, "BAD_CREDENTIALS", "Email or password is incorrect.");
     }
 
-    setSignInCookies(res, await createSignIn(deps.db, row, deps), deps);
-    res.json({ user: publicUser(row) });
+    setSignInCookies(res, await createSignIn(deps.db, found.user, deps), deps);
+    res.json({ user: found.user });
   });
 
   router.get("/me", async (req, res) => {
@@ -73,7 +60,7 @@ export function authRoutes(deps: AppDeps): express.Router {
     const row = await findUserById(deps.db, id);
     if (!row) throw notSignedIn();
 
-    res.json({ user: publicUser(row) });
+    res.json({ user: row });
   });
 
   router.post("/refresh", async (req, res) => {
@@ -92,7 +79,7 @@ export function authRoutes(deps: AppDeps): express.Router {
     }
 
     setSignInCookies(res, result.tokens, deps);
-    res.json({ user: publicUser(result.user) });
+    res.json({ user: result.user });
   });
 
   router.post("/logout", async (req, res) => {
