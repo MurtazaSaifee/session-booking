@@ -17,6 +17,7 @@ export function Header() {
               {user.name} · {user.role === Role.PROFESSIONAL ? "Professional" : "Member"}
             </span>
             {user.role === Role.PROFESSIONAL && <Link to="/settings">My hours and profile</Link>}
+            {user.role === Role.MEMBER && <Link to="/professionals">Professionals</Link>}
             <span>Times shown in {user.timezone}</span>
             <button type="button" className="secondary" onClick={logOut}>
               Log out

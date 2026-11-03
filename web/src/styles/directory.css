@@ -1,0 +1,36 @@
+.professionals {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* min-width: 0 lets a grid item shrink, so the one-line bio can be cut off with an ellipsis. */
+.professional {
+  min-width: 0;
+  background: var(--white);
+  border-radius: var(--radius-option);
+  padding: var(--space-4);
+}
+
+.professional p {
+  margin: var(--space-1) 0 0;
+}
+
+.professional-name {
+  color: var(--navy);
+  font-weight: var(--weight-bold);
+}
+
+.professional-title {
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+
+.professional-bio {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

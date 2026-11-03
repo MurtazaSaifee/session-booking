@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { LogInPage } from "./auth/LogInPage";
 import { SignUpPage } from "./auth/SignUpPage";
 import { Header } from "./components/Header";
+import { ProfessionalsPage } from "./directory/ProfessionalsPage";
 import { HomePage } from "./home/HomePage";
 import { Role } from "./roles";
 import { SettingsPage } from "./settings/SettingsPage";
@@ -36,6 +37,18 @@ function Shell() {
                   <Navigate to="/login" replace />
                 ) : user.role === Role.PROFESSIONAL ? (
                   <SettingsPage user={user} />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
+            <Route
+              path="/professionals"
+              element={
+                !user ? (
+                  <Navigate to="/login" replace />
+                ) : user.role === Role.MEMBER ? (
+                  <ProfessionalsPage />
                 ) : (
                   <Navigate to="/" replace />
                 )
