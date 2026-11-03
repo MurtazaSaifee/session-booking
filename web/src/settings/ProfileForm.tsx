@@ -1,28 +1,14 @@
-import { startTransition, useActionState, useEffect, useState, type SubmitEvent } from "react";
+import { startTransition, useActionState, useState, type SubmitEvent } from "react";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { Field } from "../components/Field";
+import { useLoad } from "../useLoad";
 import { getProfile, saveProfile, type Profile } from "./api";
 import { profileChanges } from "./profileChanges";
 
 type FormState = { error: string | null; status: string | null };
 
 export function ProfileForm() {
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    getProfile()
-      .then((loaded) => {
-        if (active) setProfile(loaded);
-      })
-      .catch((err) => {
-        if (active) setLoadError(err instanceof Error ? err.message : "Something went wrong.");
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
+  const { data: profile, error: loadError } = useLoad(getProfile);
 
   if (loadError) return <ErrorMessage message={loadError} />;
   if (!profile) return <p>Loading your profile…</p>;

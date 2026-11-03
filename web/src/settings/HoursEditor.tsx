@@ -1,5 +1,6 @@
-import { startTransition, useActionState, useEffect, useState, type SubmitEvent } from "react";
+import { startTransition, useActionState, useState, type SubmitEvent } from "react";
 import { ErrorMessage } from "../components/ErrorMessage";
+import { useLoad } from "../useLoad";
 import { getHours, saveHours, type TimeRange } from "./api";
 import { DayHours } from "./DayHours";
 import { newRange, toEditable, toRanges, WEEKDAYS, type EditableRange } from "./week";
@@ -7,22 +8,7 @@ import { newRange, toEditable, toRanges, WEEKDAYS, type EditableRange } from "./
 type FormState = { error: string | null; status: string | null };
 
 export function HoursEditor({ timezone }: { timezone: string }) {
-  const [hours, setHours] = useState<TimeRange[] | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    getHours()
-      .then((loaded) => {
-        if (active) setHours(loaded);
-      })
-      .catch((err) => {
-        if (active) setLoadError(err instanceof Error ? err.message : "Something went wrong.");
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
+  const { data: hours, error: loadError } = useLoad(getHours);
 
   if (loadError) return <ErrorMessage message={loadError} />;
   if (!hours) return <p>Loading your working hours…</p>;

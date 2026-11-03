@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { ErrorMessage } from "../components/ErrorMessage";
-import { getSlots, type Slot } from "./api";
+import { useLoad } from "../useLoad";
+import { getSlots } from "./api";
 import { calendarWeeks, groupByLocalDay, localDate } from "./calendar";
 import { CalendarGrid } from "./CalendarGrid";
 import { DayTimes } from "./DayTimes";
@@ -11,23 +12,9 @@ const DAY_MS = 24 * 60 * 60_000;
 
 export function SlotCalendar({ professionalId, timezone }: { professionalId: string; timezone: string }) {
   const [now] = useState(() => new Date());
-  const [slots, setSlots] = useState<Slot[] | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const loadSlots = useCallback(() => getSlots(professionalId), [professionalId]);
+  const { data: slots, error: loadError } = useLoad(loadSlots);
   const [picked, setPicked] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    getSlots(professionalId)
-      .then((loaded) => {
-        if (active) setSlots(loaded);
-      })
-      .catch((err) => {
-        if (active) setLoadError(err instanceof Error ? err.message : "Something went wrong.");
-      });
-    return () => {
-      active = false;
-    };
-  }, [professionalId]);
 
   const slotsByDay = groupByLocalDay(slots ?? [], timezone);
   const lastDay = localDate(new Date(now.getTime() + BOOKING_WINDOW_DAYS * DAY_MS), timezone);

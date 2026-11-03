@@ -1,25 +1,10 @@
-import { useEffect, useState } from "react";
 import { ErrorMessage } from "../components/ErrorMessage";
-import { listProfessionals, type Professional } from "./api";
+import { useLoad } from "../useLoad";
+import { listProfessionals } from "./api";
 import { ProfessionalCard } from "./ProfessionalCard";
 
 export function ProfessionalsPage() {
-  const [professionals, setProfessionals] = useState<Professional[] | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    listProfessionals()
-      .then((loaded) => {
-        if (active) setProfessionals(loaded);
-      })
-      .catch((err) => {
-        if (active) setLoadError(err instanceof Error ? err.message : "Something went wrong.");
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
+  const { data: professionals, error: loadError } = useLoad(listProfessionals);
 
   return (
     <section className="card">
