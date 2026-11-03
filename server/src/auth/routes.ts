@@ -3,10 +3,19 @@ import { IANAZone } from "luxon";
 import { z } from "zod";
 import type { AppDeps } from "../app.js";
 import { HttpError } from "../errors.js";
-import { API_V1 } from "../paths.js";
+import { AUTH_PATH } from "../paths.js";
 import { Role } from "../roles.js";
 import { parseBody } from "../validation.js";
 import { hashPassword, verifyPassword } from "./passwords.js";
+import {
+  createUser,
+  findUserByEmail,
+  findUserById,
+  redeemRefreshToken,
+  revokeRefreshToken,
+  saveRefreshToken,
+  type PublicUser,
+} from "./store.js";
 import {
   ACCESS_TOKEN_MINUTES,
   REFRESH_TOKEN_DAYS,
@@ -18,22 +27,6 @@ import {
 
 const MINUTE_MS = 60_000;
 const DAY_MS = 24 * 60 * MINUTE_MS;
-
-export const AUTH_PATH = `${API_V1}/auth`;
-
-const publicColumns: (keyof PublicUser)[] = ["id", "role", "name", "email", "timezone", "title", "bio"];
-
-type PublicUser = {
-  id: string;
-  role: Role;
-  name: string;
-  email: string;
-  timezone: string;
-  title: string | null;
-  bio: string | null;
-};
-
-type UserRow = PublicUser & { password_hash: string };
 
 const common = {
   name: z.string("Please enter your name.").trim().min(1, "Please enter your name.").max(100, "Name must be 100 characters or fewer."),
@@ -93,11 +86,6 @@ function notSignedIn() {
   return new HttpError(401, "UNAUTHENTICATED", "Please log in.");
 }
 
-function emailTaken(err: unknown): boolean {
-  const pgError = err as { code?: string; constraint?: string };
-  return pgError.code === "23505" && pgError.constraint === "users_email_key";
-}
-
 // The server only trusts the user id inside the access token cookie.
 export async function signedInUser(req: Request, deps: AppDeps): Promise<{ id: string; role: Role }> {
   try {
@@ -115,10 +103,10 @@ async function startSignIn(res: Response, user: { id: string; role: Role }, deps
   const now = deps.now();
   const accessToken = await signAccessToken(user, deps.jwtSecret, now);
   const refreshToken = newRefreshToken();
-  await deps.db("refresh_tokens").insert({
-    user_id: user.id,
-    token_hash: hashRefreshToken(refreshToken),
-    expires_at: new Date(now.getTime() + REFRESH_TOKEN_DAYS * DAY_MS),
+  await saveRefreshToken(deps.db, {
+    userId: user.id,
+    tokenHash: hashRefreshToken(refreshToken),
+    expiresAt: new Date(now.getTime() + REFRESH_TOKEN_DAYS * DAY_MS),
   });
 
   const cookie = cookieOptions(deps);
@@ -133,22 +121,6 @@ function clearSignIn(res: Response, deps: AppDeps): void {
   res.clearCookie("refresh_token", { ...cookie, path: AUTH_PATH });
 }
 
-// The refresh token is single-use, so a stolen copy stops working once the real user refreshes.
-// The update revokes and reads in one statement, so two racing refreshes can't both win.
-async function redeemRefreshToken(token: string, deps: AppDeps): Promise<PublicUser | null> {
-  const now = deps.now();
-  const revoked = await deps.db.raw<{ rows: { user_id: string }[] }>(
-    `update refresh_tokens set revoked_at = :now
-     where token_hash = :hash and revoked_at is null and expires_at > :now
-     returning user_id`,
-    { now, hash: hashRefreshToken(token) },
-  );
-  const userId = revoked.rows[0]?.user_id;
-  if (!userId) return null;
-
-  return (await deps.db<PublicUser>("users").select(publicColumns).where({ id: userId }).first()) ?? null;
-}
-
 export function authRoutes(deps: AppDeps): express.Router {
   const router = express.Router();
 
@@ -157,25 +129,16 @@ export function authRoutes(deps: AppDeps): express.Router {
     const passwordHash = await hashPassword(input.password);
     const details = input.role === Role.PROFESSIONAL ? { title: input.title, bio: input.bio } : { title: null, bio: null };
 
-    let row: PublicUser;
-    try {
-      [row] = await deps.db<UserRow>("users")
-        .insert({
-          role: input.role,
-          name: input.name,
-          email: input.email,
-          password_hash: passwordHash,
-          timezone: input.timezone,
-          title: details.title,
-          bio: details.bio,
-        })
-        .returning(publicColumns);
-    } catch (err) {
-      if (emailTaken(err)) {
-        throw new HttpError(409, "EMAIL_TAKEN", "An account with this email already exists.");
-      }
-      throw err;
-    }
+    const row = await createUser(deps.db, {
+      role: input.role,
+      name: input.name,
+      email: input.email,
+      passwordHash,
+      timezone: input.timezone,
+      title: details.title,
+      bio: details.bio,
+    });
+    if (!row) throw new HttpError(409, "EMAIL_TAKEN", "An account with this email already exists.");
 
     await startSignIn(res, row, deps);
     res.status(201).json({ user: publicUser(row) });
@@ -183,11 +146,7 @@ export function authRoutes(deps: AppDeps): express.Router {
 
   router.post("/login", async (req, res) => {
     const { email, password } = parseBody(loginSchema, req.body);
-    const row: UserRow | undefined = await deps
-      .db<UserRow>("users")
-      .select([...publicColumns, "password_hash"])
-      .whereRaw("lower(email) = lower(?)", [email])
-      .first();
+    const row = await findUserByEmail(deps.db, email);
     const passwordOk = await verifyPassword(password, row ? row.password_hash : await dummyHash);
 
     if (!row || !passwordOk) {
@@ -200,7 +159,7 @@ export function authRoutes(deps: AppDeps): express.Router {
 
   router.get("/me", async (req, res) => {
     const { id } = await signedInUser(req, deps);
-    const row: PublicUser | undefined = await deps.db<PublicUser>("users").select(publicColumns).where({ id }).first();
+    const row = await findUserById(deps.db, id);
     if (!row) throw notSignedIn();
 
     res.json({ user: publicUser(row) });
@@ -208,7 +167,7 @@ export function authRoutes(deps: AppDeps): express.Router {
 
   router.post("/refresh", async (req, res) => {
     const token = req.cookies.refresh_token;
-    const user = typeof token === "string" ? await redeemRefreshToken(token, deps) : null;
+    const user = typeof token === "string" ? await redeemRefreshToken(deps.db, hashRefreshToken(token), deps.now()) : null;
     if (!user) {
       clearSignIn(res, deps);
       throw notSignedIn();
@@ -221,11 +180,7 @@ export function authRoutes(deps: AppDeps): express.Router {
   router.post("/logout", async (req, res) => {
     const token = req.cookies.refresh_token;
     if (typeof token === "string") {
-      await deps
-        .db("refresh_tokens")
-        .where({ token_hash: hashRefreshToken(token) })
-        .whereNull("revoked_at")
-        .update({ revoked_at: deps.now() });
+      await revokeRefreshToken(deps.db, hashRefreshToken(token), deps.now());
     }
     clearSignIn(res, deps);
     res.status(204).end();

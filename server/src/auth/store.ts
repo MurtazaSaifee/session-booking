@@ -1,0 +1,97 @@
+import type { Db } from "../db.js";
+import type { Role } from "../roles.js";
+
+export type PublicUser = {
+  id: string;
+  role: Role;
+  name: string;
+  email: string;
+  timezone: string;
+  title: string | null;
+  bio: string | null;
+};
+
+export type UserRow = PublicUser & { password_hash: string };
+
+const publicColumns: (keyof PublicUser)[] = ["id", "role", "name", "email", "timezone", "title", "bio"];
+
+function emailTaken(err: unknown): boolean {
+  const pgError = err as { code?: string; constraint?: string };
+  return pgError.code === "23505" && pgError.constraint === "users_email_key";
+}
+
+// Returns null when the email is already taken.
+export async function createUser(
+  db: Db,
+  user: {
+    role: Role;
+    name: string;
+    email: string;
+    passwordHash: string;
+    timezone: string;
+    title: string | null;
+    bio: string | null;
+  },
+): Promise<PublicUser | null> {
+  try {
+    const rows: PublicUser[] = await db<UserRow>("users")
+      .insert({
+        role: user.role,
+        name: user.name,
+        email: user.email,
+        password_hash: user.passwordHash,
+        timezone: user.timezone,
+        title: user.title,
+        bio: user.bio,
+      })
+      .returning(publicColumns);
+    return rows[0];
+  } catch (err) {
+    if (emailTaken(err)) return null;
+    throw err;
+  }
+}
+
+export async function findUserByEmail(db: Db, email: string): Promise<UserRow | undefined> {
+  return db<UserRow>("users")
+    .select([...publicColumns, "password_hash"])
+    .whereRaw("lower(email) = lower(?)", [email])
+    .first();
+}
+
+export async function findUserById(db: Db, id: string): Promise<PublicUser | undefined> {
+  return db<PublicUser>("users").select(publicColumns).where({ id }).first();
+}
+
+export async function saveRefreshToken(
+  db: Db,
+  token: { userId: string; tokenHash: string; expiresAt: Date },
+): Promise<void> {
+  await db("refresh_tokens").insert({
+    user_id: token.userId,
+    token_hash: token.tokenHash,
+    expires_at: token.expiresAt,
+  });
+}
+
+// The refresh token is single-use, so a stolen copy stops working once the real user refreshes.
+// The update revokes and reads in one statement, so two racing refreshes can't both win.
+export async function redeemRefreshToken(db: Db, tokenHash: string, now: Date): Promise<PublicUser | null> {
+  const revoked = await db.raw<{ rows: { user_id: string }[] }>(
+    `update refresh_tokens set revoked_at = :now
+     where token_hash = :hash and revoked_at is null and expires_at > :now
+     returning user_id`,
+    { now, hash: tokenHash },
+  );
+  const userId = revoked.rows[0]?.user_id;
+  if (!userId) return null;
+
+  return (await db<PublicUser>("users").select(publicColumns).where({ id: userId }).first()) ?? null;
+}
+
+export async function revokeRefreshToken(db: Db, tokenHash: string, now: Date): Promise<void> {
+  await db("refresh_tokens")
+    .where({ token_hash: tokenHash })
+    .whereNull("revoked_at")
+    .update({ revoked_at: now });
+}
