@@ -56,6 +56,17 @@ it("refuses a change with no fields", async () => {
   expect(res.body).toEqual({ error: ErrorCode.VALIDATION, message: "Nothing to update." });
 });
 
+it("refuses a change with only unknown fields", async () => {
+  const professional = await signUpAgent(app, testProfessional);
+
+  const res = await professional
+    .patch(`${API_V1}/settings/profile`)
+    .send({ email: "someone-else@example.com" });
+
+  expect(res.status).toBe(400);
+  expect(res.body).toEqual({ error: ErrorCode.VALIDATION, message: "Nothing to update." });
+});
+
 it("trims whitespace around the title and bio", async () => {
   const professional = await signUpAgent(app, testProfessional);
 

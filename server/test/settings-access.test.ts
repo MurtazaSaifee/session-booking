@@ -24,10 +24,13 @@ beforeEach(() => resetDb(db));
 afterAll(() => db.destroy());
 
 it("settings routes return 401 when not signed in", async () => {
-  const res = await request(app).get(`${API_V1}/settings/profile`);
+  const profile = await request(app).get(`${API_V1}/settings/profile`);
+  const hours = await request(app).get(`${API_V1}/settings/hours`);
 
-  expect(res.status).toBe(401);
-  expect(res.body.error).toBe(ErrorCode.UNAUTHENTICATED);
+  expect(profile.status).toBe(401);
+  expect(profile.body.error).toBe(ErrorCode.UNAUTHENTICATED);
+  expect(hours.status).toBe(401);
+  expect(hours.body.error).toBe(ErrorCode.UNAUTHENTICATED);
 });
 
 it("settings routes return 403 to a signed-in member", async () => {
