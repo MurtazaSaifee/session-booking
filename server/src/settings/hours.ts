@@ -1,3 +1,4 @@
+import { Info } from "luxon";
 import type { TimeRange } from "./store.js";
 
 // Returns the first weekday with overlapping ranges, or null. Ranges that only touch
@@ -11,4 +12,9 @@ export function findOverlappingDay(ranges: TimeRange[]): number | null {
     if (current.weekday === previous.weekday && current.start < previous.end) return current.weekday;
   }
   return null;
+}
+
+// Weekdays are ISO numbers, Monday = 1, and Luxon lists Monday first.
+export function weekdayName(weekday: number): string {
+  return Info.weekdays("long", { locale: "en" })[weekday - 1];
 }

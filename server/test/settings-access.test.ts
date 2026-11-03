@@ -2,8 +2,17 @@ import request from "supertest";
 import { afterAll, beforeEach, expect, it } from "vitest";
 import { ErrorCode } from "../src/errors.js";
 import { API_V1 } from "../src/paths.js";
-import { createTestApp, resetDb, signUpAgent, testClock, testMember } from "./app.js";
+import { createTestApp, resetDb, signUpAgent, testClock, testMember, testProfessional } from "./app.js";
 import { createTestDb } from "./db.js";
+
+const MONDAY = 1;
+
+const otherProfessional = {
+  ...testProfessional,
+  name: "Ivo Brandt",
+  email: "ivo@example.com",
+  timezone: "Europe/London",
+};
 
 const clock = testClock("2027-01-15T09:00:00Z");
 
@@ -39,4 +48,31 @@ it("a signed-in member cannot update a profile", async () => {
 
   expect(res.status).toBe(403);
   expect(res.body.error).toBe(ErrorCode.WRONG_ROLE);
+});
+
+it("a signed-in member cannot read or save working hours", async () => {
+  const member = await signUpAgent(app, testMember);
+
+  const read = await member.get(`${API_V1}/settings/hours`);
+  const save = await member
+    .put(`${API_V1}/settings/hours`)
+    .send({ ranges: [{ weekday: MONDAY, start: "09:00", end: "17:00" }] });
+
+  expect(read.status).toBe(403);
+  expect(read.body.error).toBe(ErrorCode.WRONG_ROLE);
+  expect(save.status).toBe(403);
+  expect(save.body.error).toBe(ErrorCode.WRONG_ROLE);
+});
+
+it("a professional cannot see another professional's hours", async () => {
+  const nora = await signUpAgent(app, testProfessional);
+  const ivo = await signUpAgent(app, otherProfessional);
+  await nora
+    .put(`${API_V1}/settings/hours`)
+    .send({ ranges: [{ weekday: MONDAY, start: "09:00", end: "17:00" }] });
+
+  const res = await ivo.get(`${API_V1}/settings/hours`);
+
+  expect(res.status).toBe(200);
+  expect(res.body).toEqual({ ranges: [] });
 });
