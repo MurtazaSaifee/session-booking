@@ -1,0 +1,35 @@
+.day {
+  margin-bottom: var(--space-4);
+}
+
+.day legend {
+  margin-bottom: var(--space-2);
+}
+
+.day .hint {
+  margin: 0 0 var(--space-2);
+}
+
+.range {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.range input {
+  flex: 1 1 var(--time-input-width);
+  min-width: 0;
+  margin-top: 0;
+  padding: var(--space-2);
+}
+
+.range button {
+  flex: none;
+}
+
+.day button {
+  padding: var(--space-1) var(--space-4);
+  font-size: var(--text-small);
+}

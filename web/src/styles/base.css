@@ -15,6 +15,17 @@ h1 {
   margin: 0 0 var(--space-5);
 }
 
+h2 {
+  color: var(--navy);
+  font-size: var(--text-heading);
+  font-weight: var(--weight-bold);
+  margin: var(--space-8) 0 var(--space-3);
+}
+
+h2:first-child {
+  margin-top: 0;
+}
+
 a {
   color: var(--teal-dark);
 }
@@ -33,6 +44,7 @@ a {
 .app-name {
   color: var(--navy);
   font-weight: var(--weight-bold);
+  text-decoration: none;
 }
 
 .account {
@@ -134,6 +146,10 @@ button.secondary {
   border: var(--stroke) solid var(--navy);
 }
 
+button.secondary:hover:not(:disabled) {
+  background: var(--teal-tint);
+}
+
 fieldset {
   border: 0;
   margin: 0 0 var(--space-4);
@@ -169,6 +185,14 @@ legend {
 .role.selected {
   border-color: var(--teal);
   background: var(--teal-tint);
+}
+
+.status {
+  background: var(--teal-tint);
+  color: var(--teal-dark);
+  border-radius: var(--radius-field);
+  padding: var(--space-3) var(--space-4);
+  margin: 0 0 var(--space-4);
 }
 
 .error {

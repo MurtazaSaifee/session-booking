@@ -6,6 +6,7 @@
   --weight-medium: 500;
   --weight-bold: 700;
   --text-small: 0.875rem;
+  --text-heading: 1.25rem;
 
   --teal: #12b39b;
   --teal-dark: #2a7671;
@@ -39,4 +40,5 @@
   --focus-ring: 2px;
   --disabled-opacity: 0.6;
   --narrow-width: 480px;
+  --time-input-width: 110px;
 }
