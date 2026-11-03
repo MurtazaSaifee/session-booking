@@ -6,7 +6,7 @@ export function App() {
   const [health, setHealth] = useState<Health | null>(null);
 
   useEffect(() => {
-    fetch("/api/health")
+    fetch("/api/v1/health")
       .then((res) => res.json())
       .then(setHealth)
       .catch(() => setHealth({ error: "NETWORK", message: "Can't reach the API." }));

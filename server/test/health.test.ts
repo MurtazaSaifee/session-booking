@@ -11,18 +11,18 @@ const app = createTestApp(db, now);
 
 afterAll(() => db.end());
 
-it("GET /api/health returns ok with the injected time", async () => {
-  const res = await request(app).get("/api/health");
+it("GET /api/v1/health returns ok with the injected time", async () => {
+  const res = await request(app).get("/api/v1/health");
 
   expect(res.status).toBe(200);
   expect(res.body).toEqual({ status: "ok", time: "2027-01-15T09:00:00.000Z" });
 });
 
-it("GET /api/health returns 503 when the database can't be reached", async () => {
+it("GET /api/v1/health returns 503 when the database can't be reached", async () => {
   const brokenDb = { query: () => Promise.reject(new Error("connection refused")) } as unknown as Db;
   const brokenApp = createTestApp(brokenDb, now);
 
-  const res = await request(brokenApp).get("/api/health");
+  const res = await request(brokenApp).get("/api/v1/health");
 
   expect(res.status).toBe(503);
   expect(res.body).toEqual({ error: "DATABASE_UNAVAILABLE", message: "Can't reach the database." });

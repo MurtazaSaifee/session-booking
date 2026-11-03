@@ -1,6 +1,6 @@
 import express, { type NextFunction, type Request, type Response } from "express";
 import cookieParser from "cookie-parser";
-import { authRoutes } from "./auth/routes.js";
+import { API_V1, authRoutes } from "./auth/routes.js";
 import { HttpError } from "./errors.js";
 import type { Db } from "./db.js";
 
@@ -28,7 +28,9 @@ export function createApp(deps: AppDeps) {
   app.use(express.json());
   app.use(cookieParser());
 
-  app.get("/api/health", async (_req, res) => {
+  const v1 = express.Router();
+
+  v1.get("/health", async (_req, res) => {
     try {
       await db.query("select 1");
       res.json({ status: "ok", time: now().toISOString() });
@@ -37,7 +39,9 @@ export function createApp(deps: AppDeps) {
     }
   });
 
-  app.use("/api/auth", authRoutes(deps));
+  v1.use("/auth", authRoutes(deps));
+
+  app.use(API_V1, v1);
 
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: "NOT_FOUND", message: "Not found." });

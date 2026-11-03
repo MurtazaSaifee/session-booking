@@ -18,6 +18,9 @@ import {
 const MINUTE_MS = 60_000;
 const DAY_MS = 24 * 60 * MINUTE_MS;
 
+export const API_V1 = "/api/v1";
+export const AUTH_PATH = `${API_V1}/auth`;
+
 const publicColumns = "id, role, name, email, timezone, title, bio";
 
 type PublicUser = {
@@ -120,14 +123,14 @@ async function startSignIn(res: Response, user: { id: string; role: Role }, deps
 
   const cookie = cookieOptions(deps);
   res.cookie("access_token", accessToken, { ...cookie, path: "/", maxAge: ACCESS_TOKEN_MINUTES * MINUTE_MS });
-  res.cookie("refresh_token", refreshToken, { ...cookie, path: "/api/auth", maxAge: REFRESH_TOKEN_DAYS * DAY_MS });
+  res.cookie("refresh_token", refreshToken, { ...cookie, path: AUTH_PATH, maxAge: REFRESH_TOKEN_DAYS * DAY_MS });
 }
 
 // Browsers only drop a cookie when the path and flags match the ones it was set with.
 function clearSignIn(res: Response, deps: AppDeps): void {
   const cookie = cookieOptions(deps);
   res.clearCookie("access_token", { ...cookie, path: "/" });
-  res.clearCookie("refresh_token", { ...cookie, path: "/api/auth" });
+  res.clearCookie("refresh_token", { ...cookie, path: AUTH_PATH });
 }
 
 // The refresh token is single-use, so a stolen copy stops working once the real user refreshes.
