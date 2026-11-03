@@ -13,8 +13,11 @@ export const WEEKDAYS = [
 // A range being edited. The key keeps React's rows stable while the times change.
 export type EditableRange = TimeRange & { key: string };
 
+// A counter, not crypto.randomUUID(): browsers only offer that on HTTPS or localhost.
+let nextKey = 0;
+
 export function toEditable(ranges: TimeRange[]): EditableRange[] {
-  return ranges.map((range) => ({ ...range, key: crypto.randomUUID() }));
+  return ranges.map((range) => ({ ...range, key: String(nextKey++) }));
 }
 
 export function toRanges(editable: EditableRange[]): TimeRange[] {

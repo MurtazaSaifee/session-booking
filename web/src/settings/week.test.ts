@@ -12,9 +12,9 @@ describe("toEditable and toRanges", () => {
     expect(toRanges(toEditable(ranges))).toEqual(ranges);
   });
 
-  it("gives every range its own key", () => {
-    const keys = toEditable(ranges).map((range) => range.key);
-    expect(new Set(keys).size).toBe(ranges.length);
+  it("gives every range its own key, across calls too", () => {
+    const keys = [...toEditable(ranges), ...toEditable(ranges)].map((range) => range.key);
+    expect(new Set(keys).size).toBe(ranges.length * 2);
   });
 });
 
