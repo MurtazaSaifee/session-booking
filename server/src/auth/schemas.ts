@@ -18,7 +18,7 @@ const common = {
     .refine((zone) => IANAZone.isValidZone(zone), "Please choose a valid timezone."),
 };
 
-const professionalFields = {
+export const professionalFields = {
   title: z
     .string("Please enter your role, e.g. Counsellor.")
     .trim()

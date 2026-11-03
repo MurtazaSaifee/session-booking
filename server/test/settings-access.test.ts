@@ -29,3 +29,14 @@ it("settings routes return 403 to a signed-in member", async () => {
   expect(res.status).toBe(403);
   expect(res.body).toEqual({ error: ErrorCode.WRONG_ROLE, message: "Only professionals can do this." });
 });
+
+it("a signed-in member cannot update a profile", async () => {
+  const member = await signUpAgent(app, testMember);
+
+  const res = await member
+    .patch(`${API_V1}/settings/profile`)
+    .send({ title: "Coach", bio: "Helping people." });
+
+  expect(res.status).toBe(403);
+  expect(res.body.error).toBe(ErrorCode.WRONG_ROLE);
+});
