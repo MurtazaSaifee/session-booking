@@ -1,18 +1,24 @@
 import { DateTime } from "luxon";
 import type { TimeRange } from "../settings/hours.js";
 
-// Callers work out the end of the booking window as now + this many days.
-export const BOOKING_WINDOW_DAYS = 28;
+// Members can book up to this many days ahead.
+const BOOKING_WINDOW_DAYS = 28;
 export const SESSION_MINUTES = 50;
 
 const MINUTE_MS = 60_000;
 const SESSION_MS = SESSION_MINUTES * MINUTE_MS;
 // A 50-minute session plus a 10-minute gap.
 const SLOT_STEP_MS = 60 * MINUTE_MS;
+const DAY_MS = 24 * 60 * MINUTE_MS;
 
 // A span of real time: a slot, or a booked session that makes a professional or member busy.
 export type Interval = { start: Date; end: Date };
 export type Slot = Interval;
+
+// The latest a slot may start: BOOKING_WINDOW_DAYS from now in real elapsed time.
+export function bookingWindowEnd(now: Date): Date {
+  return new Date(now.getTime() + BOOKING_WINDOW_DAYS * DAY_MS);
+}
 
 // Turns an "HH:MM" clock time on a local day into an instant.
 function atClock(day: DateTime, time: string): number {

@@ -5,10 +5,8 @@ import { ErrorCode, HttpError } from "../errors.js";
 import { Role } from "../roles.js";
 import { listHours } from "../settings/store.js";
 import { professionalIdSchema } from "./schemas.js";
-import { BOOKING_WINDOW_DAYS, buildSlots } from "./slots.js";
+import { bookingWindowEnd, buildSlots } from "./slots.js";
 import { findProfessional, listProfessionals, type Professional } from "./store.js";
-
-const DAY_MS = 24 * 60 * 60_000;
 
 function notFound() {
   return new HttpError(404, ErrorCode.NOT_FOUND, "We couldn't find that professional.");
@@ -40,7 +38,7 @@ export function directoryRoutes(deps: AppDeps): express.Router {
     const professional = await professionalOr404(deps, req.params.id);
     const ranges = await listHours(deps.db, professional.id);
     const now = deps.now();
-    const windowEnd = new Date(now.getTime() + BOOKING_WINDOW_DAYS * DAY_MS);
+    const windowEnd = bookingWindowEnd(now);
     // Booked sessions will go in `busy` once they exist.
     res.json({ slots: buildSlots({ ranges, timezone: professional.timezone, now, windowEnd, busy: [] }) });
   });

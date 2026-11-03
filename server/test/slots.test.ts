@@ -1,6 +1,6 @@
 import { DateTime } from "luxon";
 import { expect, it } from "vitest";
-import { BOOKING_WINDOW_DAYS, SESSION_MINUTES, buildSlots } from "../src/directory/slots.js";
+import { SESSION_MINUTES, bookingWindowEnd, buildSlots } from "../src/directory/slots.js";
 
 const MONDAY = 1;
 const TUESDAY = 2;
@@ -147,9 +147,13 @@ it.each([
   expect(starts[0]).toBe(`2027-01-11T${first}:00.000Z`);
 });
 
+it("ends the booking window 28 days after now", () => {
+  expect(bookingWindowEnd(new Date("2027-01-11T09:00:00Z")).toISOString()).toBe("2027-02-08T09:00:00.000Z");
+});
+
 it("keeps a slot starting exactly at the window end and drops later ones", () => {
   const now = new Date("2027-01-11T09:00:00Z");
-  const windowEnd = new Date(now.getTime() + BOOKING_WINDOW_DAYS * 24 * 60 * 60_000);
+  const windowEnd = bookingWindowEnd(now);
   const range = [MONDAY, "09:00", "10:00"] as const;
   expect(filteredStarts(range, "UTC", now.toISOString(), windowEnd.toISOString())).toEqual([
     "2027-01-11T09:00:00.000Z",
