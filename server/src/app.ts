@@ -21,7 +21,7 @@ export function createApp(deps: AppDeps) {
   app.use("/api", (req, res, next) => {
     const mutating = ["POST", "PUT", "PATCH", "DELETE"].includes(req.method);
     if (mutating && !req.is("application/json")) {
-      res.status(415).json({ error: "VALIDATION", message: "Requests must be sent as JSON." });
+      res.status(415).json({ error: "UNSUPPORTED_MEDIA_TYPE", message: "Requests must be sent as JSON." });
       return;
     }
     next();

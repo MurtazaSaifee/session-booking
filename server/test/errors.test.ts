@@ -27,7 +27,7 @@ it("mutating requests that aren't JSON return 415", async () => {
   const res = await request(app).post("/api/v1/nope").type("form").send("a=1");
 
   expect(res.status).toBe(415);
-  expect(res.body).toEqual({ error: "VALIDATION", message: "Requests must be sent as JSON." });
+  expect(res.body).toEqual({ error: "UNSUPPORTED_MEDIA_TYPE", message: "Requests must be sent as JSON." });
 });
 
 it("invalid JSON bodies return 400", async () => {
