@@ -39,3 +39,23 @@ it("a member's id gives the same 404 as a missing professional", async () => {
   expect(res.status).toBe(404);
   expect(res.body).toEqual({ error: ErrorCode.NOT_FOUND, message: "We couldn't find that professional." });
 });
+
+it("a member's id on the slots path gives the same 404", async () => {
+  const member = await signUpAgent(app, testMember);
+  const { id } = (await member.get(`${API_V1}/auth/me`)).body.user;
+
+  const res = await member.get(`${API_V1}/professionals/${id}/slots`);
+
+  expect(res.status).toBe(404);
+  expect(res.body).toEqual({ error: ErrorCode.NOT_FOUND, message: "We couldn't find that professional." });
+});
+
+it("a signed-in professional gets 403 on the slots path", async () => {
+  const professional = await signUpAgent(app, testProfessional);
+  const { id } = (await professional.get(`${API_V1}/auth/me`)).body.user;
+
+  const res = await professional.get(`${API_V1}/professionals/${id}/slots`);
+
+  expect(res.status).toBe(403);
+  expect(res.body).toEqual({ error: ErrorCode.WRONG_ROLE, message: "Only members can do this." });
+});
