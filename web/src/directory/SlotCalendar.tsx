@@ -9,7 +9,7 @@ import { DayTimes } from "./DayTimes";
 const BOOKING_WINDOW_DAYS = 28;
 const DAY_MS = 24 * 60 * 60_000;
 
-export function SlotCalendar({ professionalId, timeZone }: { professionalId: string; timeZone: string }) {
+export function SlotCalendar({ professionalId, timezone }: { professionalId: string; timezone: string }) {
   const [now] = useState(() => new Date());
   const [slots, setSlots] = useState<Slot[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -29,15 +29,15 @@ export function SlotCalendar({ professionalId, timeZone }: { professionalId: str
     };
   }, [professionalId]);
 
-  const slotsByDay = groupByLocalDay(slots ?? [], timeZone);
-  const lastDay = localDate(new Date(now.getTime() + BOOKING_WINDOW_DAYS * DAY_MS), timeZone);
-  const weeks = calendarWeeks(localDate(now, timeZone), lastDay);
+  const slotsByDay = groupByLocalDay(slots ?? [], timezone);
+  const lastDay = localDate(new Date(now.getTime() + BOOKING_WINDOW_DAYS * DAY_MS), timezone);
+  const weeks = calendarWeeks(localDate(now, timezone), lastDay);
   const selected = picked ?? slotsByDay.keys().next().value;
 
   return (
     <>
       <h2>Free times</h2>
-      <p className="hint">Times shown in {timeZone}.</p>
+      <p className="hint">Times shown in {timezone}.</p>
       {loadError ? (
         <ErrorMessage message={loadError} />
       ) : !slots ? (
@@ -51,7 +51,7 @@ export function SlotCalendar({ professionalId, timeZone }: { professionalId: str
             onSelect={setPicked}
           />
           {selected ? (
-            <DayTimes day={selected} slots={slotsByDay.get(selected) ?? []} timeZone={timeZone} />
+            <DayTimes day={selected} slots={slotsByDay.get(selected) ?? []} timezone={timezone} />
           ) : (
             <p className="hint">No free times in the next 4 weeks.</p>
           )}

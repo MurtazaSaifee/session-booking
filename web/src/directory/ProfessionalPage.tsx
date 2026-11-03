@@ -41,7 +41,7 @@ export function ProfessionalPage({ user }: { user: User }) {
           {professional.title && <p className="profile-title">{professional.title}</p>}
           <p className="hint">Based in {placeName(professional.timezone)}</p>
           {professional.bio && <p className="profile-bio">{professional.bio}</p>}
-          <SlotCalendar professionalId={professional.id} timeZone={user.timezone} />
+          <SlotCalendar professionalId={professional.id} timezone={user.timezone} />
         </>
       )}
     </section>

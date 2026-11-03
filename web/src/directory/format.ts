@@ -8,8 +8,13 @@ function utcMidnight(date: string): number {
 }
 
 // Newer ICU versions put a narrow no-break space before am/pm; a plain space keeps the output predictable.
-export function formatTime(instant: string, timeZone: string): string {
-  return new Intl.DateTimeFormat(LOCALE, { timeZone, hour: "numeric", minute: "2-digit", hour12: true })
+export function formatTime(instant: string, timezone: string): string {
+  return new Intl.DateTimeFormat(LOCALE, {
+    timeZone: timezone,
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  })
     .format(new Date(instant))
     .replace(/\s/g, " ");
 }
