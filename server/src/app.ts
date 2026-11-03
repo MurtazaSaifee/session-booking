@@ -1,6 +1,7 @@
 import express, { type NextFunction, type Request, type Response } from "express";
 import cookieParser from "cookie-parser";
 import { authRoutes } from "./auth/routes.js";
+import { directoryRoutes } from "./directory/routes.js";
 import { healthRoutes } from "./health/routes.js";
 import { API_V1 } from "./paths.js";
 import { settingsRoutes } from "./settings/routes.js";
@@ -37,6 +38,7 @@ export function createApp(deps: AppDeps) {
   v1.use("/health", healthRoutes(deps));
   v1.use("/auth", authRoutes(deps));
   v1.use("/settings", settingsRoutes(deps));
+  v1.use("/professionals", directoryRoutes(deps));
 
   app.use(API_V1, v1);
 
