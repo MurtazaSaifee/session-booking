@@ -1,9 +1,9 @@
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import type { AppDeps } from "../app.js";
 import type { Db } from "../db.js";
 import { ErrorCode, HttpError } from "../errors.js";
 import { AUTH_PATH } from "../paths.js";
-import type { Role } from "../roles.js";
+import { Role } from "../roles.js";
 import { saveRefreshToken } from "./store.js";
 import {
   ACCESS_TOKEN_MINUTES,
@@ -28,6 +28,27 @@ export async function signedInUser(req: Request, deps: AppDeps): Promise<{ id: s
   } catch {
     throw notSignedIn();
   }
+}
+
+const wrongRoleMessage: Record<Role, string> = {
+  [Role.PROFESSIONAL]: "Only professionals can do this.",
+  [Role.MEMBER]: "Only members can do this.",
+};
+
+// Guards every route on the router it is used on, so a new route can't forget the check.
+export function requireRole(deps: AppDeps, role: Role) {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const user = await signedInUser(req, deps);
+    if (user.role !== role) throw new HttpError(403, ErrorCode.WRONG_ROLE, wrongRoleMessage[role]);
+    res.locals.user = user;
+    next();
+  };
+}
+
+// Only valid behind requireRole, which is what puts the user on res.locals.
+export function currentUser(res: Response): { id: string; role: Role } {
+  if (!res.locals.user) throw new Error("currentUser needs requireRole to run first");
+  return res.locals.user;
 }
 
 function cookieOptions(deps: AppDeps) {
