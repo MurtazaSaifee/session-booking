@@ -1,0 +1,80 @@
+import { startTransition, useActionState, useEffect, useState, type SubmitEvent } from "react";
+import { ErrorMessage } from "../components/ErrorMessage";
+import { Field } from "../components/Field";
+import { getProfile, saveProfile, type Profile } from "./api";
+import { profileChanges } from "./profileChanges";
+
+type FormState = { error: string | null; status: string | null };
+
+export function ProfileForm() {
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    getProfile()
+      .then((loaded) => {
+        if (active) setProfile(loaded);
+      })
+      .catch((err) => {
+        if (active) setLoadError(err instanceof Error ? err.message : "Something went wrong.");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (loadError) return <ErrorMessage message={loadError} />;
+  if (!profile) return <p>Loading your profile…</p>;
+  return <ProfileFields initial={profile} />;
+}
+
+function ProfileFields({ initial }: { initial: Profile }) {
+  const [saved, setSaved] = useState(initial);
+
+  async function submit(_previous: FormState, formData: FormData): Promise<FormState> {
+    const changes = profileChanges(
+      saved,
+      String(formData.get("title") ?? ""),
+      String(formData.get("bio") ?? ""),
+    );
+    if (Object.keys(changes).length === 0) return { error: null, status: "No changes to save." };
+    try {
+      setSaved(await saveProfile(changes));
+      return { error: null, status: "Saved." };
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : "Something went wrong.", status: null };
+    }
+  }
+
+  const [{ error, status }, formAction, isPending] = useActionState(submit, { error: null, status: null });
+
+  // onSubmit, not a form action: an action would clear the fields after an error.
+  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
+    event.preventDefault();
+    startTransition(() => formAction(new FormData(event.currentTarget)));
+  }
+
+  return (
+    <>
+      <h2>Profile</h2>
+      <form onSubmit={handleSubmit}>
+        <Field label="Your role">
+          <input name="title" placeholder="e.g. Counsellor" defaultValue={saved.title ?? ""} required />
+        </Field>
+        <Field label="Short bio">
+          <textarea name="bio" rows={4} defaultValue={saved.bio ?? ""} required />
+        </Field>
+        <ErrorMessage message={error} />
+        {status && (
+          <p role="status" className="status">
+            {status}
+          </p>
+        )}
+        <button type="submit" className="submit" disabled={isPending}>
+          Save profile
+        </button>
+      </form>
+    </>
+  );
+}

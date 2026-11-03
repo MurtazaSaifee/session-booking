@@ -7,13 +7,16 @@ export function Header() {
 
   return (
     <header className="header">
-      <span className="app-name">Session Booking</span>
+      <Link to="/" className="app-name">
+        Session Booking
+      </Link>
       {!loading &&
         (user ? (
           <div className="account">
             <span>
               {user.name} · {user.role === Role.PROFESSIONAL ? "Professional" : "Member"}
             </span>
+            {user.role === Role.PROFESSIONAL && <Link to="/settings">My hours and profile</Link>}
             <span>Times shown in {user.timezone}</span>
             <button type="button" className="secondary" onClick={logOut}>
               Log out
