@@ -31,6 +31,8 @@ export function HoursEditor({ timezone }: { timezone: string }) {
 
 function HoursForm({ initial, timezone }: { initial: TimeRange[]; timezone: string }) {
   const [week, setWeek] = useState<EditableRange[]>(() => toEditable(initial));
+  // A status describes the last save, so it goes away once the week changes again.
+  const [edited, setEdited] = useState(false);
 
   async function submit(): Promise<FormState> {
     try {
@@ -46,19 +48,23 @@ function HoursForm({ initial, timezone }: { initial: TimeRange[]; timezone: stri
   // onSubmit, not a form action: an action would clear the fields after an error.
   function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
+    setEdited(false);
     startTransition(() => formAction());
   }
 
   function changeRange(key: string, field: "start" | "end", value: string) {
+    setEdited(true);
     setWeek((current) => current.map((range) => (range.key === key ? { ...range, [field]: value } : range)));
   }
 
   function removeRange(key: string) {
+    setEdited(true);
     setWeek((current) => current.filter((range) => range.key !== key));
   }
 
   function addRange(weekday: number) {
     const dayRanges = week.filter((range) => range.weekday === weekday);
+    setEdited(true);
     setWeek([...week, ...toEditable([newRange(weekday, dayRanges)])]);
   }
 
@@ -78,7 +84,7 @@ function HoursForm({ initial, timezone }: { initial: TimeRange[]; timezone: stri
           />
         ))}
         <ErrorMessage message={error} />
-        {status && (
+        {status && !edited && (
           <p role="status" className="status">
             {status}
           </p>

@@ -31,6 +31,8 @@ export function ProfileForm() {
 
 function ProfileFields({ initial }: { initial: Profile }) {
   const [saved, setSaved] = useState(initial);
+  // A status describes the last save, so it goes away once the fields change again.
+  const [edited, setEdited] = useState(false);
 
   async function submit(_previous: FormState, formData: FormData): Promise<FormState> {
     const changes = profileChanges(
@@ -52,13 +54,14 @@ function ProfileFields({ initial }: { initial: Profile }) {
   // onSubmit, not a form action: an action would clear the fields after an error.
   function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
+    setEdited(false);
     startTransition(() => formAction(new FormData(event.currentTarget)));
   }
 
   return (
     <>
       <h2>Profile</h2>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} onChange={() => setEdited(true)}>
         <Field label="Your role">
           <input name="title" placeholder="e.g. Counsellor" defaultValue={saved.title ?? ""} required />
         </Field>
@@ -66,7 +69,7 @@ function ProfileFields({ initial }: { initial: Profile }) {
           <textarea name="bio" rows={4} defaultValue={saved.bio ?? ""} required />
         </Field>
         <ErrorMessage message={error} />
-        {status && (
+        {status && !edited && (
           <p role="status" className="status">
             {status}
           </p>
