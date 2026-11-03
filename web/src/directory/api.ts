@@ -12,3 +12,10 @@ export async function listProfessionals(): Promise<Professional[]> {
   const { professionals } = await api<{ professionals: Professional[] }>("/professionals");
   return professionals;
 }
+
+export async function getProfessional(id: string): Promise<Professional> {
+  const { professional } = await api<{ professional: Professional }>(
+    `/professionals/${encodeURIComponent(id)}`,
+  );
+  return professional;
+}

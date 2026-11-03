@@ -34,3 +34,24 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.back-link {
+  display: inline-block;
+  margin-bottom: var(--space-4);
+  font-size: var(--text-small);
+}
+
+.profile h1 {
+  margin-bottom: var(--space-1);
+}
+
+.profile-title {
+  color: var(--muted);
+  margin: 0;
+}
+
+/* pre-line keeps the bio's own line breaks without splitting it into elements. */
+.profile-bio {
+  margin: var(--space-5) 0 0;
+  white-space: pre-line;
+}
