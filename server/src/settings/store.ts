@@ -20,3 +20,50 @@ export async function updateProfile(
     .returning(["title", "bio"]);
   return rows[0];
 }
+
+// A working-hours range on the professional's own clock, e.g. Monday (1) "09:00" to "12:00".
+export type TimeRange = { weekday: number; start: string; end: string };
+
+type WorkingHoursRow = {
+  professional_id: string;
+  weekday: number;
+  start_time: string;
+  end_time: string;
+};
+
+export async function listHours(db: Db, professionalId: string): Promise<TimeRange[]> {
+  const rows = await db<WorkingHoursRow>("working_hours")
+    .select(["weekday", "start_time", "end_time"])
+    .where({ professional_id: professionalId })
+    .orderBy(["weekday", "start_time"]);
+  // Postgres returns times as "09:00:00"; the API speaks "09:00".
+  return rows.map((row) => ({
+    weekday: row.weekday,
+    start: row.start_time.slice(0, 5),
+    end: row.end_time.slice(0, 5),
+  }));
+}
+
+export async function replaceHours(
+  db: Db,
+  professionalId: string,
+  ranges: TimeRange[],
+): Promise<TimeRange[]> {
+  return db.transaction(async (trx) => {
+    // Two saves at once would each delete only the rows they can see and both insert,
+    // so the professional's row is locked first and the second save waits for the first.
+    await trx<UserRow>("users").select("id").where({ id: professionalId }).forUpdate().first();
+    await trx<WorkingHoursRow>("working_hours").where({ professional_id: professionalId }).delete();
+    if (ranges.length > 0) {
+      await trx<WorkingHoursRow>("working_hours").insert(
+        ranges.map((range) => ({
+          professional_id: professionalId,
+          weekday: range.weekday,
+          start_time: range.start,
+          end_time: range.end,
+        })),
+      );
+    }
+    return listHours(trx, professionalId);
+  });
+}
