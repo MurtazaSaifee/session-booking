@@ -1,0 +1,42 @@
+@import "@fontsource-variable/plus-jakarta-sans";
+
+:root {
+  --font: "Plus Jakarta Sans Variable", system-ui, sans-serif;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-bold: 700;
+  --text-small: 0.875rem;
+
+  --teal: #12b39b;
+  --teal-dark: #2a7671;
+  --teal-tint: #f0faf8;
+  --navy: #0b3a78;
+  --navy-hover: #1a4f91;
+  --ink: #1d2d3a;
+  --muted: #5f7a84;
+  --card: #e7f2f4;
+  --page: #f9fbfb;
+  --white: #fff;
+  --line: #cfe3e6;
+  --danger: #c84a44;
+  --danger-bg: #fdecea;
+
+  --radius-card: 20px;
+  --radius-option: 16px;
+  --radius-field: 12px;
+  --radius-pill: 999px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+
+  --stroke: 1px;
+  --focus-ring: 2px;
+  --disabled-opacity: 0.6;
+  --narrow-width: 480px;
+}

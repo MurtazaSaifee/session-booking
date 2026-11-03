@@ -1,23 +1,35 @@
-import { useEffect, useState } from "react";
-
-type Health = { status: "ok"; time: string } | { error: string; message: string };
+import { BrowserRouter, Navigate, Route, Routes } from "react-router";
+import { AuthProvider, useAuth } from "./auth/AuthProvider";
+import { LogInPage } from "./auth/LogInPage";
+import { SignUpPage } from "./auth/SignUpPage";
+import { Header } from "./components/Header";
+import { HomePage } from "./home/HomePage";
 
 export function App() {
-  const [health, setHealth] = useState<Health | null>(null);
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <Shell />
+      </BrowserRouter>
+    </AuthProvider>
+  );
+}
 
-  useEffect(() => {
-    fetch("/api/v1/health")
-      .then((res) => res.json())
-      .then(setHealth)
-      .catch(() => setHealth({ error: "NETWORK", message: "Can't reach the API." }));
-  }, []);
+function Shell() {
+  const { user, loading } = useAuth();
 
   return (
-    <main>
-      <h1>Session Booking</h1>
-      {health === null && <p>Checking the API…</p>}
-      {health && "status" in health && <p>API and database are up ({health.time}).</p>}
-      {health && "error" in health && <p>{health.message}</p>}
-    </main>
+    <>
+      <Header />
+      <main className="narrow">
+        {!loading && (
+          <Routes>
+            <Route path="/" element={user ? <HomePage /> : <Navigate to="/login" replace />} />
+            <Route path="/login" element={user ? <Navigate to="/" replace /> : <LogInPage />} />
+            <Route path="/signup" element={user ? <Navigate to="/" replace /> : <SignUpPage />} />
+          </Routes>
+        )}
+      </main>
+    </>
   );
 }
