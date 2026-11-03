@@ -35,7 +35,7 @@ function Shell() {
                 !user ? (
                   <Navigate to="/login" replace />
                 ) : user.role === Role.PROFESSIONAL ? (
-                  <SettingsPage />
+                  <SettingsPage user={user} />
                 ) : (
                   <Navigate to="/" replace />
                 )
