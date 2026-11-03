@@ -29,12 +29,14 @@ type WorkingHoursRow = {
   weekday: number;
   start_time: string;
   end_time: string;
+  deleted_at: Date | null;
 };
 
 export async function listHours(db: Db, professionalId: string): Promise<TimeRange[]> {
   const rows = await db<WorkingHoursRow>("working_hours")
     .select(["weekday", "start_time", "end_time"])
     .where({ professional_id: professionalId })
+    .whereNull("deleted_at")
     .orderBy(["weekday", "start_time"]);
   // Postgres returns times as "09:00:00"; the API speaks "09:00".
   return rows.map((row) => ({
@@ -48,12 +50,16 @@ export async function replaceHours(
   db: Db,
   professionalId: string,
   ranges: TimeRange[],
+  now: Date,
 ): Promise<TimeRange[]> {
   return db.transaction(async (trx) => {
-    // Two saves at once would each delete only the rows they can see and both insert,
+    // Two saves at once would each soft-delete only the rows they can see and both insert,
     // so the professional's row is locked first and the second save waits for the first.
     await trx<UserRow>("users").select("id").where({ id: professionalId }).forUpdate().first();
-    await trx<WorkingHoursRow>("working_hours").where({ professional_id: professionalId }).delete();
+    await trx<WorkingHoursRow>("working_hours")
+      .where({ professional_id: professionalId })
+      .whereNull("deleted_at")
+      .update({ deleted_at: now });
     if (ranges.length > 0) {
       await trx<WorkingHoursRow>("working_hours").insert(
         ranges.map((range) => ({
