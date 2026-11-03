@@ -1,6 +1,4 @@
 import express, { type Request, type Response } from "express";
-import { IANAZone } from "luxon";
-import { z } from "zod";
 import type { AppDeps } from "../app.js";
 import type { Db } from "../db.js";
 import { HttpError } from "../errors.js";
@@ -8,6 +6,7 @@ import { AUTH_PATH } from "../paths.js";
 import { Role } from "../roles.js";
 import { parseBody } from "../validation.js";
 import { hashPassword, verifyPassword } from "./passwords.js";
+import { loginSchema, signupSchema } from "./schemas.js";
 import {
   createUser,
   findUserByEmail,
@@ -28,49 +27,6 @@ import {
 
 const MINUTE_MS = 60_000;
 const DAY_MS = 24 * 60 * MINUTE_MS;
-
-const common = {
-  name: z
-    .string("Please enter your name.")
-    .trim()
-    .min(1, "Please enter your name.")
-    .max(100, "Name must be 100 characters or fewer."),
-  email: z.email("Please enter a valid email address."),
-  password: z
-    .string("Password must be at least 8 characters.")
-    .min(8, "Password must be at least 8 characters.")
-    .max(200, "Password must be 200 characters or fewer."),
-  timezone: z
-    .string("Please choose a valid timezone.")
-    .refine((zone) => IANAZone.isValidZone(zone), "Please choose a valid timezone."),
-};
-
-const professionalFields = {
-  title: z
-    .string("Please enter your role, e.g. Counsellor.")
-    .trim()
-    .min(1, "Please enter your role, e.g. Counsellor.")
-    .max(100, "Role must be 100 characters or fewer."),
-  bio: z
-    .string("Please enter a short bio.")
-    .trim()
-    .min(1, "Please enter a short bio.")
-    .max(1000, "Bio must be 1000 characters or fewer."),
-};
-
-const signupSchema = z.discriminatedUnion(
-  "role",
-  [
-    z.object({ role: z.literal(Role.MEMBER), ...common }),
-    z.object({ role: z.literal(Role.PROFESSIONAL), ...common, ...professionalFields }),
-  ],
-  "Please choose member or professional.",
-);
-
-const loginSchema = z.object({
-  email: z.string("Please enter your email address.").min(1, "Please enter your email address."),
-  password: z.string("Please enter your password.").min(1, "Please enter your password."),
-});
 
 // Checked against when the email is unknown, so a login takes about as long either way.
 const dummyHash = hashPassword("not-the-password");
