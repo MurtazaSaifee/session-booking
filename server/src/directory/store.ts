@@ -20,3 +20,7 @@ export async function listProfessionals(db: Db): Promise<Professional[]> {
     .where({ role: Role.PROFESSIONAL })
     .orderBy(["name", "id"]);
 }
+
+export async function findProfessional(db: Db, id: string): Promise<Professional | undefined> {
+  return db<UserRow>("users").select(professionalColumns).where({ id, role: Role.PROFESSIONAL }).first();
+}

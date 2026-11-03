@@ -2,7 +2,7 @@ import request from "supertest";
 import { afterAll, beforeEach, expect, it } from "vitest";
 import { ErrorCode } from "../src/errors.js";
 import { API_V1 } from "../src/paths.js";
-import { createTestApp, resetDb, signUpAgent, testClock, testProfessional } from "./app.js";
+import { createTestApp, resetDb, signUpAgent, testClock, testMember, testProfessional } from "./app.js";
 import { createTestDb } from "./db.js";
 
 const clock = testClock("2027-01-15T09:00:00Z");
@@ -28,4 +28,14 @@ it("the directory returns 403 to a signed-in professional", async () => {
 
   expect(res.status).toBe(403);
   expect(res.body).toEqual({ error: ErrorCode.WRONG_ROLE, message: "Only members can do this." });
+});
+
+it("a member's id gives the same 404 as a missing professional", async () => {
+  const member = await signUpAgent(app, testMember);
+  const { id } = (await member.get(`${API_V1}/auth/me`)).body.user;
+
+  const res = await member.get(`${API_V1}/professionals/${id}`);
+
+  expect(res.status).toBe(404);
+  expect(res.body).toEqual({ error: ErrorCode.NOT_FOUND, message: "We couldn't find that professional." });
 });
