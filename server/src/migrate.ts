@@ -30,21 +30,21 @@ const migrationSource: Knex.MigrationSource<string> = {
 };
 
 // Knex's own lock throws instead of waiting, and its table creation can race, so one advisory lock serialises both.
-// The lock lives in a transaction on one connection; the migrations run on other pool connections.
-async function runLocked(db: Db, run: () => Promise<[number, string[]]>): Promise<string[]> {
+// Migrations run inside the lock's transaction, on its one connection, so a small pool can't deadlock.
+async function runLocked(db: Db, run: (trx: Knex.Transaction) => Promise<[number, string[]]>): Promise<string[]> {
   let ran: string[] = [];
   await db.transaction(async (trx) => {
     // A second process blocks here, then finds nothing left to run.
     await trx.raw("select pg_advisory_xact_lock(?)", [MIGRATION_LOCK_ID]);
-    [, ran] = await run();
+    [, ran] = await run(trx);
   });
   return ran;
 }
 
 export function migrate(db: Db): Promise<string[]> {
-  return runLocked(db, () => db.migrate.latest({ migrationSource }));
+  return runLocked(db, (trx) => trx.migrate.latest({ migrationSource }));
 }
 
 export function rollback(db: Db, { all = false } = {}): Promise<string[]> {
-  return runLocked(db, () => db.migrate.rollback({ migrationSource }, all));
+  return runLocked(db, (trx) => trx.migrate.rollback({ migrationSource }, all));
 }
