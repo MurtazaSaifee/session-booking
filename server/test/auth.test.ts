@@ -45,6 +45,10 @@ function cookieNamed(cookies: string[], name: string): string {
   return found;
 }
 
+function cookieValue(cookies: string[], name: string): string {
+  return cookieNamed(cookies, name).slice(name.length + 1).split(";")[0];
+}
+
 it("member sign-up returns the user and sets HttpOnly cookies", async () => {
   const res = await request(app).post("/api/auth/signup").send(member);
 
@@ -179,4 +183,92 @@ it("only the hash of the refresh token is stored", async () => {
 
   expect(hashes).not.toContain(value);
   expect(hashes).toContain(hashRefreshToken(value));
+});
+
+it("refresh issues a new pair of cookies", async () => {
+  await request(app).post("/api/auth/signup").send(member);
+
+  const agent = request.agent(app);
+  const login = await agent.post("/api/auth/login").send({ email: member.email, password: member.password });
+  const oldAccess = cookieValue(setCookies(login), "access_token");
+  const oldRefresh = cookieValue(setCookies(login), "refresh_token");
+
+  clock.advanceMinutes(15);
+  const res = await agent.post("/api/auth/refresh").send({});
+  expect(res.status).toBe(200);
+  expect(res.body.user).toMatchObject({ email: "sam@example.com", role: "member" });
+
+  const cookies = setCookies(res);
+  expect(cookieValue(cookies, "access_token")).not.toBe(oldAccess);
+  expect(cookieValue(cookies, "refresh_token")).not.toBe(oldRefresh);
+  expect((await agent.get("/api/auth/me")).status).toBe(200);
+});
+
+it("the old refresh token is refused after it has rotated", async () => {
+  await request(app).post("/api/auth/signup").send(member);
+
+  const agent = request.agent(app);
+  const login = await agent.post("/api/auth/login").send({ email: member.email, password: member.password });
+  const oldRefresh = cookieValue(setCookies(login), "refresh_token");
+
+  expect((await agent.post("/api/auth/refresh").send({})).status).toBe(200);
+
+  const reused = await request(app).post("/api/auth/refresh").send({}).set("Cookie", `refresh_token=${oldRefresh}`);
+  expect(reused.status).toBe(401);
+  expect(reused.body).toEqual({ error: "UNAUTHENTICATED", message: "Please log in." });
+});
+
+it("a refresh token expires after 7 days", async () => {
+  await request(app).post("/api/auth/signup").send(member);
+
+  const agent = request.agent(app);
+  await agent.post("/api/auth/login").send({ email: member.email, password: member.password });
+  clock.advanceMinutes(7 * 24 * 60 - 1);
+  expect((await agent.post("/api/auth/refresh").send({})).status).toBe(200);
+
+  const login = await agent.post("/api/auth/login").send({ email: member.email, password: member.password });
+  const refresh = cookieValue(setCookies(login), "refresh_token");
+  clock.advanceMinutes(7 * 24 * 60 + 1);
+
+  const expired = await request(app).post("/api/auth/refresh").send({}).set("Cookie", `refresh_token=${refresh}`);
+  expect(expired.status).toBe(401);
+});
+
+it("log out revokes the refresh token and clears both cookies", async () => {
+  await request(app).post("/api/auth/signup").send(member);
+
+  const agent = request.agent(app);
+  const login = await agent.post("/api/auth/login").send({ email: member.email, password: member.password });
+  const refresh = cookieValue(setCookies(login), "refresh_token");
+
+  const out = await agent.post("/api/auth/logout").send({});
+  expect(out.status).toBe(204);
+  const cleared = setCookies(out);
+  expect(cookieNamed(cleared, "access_token")).toMatch(/Expires=Thu, 01 Jan 1970/);
+  expect(cookieNamed(cleared, "refresh_token")).toMatch(/Expires=Thu, 01 Jan 1970/);
+
+  expect((await agent.get("/api/auth/me")).status).toBe(401);
+
+  const reused = await request(app).post("/api/auth/refresh").send({}).set("Cookie", `refresh_token=${refresh}`);
+  expect(reused.status).toBe(401);
+});
+
+it("refresh without a cookie is 401, and log out without a cookie is 204", async () => {
+  const refresh = await request(app).post("/api/auth/refresh").send({});
+  expect(refresh.status).toBe(401);
+  expect(refresh.body).toEqual({ error: "UNAUTHENTICATED", message: "Please log in." });
+
+  const logout = await request(app).post("/api/auth/logout").send({});
+  expect(logout.status).toBe(204);
+});
+
+it("two refreshes at the same moment with one token: only one wins", async () => {
+  const signup = await request(app).post("/api/auth/signup").send(member);
+  const refresh = cookieValue(setCookies(signup), "refresh_token");
+
+  const attempt = () =>
+    request(app).post("/api/auth/refresh").send({}).set("Cookie", `refresh_token=${refresh}`);
+  const [first, second] = await Promise.all([attempt(), attempt()]);
+
+  expect([first.status, second.status].sort()).toEqual([200, 401]);
 });

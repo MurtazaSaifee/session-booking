@@ -104,6 +104,10 @@ export async function signedInUser(req: Request, deps: AppDeps): Promise<{ id: s
   }
 }
 
+function cookieOptions(deps: AppDeps) {
+  return { httpOnly: true, sameSite: "lax" as const, secure: deps.secureCookies };
+}
+
 async function startSignIn(res: Response, user: { id: string; role: Role }, deps: AppDeps): Promise<void> {
   const now = deps.now();
   const accessToken = await signAccessToken(user, deps.jwtSecret, now);
@@ -114,9 +118,32 @@ async function startSignIn(res: Response, user: { id: string; role: Role }, deps
     new Date(now.getTime() + REFRESH_TOKEN_DAYS * DAY_MS),
   ]);
 
-  const cookie = { httpOnly: true, sameSite: "lax" as const, secure: deps.secureCookies };
+  const cookie = cookieOptions(deps);
   res.cookie("access_token", accessToken, { ...cookie, path: "/", maxAge: ACCESS_TOKEN_MINUTES * MINUTE_MS });
   res.cookie("refresh_token", refreshToken, { ...cookie, path: "/api/auth", maxAge: REFRESH_TOKEN_DAYS * DAY_MS });
+}
+
+// Browsers only drop a cookie when the path and flags match the ones it was set with.
+function clearSignIn(res: Response, deps: AppDeps): void {
+  const cookie = cookieOptions(deps);
+  res.clearCookie("access_token", { ...cookie, path: "/" });
+  res.clearCookie("refresh_token", { ...cookie, path: "/api/auth" });
+}
+
+// The refresh token is single-use, so a stolen copy stops working once the real user refreshes.
+// The update revokes and reads in one statement, so two racing refreshes can't both win.
+async function redeemRefreshToken(token: string, deps: AppDeps): Promise<PublicUser | null> {
+  const revoked = await deps.db.query<{ user_id: string }>(
+    `update refresh_tokens set revoked_at = $2
+     where token_hash = $1 and revoked_at is null and expires_at > $2
+     returning user_id`,
+    [hashRefreshToken(token), deps.now()],
+  );
+  const userId = revoked.rows[0]?.user_id;
+  if (!userId) return null;
+
+  const result = await deps.db.query<PublicUser>(`select ${publicColumns} from users where id = $1`, [userId]);
+  return result.rows[0] ?? null;
 }
 
 export function authRoutes(deps: AppDeps): express.Router {
@@ -171,6 +198,30 @@ export function authRoutes(deps: AppDeps): express.Router {
     if (!row) throw notSignedIn();
 
     res.json({ user: publicUser(row) });
+  });
+
+  router.post("/refresh", async (req, res) => {
+    const token = req.cookies.refresh_token;
+    const user = typeof token === "string" ? await redeemRefreshToken(token, deps) : null;
+    if (!user) {
+      clearSignIn(res, deps);
+      throw notSignedIn();
+    }
+
+    await startSignIn(res, user, deps);
+    res.json({ user: publicUser(user) });
+  });
+
+  router.post("/logout", async (req, res) => {
+    const token = req.cookies.refresh_token;
+    if (typeof token === "string") {
+      await deps.db.query(
+        "update refresh_tokens set revoked_at = $2 where token_hash = $1 and revoked_at is null",
+        [hashRefreshToken(token), deps.now()],
+      );
+    }
+    clearSignIn(res, deps);
+    res.status(204).end();
   });
 
   return router;
