@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "DATABASE_URL=postgres://booking:booking@localhost:5433/booking JWT_SECRET=dev-only-secret tsx watch src/index.ts",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && cp -R src/migrations dist/",
     "start": "node dist/index.js",
     "typecheck": "tsc",
     "test": "vitest run",

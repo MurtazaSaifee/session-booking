@@ -1,4 +1,4 @@
-import { readdir } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import type { Knex } from "knex";
 import type { Db } from "./db.js";
 
@@ -7,25 +7,32 @@ const MIGRATIONS_DIR = new URL("./migrations/", import.meta.url);
 // Any fixed number works, as long as every app instance uses the same one.
 const MIGRATION_LOCK_ID = 727274;
 
-// Names have no extension, so dev (.ts) and prod (.js) record the same names.
-async function migrationFiles(): Promise<Map<string, string>> {
-  const files = (await readdir(MIGRATIONS_DIR))
-    .filter((file) => /\.(ts|js)$/.test(file) && !file.endsWith(".d.ts"))
+// Each migration is a folder holding up.sql and down.sql.
+async function migrationNames(): Promise<string[]> {
+  const entries = await readdir(MIGRATIONS_DIR, { withFileTypes: true });
+  return entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
     .sort();
-  return new Map(files.map((file) => [file.replace(/\.(ts|js)$/, ""), file]));
+}
+
+async function runSqlFile(knex: Knex, name: string, file: string): Promise<void> {
+  const sql = await readFile(new URL(`${name}/${file}`, MIGRATIONS_DIR), "utf8");
+  await knex.raw(sql);
 }
 
 const migrationSource: Knex.MigrationSource<string> = {
   async getMigrations() {
-    return [...(await migrationFiles()).keys()];
+    return migrationNames();
   },
   getMigrationName(name) {
     return name;
   },
   async getMigration(name) {
-    const file = (await migrationFiles()).get(name);
-    if (!file) throw new Error(`Migration ${name} not found`);
-    return import(new URL(file, MIGRATIONS_DIR).href);
+    return {
+      up: (knex) => runSqlFile(knex, name, "up.sql"),
+      down: (knex) => runSqlFile(knex, name, "down.sql"),
+    };
   },
 };
 
