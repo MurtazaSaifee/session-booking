@@ -13,6 +13,11 @@
     "dev:web": "npm run dev -w web",
     "typecheck": "npm run typecheck -w server && npm run typecheck -w web",
     "build": "npm run build -w web && npm run build -w server",
-    "test": "npm test -w server && npm test -w web"
+    "test": "npm test -w server && npm test -w web",
+    "format": "prettier --write . --ignore-path .gitignore --ignore-path .git/info/exclude --ignore-path .prettierignore",
+    "format:check": "prettier --check . --ignore-path .gitignore --ignore-path .git/info/exclude --ignore-path .prettierignore"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.10"
   }
 }
