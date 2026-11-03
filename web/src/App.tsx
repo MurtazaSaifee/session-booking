@@ -34,20 +34,15 @@ function Shell() {
             <Route path="/signup" element={user ? <Navigate to="/" replace /> : <SignUpPage />} />
             <Route
               path="/settings"
-              element={
-                !user ? (
-                  <Navigate to="/login" replace />
-                ) : user.role === Role.PROFESSIONAL ? (
-                  <SettingsPage user={user} />
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              }
+              element={<RoleOnly role={Role.PROFESSIONAL} page={(user) => <SettingsPage user={user} />} />}
             />
-            <Route path="/professionals" element={<MembersOnly page={() => <ProfessionalsPage />} />} />
+            <Route
+              path="/professionals"
+              element={<RoleOnly role={Role.MEMBER} page={() => <ProfessionalsPage />} />}
+            />
             <Route
               path="/professionals/:id"
-              element={<MembersOnly page={(user) => <ProfessionalPage user={user} />} />}
+              element={<RoleOnly role={Role.MEMBER} page={(user) => <ProfessionalPage user={user} />} />}
             />
           </Routes>
         )}
@@ -56,9 +51,10 @@ function Shell() {
   );
 }
 
-function MembersOnly({ page }: { page: (user: User) => ReactNode }) {
+// Signed out goes to log in; the other role goes home. The page gets the signed-in user, never null.
+function RoleOnly({ role, page }: { role: Role; page: (user: User) => ReactNode }) {
   const { user } = useAuth();
 
   if (!user) return <Navigate to="/login" replace />;
-  return user.role === Role.MEMBER ? page(user) : <Navigate to="/" replace />;
+  return user.role === role ? page(user) : <Navigate to="/" replace />;
 }
