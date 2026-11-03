@@ -141,6 +141,19 @@ it("emails are unique regardless of case", async () => {
   });
 });
 
+it("sign-up leaves no account behind when saving the refresh token fails", async () => {
+  // NOT VALID skips existing rows but still rejects every new one.
+  await db.raw("alter table refresh_tokens add constraint test_reject_inserts check (false) not valid");
+  try {
+    const res = await request(app).post("/api/v1/auth/signup").send(member);
+    expect(res.status).toBe(500);
+  } finally {
+    await db.raw("alter table refresh_tokens drop constraint test_reject_inserts");
+  }
+
+  expect(await db("users").where({ email: member.email })).toHaveLength(0);
+});
+
 it("wrong password and unknown email give the same 401", async () => {
   await request(app).post("/api/v1/auth/signup").send(member);
 

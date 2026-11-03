@@ -27,19 +27,23 @@ export function authRoutes(deps: AppDeps): express.Router {
     const details =
       input.role === Role.PROFESSIONAL ? { title: input.title, bio: input.bio } : { title: null, bio: null };
 
-    const row = await createUser(deps.db, {
-      role: input.role,
-      name: input.name,
-      email: input.email,
-      passwordHash,
-      timezone: input.timezone,
-      title: details.title,
-      bio: details.bio,
+    // Saving the user and their refresh token succeed or fail together.
+    const { user, tokens } = await deps.db.transaction(async (trx) => {
+      const row = await createUser(trx, {
+        role: input.role,
+        name: input.name,
+        email: input.email,
+        passwordHash,
+        timezone: input.timezone,
+        title: details.title,
+        bio: details.bio,
+      });
+      if (!row) throw new HttpError(409, "EMAIL_TAKEN", "An account with this email already exists.");
+      return { user: row, tokens: await createSignIn(trx, row, deps) };
     });
-    if (!row) throw new HttpError(409, "EMAIL_TAKEN", "An account with this email already exists.");
 
-    setSignInCookies(res, await createSignIn(deps.db, row, deps), deps);
-    res.status(201).json({ user: row });
+    setSignInCookies(res, tokens, deps);
+    res.status(201).json({ user });
   });
 
   router.post("/login", async (req, res) => {
