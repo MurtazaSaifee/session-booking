@@ -1,62 +1,18 @@
 import type { Db } from "../db.js";
-import { PAGE_QUERY_LIMIT, toPage, type Page, type Position } from "../paging.js";
+import { PAGE_QUERY_LIMIT, type Page, type Position } from "../paging.js";
 import { Role } from "../roles.js";
 import { SessionStatus } from "../session-status.js";
+import { rowsToPage, toMySession, type MySession, type MySessions, type SessionRow } from "./my-session.js";
 import { SessionList } from "./session-list.js";
 
 type Viewer = { id: string; role: Role };
 
-type SessionRow = {
-  id: string;
-  starts_at: Date;
-  ends_at: Date;
-  status: SessionStatus;
-  cancelled_by: string | null;
-  other_person_name: string;
-};
-
 type ListRow = SessionRow & { list: SessionList };
-
-export const CancelledBy = { YOU: "YOU", OTHER_PERSON: "OTHER_PERSON" } as const;
-export type CancelledBy = (typeof CancelledBy)[keyof typeof CancelledBy];
-
-// Exactly what a person may see of their own session: never the other person's id or email.
-export type MySession = {
-  id: string;
-  otherPersonName: string;
-  start: Date;
-  end: Date;
-  status: SessionStatus;
-  cancelledBy: CancelledBy | null;
-};
-
-export type MySessions = Record<Lowercase<SessionList>, Page<MySession>>;
 
 const sides = {
   [Role.MEMBER]: { own: "s.member_id", other: "s.professional_id" },
   [Role.PROFESSIONAL]: { own: "s.professional_id", other: "s.member_id" },
 };
-
-function cancelledBy(row: SessionRow, viewer: Viewer): CancelledBy | null {
-  if (row.cancelled_by === null) return null;
-  return row.cancelled_by === viewer.id ? CancelledBy.YOU : CancelledBy.OTHER_PERSON;
-}
-
-function toMySession(row: SessionRow, viewer: Viewer): MySession {
-  return {
-    id: row.id,
-    otherPersonName: row.other_person_name,
-    start: row.starts_at,
-    end: row.ends_at,
-    status: row.status,
-    cancelledBy: cancelledBy(row, viewer),
-  };
-}
-
-function rowsToPage(rows: ListRow[], viewer: Viewer): Page<MySession> {
-  const page = toPage(rows, (row) => ({ value: row.ends_at.toISOString(), id: row.id }));
-  return { ...page, items: page.items.map((row) => toMySession(row, viewer)) };
-}
 
 // Every read starts here, so a person can only ever reach their own sessions.
 function ownSessions(db: Db, viewer: Viewer) {

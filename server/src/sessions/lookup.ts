@@ -1,8 +1,9 @@
 import type { AppDeps } from "../app.js";
 import { ErrorCode, HttpError } from "../errors.js";
 import type { Role } from "../roles.js";
-import { findMySession, type MySession } from "./store.js";
+import type { MySession } from "./my-session.js";
 import { sessionIdSchema } from "./schemas.js";
+import { findMySession } from "./store.js";
 
 // A bad id, a missing id and someone else's session all look the same, so none reveals that a session exists.
 export async function mySessionOr404(
