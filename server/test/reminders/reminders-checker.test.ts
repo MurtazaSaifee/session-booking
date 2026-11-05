@@ -63,6 +63,15 @@ it("logs a failed check and keeps going", async () => {
   expect(logged).toHaveBeenCalledWith("Reminder check failed", expect.anything());
 });
 
+it("the same loop cleans up dead refresh tokens", async () => {
+  await bookOneSession(app);
+  await db("refresh_tokens").update({ revoked_at: new Date(CLOCK_START) });
+
+  checker = startReminderChecker({ db, now: checkerClock.now }, HOUR_MS);
+
+  await vi.waitFor(async () => expect(await db("refresh_tokens").select("id")).toEqual([]));
+});
+
 it("checks every 60 seconds unless the setting says otherwise", () => {
   expect(parseCheckIntervalMs(undefined)).toBe(60_000);
   expect(parseCheckIntervalMs("5")).toBe(5_000);

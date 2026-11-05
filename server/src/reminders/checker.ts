@@ -1,4 +1,5 @@
 import type { AppDeps } from "../app.js";
+import { deleteDeadRefreshTokens } from "../auth/store.js";
 import { deliverDueReminders } from "./deliver.js";
 
 const DEFAULT_CHECK_SECONDS = 60;
@@ -14,11 +15,15 @@ export function parseCheckIntervalMs(seconds: string | undefined): number {
 
 // Runs once now, so reminders that came due while the server was down go out at start-up, then on a timer.
 // A slow run can overlap the next one safely, because checkers skip each other's rows. A failed run is logged,
-// and the next one tries again.
+// and the next one tries again. Token clean-up shares the loop but not its failures, so one can't stop the other.
 export function startReminderChecker(deps: Pick<AppDeps, "db" | "now">, intervalMs: number): NodeJS.Timeout {
   const check = () => {
-    deliverDueReminders(deps.db, deps.now()).catch((err: unknown) => {
+    const now = deps.now();
+    deliverDueReminders(deps.db, now).catch((err: unknown) => {
       console.error("Reminder check failed", err);
+    });
+    deleteDeadRefreshTokens(deps.db, now).catch((err: unknown) => {
+      console.error("Refresh token clean-up failed", err);
     });
   };
   check();

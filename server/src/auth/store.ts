@@ -120,3 +120,26 @@ export async function revokeRefreshToken(db: Db, tokenHash: string, now: Date): 
     .whereNull("revoked_at")
     .update({ revoked_at: now });
 }
+
+const DEAD_TOKEN_BATCH_SIZE = 1000;
+
+// The one real delete in the app, an exception to soft deletes: a dead token is a spent credential that nothing
+// reads again, a missing one gets the same 401, and marking it deleted wouldn't stop the table growing.
+export async function deleteDeadRefreshTokens(
+  db: Db,
+  now: Date,
+  batchSize = DEAD_TOKEN_BATCH_SIZE,
+): Promise<void> {
+  let deleted: number;
+  do {
+    deleted = await db("refresh_tokens")
+      .whereIn(
+        "id",
+        db("refresh_tokens")
+          .select("id")
+          .whereRaw("coalesce(revoked_at, expires_at) <= ?", [now])
+          .limit(batchSize),
+      )
+      .delete();
+  } while (deleted === batchSize);
+}
