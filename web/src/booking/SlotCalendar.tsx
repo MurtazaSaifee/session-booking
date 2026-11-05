@@ -19,8 +19,8 @@ export function SlotCalendar({ professionalId, professionalName, timezone }: Slo
   const [now] = useState(() => new Date());
   const loadSlots = useCallback(() => getSlots(professionalId), [professionalId]);
   const { data: slots, error: loadError, reload } = useLoad(loadSlots);
-  const [picked, setPicked] = useState<string | null>(null);
-  const [chosen, setChosen] = useState<Slot | null>(null);
+  const [pickedDay, setPickedDay] = useState<string | null>(null);
+  const [chosenSlot, setChosenSlot] = useState<Slot | null>(null);
   const [booked, setBooked] = useState<string | null>(null);
   const [refusal, setRefusal] = useState<string | null>(null);
 
@@ -28,30 +28,30 @@ export function SlotCalendar({ professionalId, professionalName, timezone }: Slo
   const lastDay = localDate(new Date(now.getTime() + BOOKING_WINDOW_DAYS * DAY_MS), timezone);
   const weeks = calendarWeeks(localDate(now, timezone), lastDay);
   // The picked day may have just lost its last free time, so it falls back to the first free day.
-  const selected = picked && slotsByDay.has(picked) ? picked : slotsByDay.keys().next().value;
+  const selectedDay = pickedDay && slotsByDay.has(pickedDay) ? pickedDay : slotsByDay.keys().next().value;
 
-  function pick(slot: Slot) {
+  function chooseSlot(slot: Slot) {
     setBooked(null);
     setRefusal(null);
-    setChosen(slot);
+    setChosenSlot(slot);
   }
 
   function backToCalendar() {
-    setChosen(null);
+    setChosenSlot(null);
     reload();
   }
 
-  if (chosen) {
+  if (chosenSlot) {
     return (
       <ConfirmBooking
         professionalId={professionalId}
         professionalName={professionalName}
-        slot={chosen}
+        slot={chosenSlot}
         timezone={timezone}
-        onBack={() => setChosen(null)}
+        onBack={() => setChosenSlot(null)}
         onBooked={() => {
           setBooked(
-            `Booked: ${formatDay(localDate(chosen.start, timezone))}, ${formatTimeRange(chosen, timezone)}`,
+            `Booked: ${formatDay(localDate(chosenSlot.start, timezone))}, ${formatTimeRange(chosenSlot, timezone)}`,
           );
           backToCalendar();
         }}
@@ -77,15 +77,15 @@ export function SlotCalendar({ professionalId, professionalName, timezone }: Slo
           <CalendarGrid
             weeks={weeks}
             freeDays={new Set(slotsByDay.keys())}
-            selected={selected}
-            onSelect={setPicked}
+            selected={selectedDay}
+            onSelect={setPickedDay}
           />
-          {selected ? (
+          {selectedDay ? (
             <DayTimes
-              day={selected}
-              slots={slotsByDay.get(selected) ?? []}
+              day={selectedDay}
+              slots={slotsByDay.get(selectedDay) ?? []}
               timezone={timezone}
-              onPick={pick}
+              onPick={chooseSlot}
             />
           ) : (
             <p className="hint">No free times in the next 4 weeks.</p>
