@@ -16,6 +16,7 @@ export function Header() {
             <span>
               {user.name} · {user.role === Role.PROFESSIONAL ? "Professional" : "Member"}
             </span>
+            <Link to="/">My sessions</Link>
             {user.role === Role.PROFESSIONAL && <Link to="/settings">My hours and profile</Link>}
             {user.role === Role.MEMBER && <Link to="/professionals">Professionals</Link>}
             <span>Times shown in {user.timezone}</span>
