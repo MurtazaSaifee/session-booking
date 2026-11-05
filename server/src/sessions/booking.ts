@@ -1,8 +1,17 @@
-import { ErrorCode } from "../errors.js";
+import { ErrorCode, HttpError } from "../errors.js";
 import { bookingWindowEnd, buildSlots, overlaps, type SlotInputs } from "../slots/slots.js";
 
-export type BookingRefusal =
-  typeof ErrorCode.SLOT_NOT_AVAILABLE | typeof ErrorCode.MEMBER_OVERLAP | typeof ErrorCode.SLOT_TAKEN;
+const refusals = {
+  [ErrorCode.SLOT_NOT_AVAILABLE]: { status: 422, message: "That time isn't available." },
+  [ErrorCode.MEMBER_OVERLAP]: { status: 409, message: "You already have a session at that time." },
+  [ErrorCode.SLOT_TAKEN]: { status: 409, message: "That time was just booked. Please pick another." },
+};
+
+export type BookingRefusal = keyof typeof refusals;
+
+export function refuse(refusal: BookingRefusal): HttpError {
+  return new HttpError(refusals[refusal].status, refusal, refusals[refusal].message);
+}
 
 // The member's own clash is checked before the professional's, so someone retrying after their
 // session already went through is told they already have it, not that someone else took it.

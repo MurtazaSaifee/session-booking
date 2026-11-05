@@ -1,24 +1,13 @@
 import express from "express";
 import type { AppDeps } from "../app.js";
 import { currentUser, requireRole } from "../auth/session.js";
-import { ErrorCode, HttpError } from "../errors.js";
 import { Role } from "../roles.js";
 import { slotInputsOr404 } from "../slots/lookup.js";
 import { sessionEnd } from "../slots/slots.js";
 import { parseBody } from "../validation.js";
-import { checkStart, type BookingRefusal } from "./booking.js";
+import { checkStart, refuse } from "./booking.js";
 import { bookSessionSchema } from "./schemas.js";
 import { insertSession } from "./store.js";
-
-const refusals: Record<BookingRefusal, { status: number; message: string }> = {
-  [ErrorCode.SLOT_NOT_AVAILABLE]: { status: 422, message: "That time isn't available." },
-  [ErrorCode.MEMBER_OVERLAP]: { status: 409, message: "You already have a session at that time." },
-  [ErrorCode.SLOT_TAKEN]: { status: 409, message: "That time was just booked. Please pick another." },
-};
-
-function refuse(refusal: BookingRefusal): HttpError {
-  return new HttpError(refusals[refusal].status, refusal, refusals[refusal].message);
-}
 
 export function sessionRoutes(deps: AppDeps): express.Router {
   const router = express.Router();
