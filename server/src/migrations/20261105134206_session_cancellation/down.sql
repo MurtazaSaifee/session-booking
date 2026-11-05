@@ -1,1 +1,1 @@
-alter table sessions drop column cancelled_by, drop column cancelled_at;
+alter table sessions drop column if exists cancelled_by, drop column if exists cancelled_at;

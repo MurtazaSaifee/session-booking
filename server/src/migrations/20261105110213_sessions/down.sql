@@ -1,1 +1,1 @@
-drop table sessions;
+drop table if exists sessions;

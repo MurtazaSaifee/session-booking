@@ -1,3 +1,3 @@
 alter table sessions
-  add column cancelled_by uuid constraint sessions_cancelled_by_fkey references users (id),
-  add column cancelled_at timestamptz;
+  add column if not exists cancelled_by uuid constraint sessions_cancelled_by_fkey references users (id),
+  add column if not exists cancelled_at timestamptz;

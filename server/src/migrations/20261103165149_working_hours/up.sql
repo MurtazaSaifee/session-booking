@@ -1,4 +1,4 @@
-create table working_hours (
+create table if not exists working_hours (
   id uuid primary key default gen_random_uuid(),
   professional_id uuid not null constraint working_hours_professional_id_fkey references users (id) on delete cascade,
   -- ISO weekday, Monday = 1
@@ -7,4 +7,4 @@ create table working_hours (
   end_time time not null
 );
 
-create index working_hours_professional_id_idx on working_hours (professional_id);
+create index if not exists working_hours_professional_id_idx on working_hours (professional_id);

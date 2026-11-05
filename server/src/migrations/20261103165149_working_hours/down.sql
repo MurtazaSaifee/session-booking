@@ -1,1 +1,1 @@
-drop table working_hours;
+drop table if exists working_hours;

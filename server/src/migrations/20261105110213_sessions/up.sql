@@ -1,4 +1,4 @@
-create table sessions (
+create table if not exists sessions (
   id uuid primary key default gen_random_uuid(),
   member_id uuid not null constraint sessions_member_id_fkey references users (id),
   professional_id uuid not null constraint sessions_professional_id_fkey references users (id),
