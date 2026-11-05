@@ -3,7 +3,7 @@ import { ErrorCode } from "../../src/errors.js";
 import { PAGE_SIZE } from "../../src/paging.js";
 import { API_V1 } from "../../src/paths.js";
 import { SessionStatus } from "../../src/session-status.js";
-import { CancelledBy } from "../../src/sessions/list-store.js";
+import { CancelledBy } from "../../src/sessions/store.js";
 import { createTestApp, resetDb, signUpAgent, testClock, testMember, testProfessional } from "../app.js";
 import { createTestDb } from "../db.js";
 import {
@@ -16,7 +16,7 @@ import {
   markCancelled,
   signUpProfessional,
   userId,
-} from "./helpers.js";
+} from "../booking/helpers.js";
 
 const FIRST_ENDS = "2027-01-18T04:20:00.000Z";
 const SECOND_ENDS = "2027-01-18T05:20:00.000Z";

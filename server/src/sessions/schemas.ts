@@ -1,11 +1,6 @@
 import { z } from "zod";
 import { SessionList } from "./session-list.js";
 
-export const bookSessionSchema = z.object({
-  professionalId: z.string("Please choose a professional."),
-  start: z.iso.datetime({ offset: true, error: "Please choose a valid start time." }),
-});
-
 export const sessionIdSchema = z.uuid();
 
 export const sessionsPageSchema = z.object({

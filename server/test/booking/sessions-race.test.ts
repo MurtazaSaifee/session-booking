@@ -2,7 +2,7 @@ import { afterAll, beforeEach, expect, it } from "vitest";
 import { createDb } from "../../src/db.js";
 import { ErrorCode } from "../../src/errors.js";
 import { SessionStatus } from "../../src/session-status.js";
-import { insertSession } from "../../src/sessions/store.js";
+import { insertSession } from "../../src/booking/store.js";
 import { sessionEnd } from "../../src/slots/slots.js";
 import { createTestApp, resetDb, signUpAgent, testClock, testMember, testProfessional } from "../app.js";
 import { testDatabaseUrl } from "../db.js";

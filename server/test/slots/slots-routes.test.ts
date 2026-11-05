@@ -11,7 +11,7 @@ import {
   signUpProfessional,
   singaporeProfessional,
   type Agent,
-} from "../sessions/helpers.js";
+} from "../booking/helpers.js";
 
 const MONDAY = 1;
 const CLOCK_START = "2027-01-15T09:00:00Z";

@@ -14,7 +14,7 @@ import {
   markCancelled,
   signUpProfessional,
   userId,
-} from "./helpers.js";
+} from "../booking/helpers.js";
 
 // 24 slots: the next three Mondays with 09:00-17:00 hours in Kolkata.
 const KOLKATA_STARTS = ["2027-01-18", "2027-01-25", "2027-02-01"].flatMap((day) =>
