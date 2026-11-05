@@ -67,7 +67,7 @@ export function newRefreshTokenRecord(now: Date): NewRefreshToken & { refreshTok
   };
 }
 
-export async function signInTokens(
+async function signInTokens(
   user: { id: string; role: Role },
   refreshToken: string,
   deps: AppDeps,
@@ -95,6 +95,17 @@ export function setSignInCookies(res: Response, tokens: SignIn, deps: AppDeps): 
     path: AUTH_PATH,
     maxAge: REFRESH_TOKEN_DAYS * DAY_MS,
   });
+}
+
+// For a refresh token that is already saved: it goes out with a new access token.
+export async function finishSignIn(
+  res: Response,
+  user: { id: string; role: Role },
+  refreshToken: string,
+  deps: AppDeps,
+  now: Date,
+): Promise<void> {
+  setSignInCookies(res, await signInTokens(user, refreshToken, deps, now), deps);
 }
 
 // Browsers only drop a cookie when the path and flags match the ones it was set with.

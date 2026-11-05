@@ -8,11 +8,11 @@ import { loginSchema, signupSchema } from "./schemas.js";
 import {
   clearSignIn,
   createSignIn,
+  finishSignIn,
   newRefreshTokenRecord,
   notSignedIn,
   setSignInCookies,
   signedInUser,
-  signInTokens,
 } from "./sign-in.js";
 import {
   createUserWithRefreshToken,
@@ -52,7 +52,7 @@ export function authRoutes(deps: AppDeps): express.Router {
     );
     if (!user) throw new HttpError(409, ErrorCode.EMAIL_TAKEN, "An account with this email already exists.");
 
-    setSignInCookies(res, await signInTokens(user, refresh.refreshToken, deps, now), deps);
+    await finishSignIn(res, user, refresh.refreshToken, deps, now);
     res.status(201).json({ user });
   });
 
@@ -90,7 +90,7 @@ export function authRoutes(deps: AppDeps): express.Router {
       throw notSignedIn();
     }
 
-    setSignInCookies(res, await signInTokens(user, refresh.refreshToken, deps, now), deps);
+    await finishSignIn(res, user, refresh.refreshToken, deps, now);
     res.json({ user });
   });
 
