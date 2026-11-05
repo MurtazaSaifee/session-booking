@@ -15,6 +15,10 @@ const refusals: Record<BookingRefusal, { status: number; message: string }> = {
   [ErrorCode.SLOT_TAKEN]: { status: 409, message: "That time was just booked. Please pick another." },
 };
 
+function refuse(refusal: BookingRefusal): HttpError {
+  return new HttpError(refusals[refusal].status, refusal, refusals[refusal].message);
+}
+
 export function sessionRoutes(deps: AppDeps): express.Router {
   const router = express.Router();
 
@@ -29,16 +33,18 @@ export function sessionRoutes(deps: AppDeps): express.Router {
     if (!context) throw professionalNotFound();
 
     const refusal = checkStart({ start: startsAt, now, ...context });
-    if (refusal) throw new HttpError(refusals[refusal].status, refusal, refusals[refusal].message);
+    if (refusal) throw refuse(refusal);
 
-    const session = await insertSession(deps.db, {
+    const saved = await insertSession(deps.db, {
       memberId,
       professionalId,
       start: startsAt,
       end: sessionEnd(startsAt),
     });
 
-    res.status(201).json({ session });
+    if ("refusal" in saved) throw refuse(saved.refusal);
+
+    res.status(201).json({ session: saved.session });
   });
 
   return router;

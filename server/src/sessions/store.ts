@@ -1,7 +1,9 @@
 import type { Db } from "../db.js";
 import type { Interval } from "../directory/slots.js";
+import { ErrorCode } from "../errors.js";
 import { Role } from "../roles.js";
 import type { TimeRange } from "../settings/hours.js";
+import type { BookingRefusal } from "./booking.js";
 import { SessionStatus } from "./status.js";
 
 type SessionRow = {
@@ -84,24 +86,41 @@ export async function findBookingContext(
   };
 }
 
+// Two requests can both pass the check before either saves, so the database has the last word.
+function overlapRefusal(err: unknown): BookingRefusal | undefined {
+  const pgError = err as { code?: string; constraint?: string };
+  if (pgError.code !== "23P01") return undefined;
+  if (pgError.constraint === "sessions_professional_overlap") return ErrorCode.SLOT_TAKEN;
+  if (pgError.constraint === "sessions_member_overlap") return ErrorCode.MEMBER_OVERLAP;
+  return undefined;
+}
+
 export async function insertSession(
   db: Db,
   input: { memberId: string; professionalId: string; start: Date; end: Date },
-): Promise<Session> {
-  const [row]: SessionRow[] = await db<SessionRow>("sessions")
-    .insert({
-      member_id: input.memberId,
-      professional_id: input.professionalId,
-      starts_at: input.start,
-      ends_at: input.end,
-      status: SessionStatus.BOOKED,
-    })
-    .returning("*");
-  return {
-    id: row.id,
-    professionalId: row.professional_id,
-    start: row.starts_at,
-    end: row.ends_at,
-    status: row.status,
-  };
+): Promise<{ session: Session } | { refusal: BookingRefusal }> {
+  try {
+    const [row]: SessionRow[] = await db<SessionRow>("sessions")
+      .insert({
+        member_id: input.memberId,
+        professional_id: input.professionalId,
+        starts_at: input.start,
+        ends_at: input.end,
+        status: SessionStatus.BOOKED,
+      })
+      .returning("*");
+    return {
+      session: {
+        id: row.id,
+        professionalId: row.professional_id,
+        start: row.starts_at,
+        end: row.ends_at,
+        status: row.status,
+      },
+    };
+  } catch (err) {
+    const refusal = overlapRefusal(err);
+    if (refusal) return { refusal };
+    throw err;
+  }
 }
