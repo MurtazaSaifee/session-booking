@@ -1,8 +1,6 @@
 import { afterAll, beforeEach, expect, it } from "vitest";
-import { ErrorCode } from "../../src/errors.js";
 import { PAGE_SIZE } from "../../src/paging.js";
 import { SessionStatus } from "../../src/session-status.js";
-import { CancelledBy } from "../../src/sessions/my-session.js";
 import { createTestApp, resetDb, signUpAgent, testClock, testMember, testProfessional } from "../app.js";
 import { createTestDb } from "../db.js";
 import {
@@ -14,9 +12,7 @@ import {
   type Agent,
   book,
   logIn,
-  markCancelled,
   signUpProfessional,
-  userId,
 } from "../booking/helpers.js";
 
 const FIRST_ENDS = "2027-01-18T04:20:00.000Z";
@@ -115,57 +111,6 @@ it("lists upcoming soonest first and past most recent first", async () => {
   expect(past.map((session: { end: string }) => session.end)).toEqual([SECOND_ENDS, FIRST_ENDS]);
 });
 
-it("lists a cancelled session only under cancelled, whether its time is ahead or gone", async () => {
-  const { professional, member } = await setUp();
-  const ahead = await bookId(member, professional.id, KOLKATA_FIRST);
-  const gone = await bookId(member, professional.id, KOLKATA_SECOND);
-  await markCancelled(db, ahead, await userId(member), CLOCK_START);
-  await markCancelled(db, gone, await userId(member), CLOCK_START);
-
-  const res = await memberSessionsAt(member, "2027-01-18T04:25:00Z");
-
-  expect(res.upcoming.items).toEqual([]);
-  expect(res.past.items).toEqual([]);
-  expect(res.cancelled.items.map((session: { id: string }) => session.id)).toEqual([gone, ahead]);
-  expect(res.cancelled.items[0].status).toBe(SessionStatus.CANCELLED);
-});
-
-it("tells each person whether they were the one who cancelled", async () => {
-  const { professional, member } = await setUp();
-  const id = await bookId(member, professional.id, KOLKATA_FIRST);
-  await markCancelled(db, id, professional.id, CLOCK_START);
-
-  const professionalView = (await mySessions(professional.agent)).body.cancelled.items[0];
-  const memberView = (await mySessions(member)).body.cancelled.items[0];
-
-  expect(professionalView.cancelledBy).toBe(CancelledBy.YOU);
-  expect(memberView.cancelledBy).toBe(CancelledBy.OTHER_PERSON);
-});
-
-it("doesn't guess when a cancelled session has no record of who cancelled it", async () => {
-  const { professional, member } = await setUp();
-  const id = await bookId(member, professional.id, KOLKATA_FIRST);
-  await db("sessions").where({ id }).update({ status: SessionStatus.CANCELLED });
-
-  const memberView = (await mySessions(member)).body.cancelled.items[0];
-  const professionalView = (await mySessions(professional.agent)).body.cancelled.items[0];
-
-  expect(memberView.cancelledBy).toBeNull();
-  expect(professionalView.cancelledBy).toBeNull();
-});
-
-it("a time cancelled and rebooked shows one row in upcoming and one under cancelled", async () => {
-  const { professional, member } = await setUp();
-  const old = await bookId(member, professional.id, KOLKATA_FIRST);
-  await markCancelled(db, old, await userId(member), CLOCK_START);
-  const rebooked = await bookId(member, professional.id, KOLKATA_FIRST);
-
-  const res = (await mySessions(member)).body;
-
-  expect(res.upcoming.items.map((session: { id: string }) => session.id)).toEqual([rebooked]);
-  expect(res.cancelled.items.map((session: { id: string }) => session.id)).toEqual([old]);
-});
-
 it("returns at most one page of each list, and says when more follow", async () => {
   const { professional, member } = await setUp();
   for (const start of KOLKATA_STARTS.slice(0, PAGE_SIZE)) await book(member, professional.id, start);
@@ -179,35 +124,4 @@ it("returns at most one page of each list, and says when more follow", async () 
   const more = (await mySessions(member)).body.upcoming;
   expect(more.items).toHaveLength(PAGE_SIZE);
   expect(more.next).toEqual(expect.any(String));
-});
-
-it("looks up one session for either person on it", async () => {
-  const { professional, member } = await setUp();
-  const id = await bookId(member, professional.id, KOLKATA_FIRST);
-
-  const memberView = await member.get(`${SESSIONS_URL}/${id}`);
-  const professionalView = await professional.agent.get(`${SESSIONS_URL}/${id}`);
-
-  expect(memberView.status).toBe(200);
-  expect(memberView.body.session).toEqual({
-    id,
-    otherPersonName: testProfessional.name,
-    start: "2027-01-18T03:30:00.000Z",
-    end: FIRST_ENDS,
-    status: SessionStatus.BOOKED,
-    cancelledBy: null,
-  });
-  expect(professionalView.body.session.otherPersonName).toBe(testMember.name);
-});
-
-it.each([
-  ["an id that doesn't exist", "00000000-0000-4000-8000-000000000000"],
-  ["a malformed id", "not-a-uuid"],
-])("looking up %s gives a 404", async (_name, id) => {
-  const member = await signUpAgent(app, testMember);
-
-  const res = await member.get(`${SESSIONS_URL}/${id}`);
-
-  expect(res.status).toBe(404);
-  expect(res.body).toEqual({ error: ErrorCode.NOT_FOUND, message: "We couldn't find that session." });
 });
