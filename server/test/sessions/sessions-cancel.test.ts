@@ -6,6 +6,7 @@ import { createTestApp, resetDb, testClock, testMember, testProfessional } from 
 import { CLOCK_START, SESSIONS_URL, book, logIn } from "../booking/helpers.js";
 import { createTestDb } from "../db.js";
 import { HOUR_BEFORE_DUE, SESSION_START, bookOneSession, textsFor } from "../reminders/helpers.js";
+import { withTrigger } from "./helpers.js";
 
 const clock = testClock(CLOCK_START);
 
@@ -94,20 +95,12 @@ it("cancelling a cancelled session again changes nothing and tells no one twice"
 it("if the notice can't be saved, the session stays booked and its reminders stay", async () => {
   const { member, professional, sessionId } = await bookOneSession(app);
   vi.spyOn(console, "error").mockImplementation(() => {});
-  await db.raw(
-    "create function refuse_notices() returns trigger language plpgsql as $$ begin raise exception 'refused'; end $$",
-  );
-  await db.raw(
-    "create trigger refuse_notices before insert on notifications for each row execute function refuse_notices()",
-  );
-  try {
+  const refuseNotices = { table: "notifications", event: "insert", body: "raise exception 'refused';" };
+  await withTrigger(db, refuseNotices, async () => {
     const res = await professional.post(cancelUrl(sessionId)).send({});
     expect(res.status).toBe(500);
-  } finally {
-    await db.raw("drop trigger refuse_notices on notifications");
-    await db.raw("drop function refuse_notices()");
-    vi.restoreAllMocks();
-  }
+  });
+  vi.restoreAllMocks();
 
   expect((await member.get(SESSIONS_URL)).body.upcoming.items).toHaveLength(1);
   await deliverDueReminders(db, new Date(HOUR_BEFORE_DUE));

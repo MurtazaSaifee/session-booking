@@ -8,53 +8,44 @@ import { createTestApp, resetDb, testClock } from "../app.js";
 import { CLOCK_START, SESSIONS_URL, type Agent } from "../booking/helpers.js";
 import { testDatabaseUrl } from "../db.js";
 import { HOUR_BEFORE_DUE, bookOneSession, textsFor } from "../reminders/helpers.js";
-
-const clock = testClock(CLOCK_START);
+import { withTrigger } from "./helpers.js";
 
 // One connection each for the hold, the two sides of the race, and watching them wait.
 const db = createDb(testDatabaseUrl, { max: 4 });
-const app = createTestApp(db, clock.now);
+const app = createTestApp(db, testClock(CLOCK_START).now);
 
 const HOLD_LOCK_ID = 808;
-// Also run first, because a hold left by a killed run would stop every later test that saves that row.
-const DROP_HOLD = "drop function if exists hold_save() cascade; drop sequence if exists held_rows";
 const CHECKER_SAVING = "delivered as";
 const CANCEL_SAVING = "cancelled_reminders";
+const CANCEL_ON_SESSION = {
+  table: "sessions",
+  event: "update",
+  when: `new.status = '${SessionStatus.CANCELLED}'`,
+  atRow: 1,
+};
 
-beforeEach(() => {
-  clock.set(CLOCK_START);
-  return resetDb(db);
-});
+beforeEach(() => resetDb(db));
 
 afterAll(() => db.destroy());
 
 type Hold = { table: string; event: string; when: string; atRow: number };
 
 // Stops a save on one row until the test releases it, so the order of a race is chosen, not hoped for.
-async function holdSave(
-  { table, event, when, atRow }: Hold,
-  run: (release: () => Promise<void>) => Promise<void>,
-) {
-  await db.raw(DROP_HOLD);
+async function holdSave({ atRow, ...trigger }: Hold, run: (release: () => Promise<void>) => Promise<void>) {
+  await db.raw("drop sequence if exists held_rows");
+  await db.raw("create sequence held_rows");
   const holder = await db.transaction();
   await holder.raw("select pg_advisory_xact_lock(?)", [HOLD_LOCK_ID]);
-  await db.raw("create sequence held_rows");
-  await db.raw(`
-    create function hold_save() returns trigger language plpgsql as $$
-    begin
-      if nextval('held_rows') = ${atRow} then perform pg_advisory_xact_lock(${HOLD_LOCK_ID}); end if;
-      return new;
-    end $$`);
-  await db.raw(
-    `create trigger hold_save before ${event} on ${table} for each row when (${when}) execute function hold_save()`,
-  );
+  const body = `if nextval('held_rows') = ${atRow} then perform pg_advisory_xact_lock(${HOLD_LOCK_ID}); end if;`;
   try {
-    await run(async () => {
-      await holder.commit();
-    });
+    await withTrigger(db, { ...trigger, body }, () =>
+      run(async () => {
+        await holder.commit();
+      }),
+    );
   } finally {
     if (!holder.isCompleted()) await holder.rollback();
-    await db.raw(DROP_HOLD);
+    await db.raw("drop sequence held_rows");
   }
 }
 
@@ -77,15 +68,28 @@ function startCancel(professional: Agent, sessionId: string) {
   return Promise.resolve(professional.post(`${SESSIONS_URL}/${sessionId}/cancel`).send({}));
 }
 
-async function afterTheRace(sessionId: string) {
-  const reminders: { id: string; status: string }[] = await db("reminders").where({ session_id: sessionId });
-  const deliveredIds: string[] = await db("notifications").whereNotNull("reminder_id").pluck("reminder_id");
-  const session = await db("sessions").where({ id: sessionId }).first();
-  return { reminders, deliveredIds, session };
+async function remindersDelivered(agent: Agent) {
+  return (await textsFor(agent)).filter((text) => text.startsWith("Your session with")).length;
+}
+
+type Booked = Awaited<ReturnType<typeof bookOneSession>>;
+
+// Each person sees the cancel and what reached them. Only the reminder status is about storage itself.
+async function expectOutcome(
+  { member, professional, sessionId }: Booked,
+  expected: { deliveredEach: number; reminderStatus: ReminderStatus },
+) {
+  const { cancelled } = (await member.get(SESSIONS_URL)).body;
+  expect(cancelled.items.map((session: { id: string }) => session.id)).toEqual([sessionId]);
+  expect(await remindersDelivered(member)).toBe(expected.deliveredEach);
+  expect(await remindersDelivered(professional)).toBe(expected.deliveredEach);
+  const statuses: string[] = await db("reminders").where({ session_id: sessionId }).pluck("status");
+  expect(statuses).toEqual(Array(4).fill(expected.reminderStatus));
 }
 
 it("a cancel waits for a checker holding the reminders, then leaves the delivered ones alone", async () => {
-  const { professional, sessionId } = await bookOneSession(app);
+  const booked = await bookOneSession(app);
+  const { professional, sessionId } = booked;
   const checkerSaving = {
     table: "notifications",
     event: "insert",
@@ -102,14 +106,12 @@ it("a cancel waits for a checker holding the reminders, then leaves the delivere
     await Promise.all([check, cancel]);
   });
 
-  const { reminders, deliveredIds, session } = await afterTheRace(sessionId);
-  expect(session.status).toBe(SessionStatus.CANCELLED);
-  expect(deliveredIds).toHaveLength(4);
-  expect(reminders.map((reminder) => reminder.status)).toEqual(Array(4).fill(ReminderStatus.SENT));
+  await expectOutcome(booked, { deliveredEach: 2, reminderStatus: ReminderStatus.SENT });
 });
 
 it("a checker that runs while a cancel holds the reminders delivers none of them", async () => {
-  const { professional, sessionId } = await bookOneSession(app);
+  const booked = await bookOneSession(app);
+  const { professional, sessionId } = booked;
   const cancelOnLastReminder = {
     table: "reminders",
     event: "update",
@@ -126,23 +128,28 @@ it("a checker that runs while a cancel holds the reminders delivers none of them
   });
   await deliverDueReminders(db, new Date(HOUR_BEFORE_DUE));
 
-  const { reminders, deliveredIds, session } = await afterTheRace(sessionId);
-  expect(session.status).toBe(SessionStatus.CANCELLED);
-  expect(deliveredIds).toEqual([]);
-  expect(reminders.map((reminder) => reminder.status)).toEqual(Array(4).fill(ReminderStatus.CANCELLED));
+  await expectOutcome(booked, { deliveredEach: 0, reminderStatus: ReminderStatus.CANCELLED });
+});
+
+it("a checker that runs before the cancel reaches the reminders delivers them, and the cancel leaves them", async () => {
+  const booked = await bookOneSession(app);
+
+  await holdSave(CANCEL_ON_SESSION, async (release) => {
+    const cancel = startCancel(booked.professional, booked.sessionId);
+    await waitUntilStuck(CANCEL_SAVING);
+    await deliverDueReminders(db, new Date(HOUR_BEFORE_DUE));
+    await release();
+    await cancel;
+  });
+
+  await expectOutcome(booked, { deliveredEach: 2, reminderStatus: ReminderStatus.SENT });
 });
 
 it("two cancels at the same moment both succeed and tell the other person once", async () => {
   const { member, professional, sessionId } = await bookOneSession(app);
-  const firstCancelOnSession = {
-    table: "sessions",
-    event: "update",
-    when: `new.status = '${SessionStatus.CANCELLED}'`,
-    atRow: 1,
-  };
 
   let statuses: number[] = [];
-  await holdSave(firstCancelOnSession, async (release) => {
+  await holdSave(CANCEL_ON_SESSION, async (release) => {
     const first = startCancel(professional, sessionId);
     await waitUntilStuck(CANCEL_SAVING);
     const second = startCancel(professional, sessionId);

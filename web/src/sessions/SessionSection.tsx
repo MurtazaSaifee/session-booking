@@ -1,6 +1,6 @@
 import type { Page } from "../api";
+import type { User } from "../auth/AuthProvider";
 import { PageControls } from "../components/PageControls";
-import type { Role } from "../roles";
 import { usePager } from "../usePager";
 import { getNextSessions, type MySession, type SessionList } from "./api";
 import { SessionCard } from "./SessionCard";
@@ -10,20 +10,11 @@ type SessionSectionProps = {
   emptyMessage: string;
   list: SessionList;
   first: Page<MySession>;
-  timezone: string;
-  role: Role;
+  user: User;
   onCancelled: () => void;
 };
 
-export function SessionSection({
-  title,
-  emptyMessage,
-  list,
-  first,
-  timezone,
-  role,
-  onCancelled,
-}: SessionSectionProps) {
+export function SessionSection({ title, emptyMessage, list, first, user, onCancelled }: SessionSectionProps) {
   const pager = usePager(first, (cursor) => getNextSessions(list, cursor));
 
   return (
@@ -34,13 +25,7 @@ export function SessionSection({
       ) : (
         <ul className="sessions">
           {pager.items.map((session) => (
-            <SessionCard
-              key={session.id}
-              session={session}
-              timezone={timezone}
-              role={role}
-              onCancelled={onCancelled}
-            />
+            <SessionCard key={session.id} session={session} user={user} onCancelled={onCancelled} />
           ))}
         </ul>
       )}

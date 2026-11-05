@@ -10,9 +10,14 @@ export function sessionNotFound(): HttpError {
   return new HttpError(404, ErrorCode.NOT_FOUND, "We couldn't find that session.");
 }
 
-export async function mySessionOr404(deps: AppDeps, viewer: SignedInUser, id: unknown): Promise<MySession> {
+export function sessionIdOr404(id: unknown): string {
   const parsed = sessionIdSchema.safeParse(id);
-  const session = parsed.success ? await findMySession(deps.db, viewer, parsed.data) : undefined;
+  if (!parsed.success) throw sessionNotFound();
+  return parsed.data;
+}
+
+export async function mySessionOr404(deps: AppDeps, viewer: SignedInUser, id: unknown): Promise<MySession> {
+  const session = await findMySession(deps.db, viewer, sessionIdOr404(id));
   if (!session) throw sessionNotFound();
   return session;
 }

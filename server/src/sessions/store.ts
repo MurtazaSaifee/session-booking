@@ -128,9 +128,7 @@ export async function findToCancel(
 
 type CancelInput = { id: string; cancelledBy: string; recipientId: string; text: string; now: Date };
 
-// One statement, so the session, its reminders and the notice all change together or not at all. The status
-// check makes a second cancel at the same moment do nothing, and a reminder the checker is delivering at that
-// moment is waited for, not cancelled.
+// One statement, so the session, its reminders and the notice all change together or not at all.
 export async function cancelSession(db: Db, input: CancelInput): Promise<void> {
   await db.raw(
     `

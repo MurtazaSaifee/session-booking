@@ -17,12 +17,11 @@ const sections = [
 
 export function MySessionsPage({ user }: { user: User }) {
   const { data: sessions, error: loadError, reload } = useLoad(getMySessions);
-  const { timezone, role } = user;
 
   return (
     <section className="card">
       <h1>My sessions</h1>
-      <p className="hint">Times shown in {timezone}.</p>
+      <p className="hint">Times shown in {user.timezone}.</p>
       {loadError ? (
         <ErrorMessage message={loadError} />
       ) : !sessions ? (
@@ -35,8 +34,7 @@ export function MySessionsPage({ user }: { user: User }) {
             emptyMessage={section.emptyMessage}
             list={section.list}
             first={sessions[section.key]}
-            timezone={timezone}
-            role={role}
+            user={user}
             onCancelled={reload}
           />
         ))
