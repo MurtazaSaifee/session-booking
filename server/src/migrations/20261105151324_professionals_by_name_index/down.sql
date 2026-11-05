@@ -1,0 +1,1 @@
+drop index users_professionals_by_name_idx;

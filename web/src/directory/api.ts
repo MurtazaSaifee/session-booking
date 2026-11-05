@@ -9,8 +9,8 @@ export type Professional = {
 };
 
 export async function listProfessionals(): Promise<Professional[]> {
-  const { professionals } = await api<{ professionals: Professional[] }>("/professionals");
-  return professionals;
+  const { items } = await api<{ items: Professional[] }>("/professionals");
+  return items;
 }
 
 export async function getProfessional(id: string): Promise<Professional> {
