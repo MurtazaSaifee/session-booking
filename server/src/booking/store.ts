@@ -1,6 +1,6 @@
 import type { Db } from "../db.js";
 import { ErrorCode } from "../errors.js";
-import { ReminderKind, ReminderStatus } from "../reminders/reminder-values.js";
+import { REMINDER_LEAD_TIME, ReminderKind, ReminderStatus } from "../reminders/reminder-values.js";
 import { SessionStatus } from "../session-status.js";
 import type { BookingRefusal } from "./rules.js";
 
@@ -49,7 +49,9 @@ export async function insertSession(
         from new_session s
         cross join lateral (values (s.member_id), (s.professional_id)) as recipient (id)
         cross join (
-          values (:dayBefore, interval '24 hours'), (:hourBefore, interval '1 hour')
+          values
+            (:dayBefore, cast(:dayBeforeLeadTime as interval)),
+            (:hourBefore, cast(:hourBeforeLeadTime as interval))
         ) as reminder (kind, lead_time)
         where s.starts_at - reminder.lead_time > :now
       )
@@ -61,6 +63,8 @@ export async function insertSession(
         pending: ReminderStatus.PENDING,
         dayBefore: ReminderKind.DAY_BEFORE,
         hourBefore: ReminderKind.HOUR_BEFORE,
+        dayBeforeLeadTime: REMINDER_LEAD_TIME[ReminderKind.DAY_BEFORE],
+        hourBeforeLeadTime: REMINDER_LEAD_TIME[ReminderKind.HOUR_BEFORE],
       },
     );
     const row = result.rows[0];
