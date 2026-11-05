@@ -1,6 +1,6 @@
 import express from "express";
 import type { AppDeps } from "../app.js";
-import { currentUser, requireSignedIn } from "../auth/sign-in.js";
+import { currentUser, requireSignedIn } from "../auth/guards.js";
 import { decodeCursor } from "../paging.js";
 import { parseBody } from "../validation.js";
 import { mySessionOr404 } from "./lookup.js";

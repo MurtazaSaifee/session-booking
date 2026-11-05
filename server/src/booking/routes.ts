@@ -1,6 +1,6 @@
 import express from "express";
 import type { AppDeps } from "../app.js";
-import { currentUser, requireRole } from "../auth/sign-in.js";
+import { currentUser, requireRole } from "../auth/guards.js";
 import { Role } from "../roles.js";
 import { slotInputsOr404 } from "../slots/lookup.js";
 import { sessionEnd } from "../slots/slots.js";

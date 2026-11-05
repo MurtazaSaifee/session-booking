@@ -2,8 +2,12 @@ import { createHash, randomBytes } from "node:crypto";
 import { SignJWT, jwtVerify } from "jose";
 import { Role } from "../roles.js";
 
-export const ACCESS_TOKEN_MINUTES = 15;
-export const REFRESH_TOKEN_DAYS = 7;
+const MINUTE_MS = 60_000;
+const ACCESS_TOKEN_MINUTES = 15;
+export const ACCESS_TOKEN_MS = ACCESS_TOKEN_MINUTES * MINUTE_MS;
+export const REFRESH_TOKEN_MS = 7 * 24 * 60 * MINUTE_MS;
+
+export type SignIn = { accessToken: string; refreshToken: string };
 
 export async function signAccessToken(
   user: { id: string; role: Role },

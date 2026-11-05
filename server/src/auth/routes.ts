@@ -3,17 +3,11 @@ import type { AppDeps } from "../app.js";
 import { ErrorCode, HttpError } from "../errors.js";
 import { Role } from "../roles.js";
 import { parseBody } from "../validation.js";
+import { clearSignIn, setSignInCookies } from "./cookies.js";
+import { notSignedIn, signedInUser } from "./guards.js";
 import { hashPassword, verifyPassword } from "./passwords.js";
 import { loginSchema, signupSchema } from "./schemas.js";
-import {
-  clearSignIn,
-  createSignIn,
-  finishSignIn,
-  newRefreshTokenRecord,
-  notSignedIn,
-  setSignInCookies,
-  signedInUser,
-} from "./sign-in.js";
+import { createSignIn, finishSignIn, newRefreshTokenRecord } from "./sign-in.js";
 import {
   createUserWithRefreshToken,
   findUserByEmail,

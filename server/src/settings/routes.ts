@@ -1,6 +1,6 @@
 import express from "express";
 import type { AppDeps } from "../app.js";
-import { currentUser, notSignedIn, requireRole } from "../auth/sign-in.js";
+import { currentUser, notSignedIn, requireRole } from "../auth/guards.js";
 import { ErrorCode, HttpError } from "../errors.js";
 import { Role } from "../roles.js";
 import { parseBody } from "../validation.js";
