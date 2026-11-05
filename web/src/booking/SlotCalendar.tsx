@@ -3,6 +3,7 @@ import { ErrorMessage } from "../components/ErrorMessage";
 import { formatDay, formatTimeRange } from "../time/format";
 import { useLoad } from "../useLoad";
 import { getSlots, type Slot } from "./api";
+import { BookingNotice } from "./BookingNotice";
 import { calendarWeeks, groupByLocalDay, localDate } from "./calendar";
 import { CalendarGrid } from "./CalendarGrid";
 import { ConfirmBooking } from "./ConfirmBooking";
@@ -64,16 +65,7 @@ export function SlotCalendar({ professionalId, professionalName, timezone }: Slo
 
   return (
     <>
-      {(booked || refusal) && (
-        <div className="booking-notice">
-          {booked && (
-            <p role="status" className="status">
-              {booked}
-            </p>
-          )}
-          <ErrorMessage message={refusal} />
-        </div>
-      )}
+      <BookingNotice booked={booked} refusal={refusal} />
       <h2>Free times</h2>
       <p className="hint">Times shown in {timezone}.</p>
       {loadError ? (
