@@ -4,7 +4,7 @@ import { currentUser, requireRole } from "../auth/guards.js";
 import { Role } from "../roles.js";
 import { slotInputsOr404 } from "../slots/lookup.js";
 import { sessionEnd } from "../slots/slots.js";
-import { parseBody } from "../validation.js";
+import { parseInput } from "../validation.js";
 import { checkStart, refuse } from "./rules.js";
 import { bookSessionSchema } from "./schemas.js";
 import { insertSession } from "./store.js";
@@ -14,7 +14,7 @@ export function bookingRoutes(deps: AppDeps): express.Router {
 
   router.post("/", requireRole(deps, Role.MEMBER), async (req, res) => {
     const { id: memberId } = currentUser(res);
-    const body = parseBody(bookSessionSchema, req.body);
+    const body = parseInput(bookSessionSchema, req.body);
     const startsAt = new Date(body.start);
     const now = deps.now();
 

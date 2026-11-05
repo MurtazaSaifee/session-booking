@@ -2,9 +2,9 @@ import express from "express";
 import type { AppDeps } from "../app.js";
 import { currentUser, requireSignedIn } from "../auth/guards.js";
 import { decodeCursor } from "../paging.js";
-import { parseBody } from "../validation.js";
+import { parseInput } from "../validation.js";
 import { mySessionOr404 } from "./lookup.js";
-import { sessionCursorValue, sessionsPageSchema } from "./schemas.js";
+import { sessionCursorValueSchema, sessionsPageSchema } from "./schemas.js";
 import { listMySessions, listNextSessions } from "./store.js";
 
 export function sessionRoutes(deps: AppDeps): express.Router {
@@ -15,11 +15,11 @@ export function sessionRoutes(deps: AppDeps): express.Router {
   });
 
   router.get("/lists/:list", requireSignedIn(deps), async (req, res) => {
-    const { list, cursor } = parseBody(sessionsPageSchema, {
+    const { list, cursor } = parseInput(sessionsPageSchema, {
       list: req.params.list,
       cursor: req.query.cursor,
     });
-    const after = decodeCursor(cursor, sessionCursorValue);
+    const after = decodeCursor(cursor, sessionCursorValueSchema);
     res.json(await listNextSessions(deps.db, currentUser(res), { list, after, now: deps.now() }));
   });
 

@@ -8,8 +8,8 @@ export function hasNul(value: unknown): boolean {
   return false;
 }
 
-export function parseBody<T>(schema: z.ZodType<T>, body: unknown): T {
-  const result = schema.safeParse(body);
+export function parseInput<T>(schema: z.ZodType<T>, input: unknown): T {
+  const result = schema.safeParse(input);
   if (!result.success) {
     throw new HttpError(400, ErrorCode.VALIDATION, result.error.issues[0].message);
   }

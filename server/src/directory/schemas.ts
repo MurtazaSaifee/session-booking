@@ -7,4 +7,4 @@ export const professionalsPageSchema = z.object({
 });
 
 // The directory's cursor holds the name of the last professional seen.
-export const professionalCursorValue = z.string();
+export const professionalCursorValueSchema = z.string();

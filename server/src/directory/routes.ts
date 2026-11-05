@@ -3,9 +3,9 @@ import type { AppDeps } from "../app.js";
 import { requireRole } from "../auth/guards.js";
 import { decodeCursor } from "../paging.js";
 import { Role } from "../roles.js";
-import { parseBody } from "../validation.js";
+import { parseInput } from "../validation.js";
 import { professionalOr404 } from "./lookup.js";
-import { professionalCursorValue, professionalsPageSchema } from "./schemas.js";
+import { professionalCursorValueSchema, professionalsPageSchema } from "./schemas.js";
 import { listProfessionals } from "./store.js";
 
 export function directoryRoutes(deps: AppDeps): express.Router {
@@ -13,8 +13,8 @@ export function directoryRoutes(deps: AppDeps): express.Router {
   router.use(requireRole(deps, Role.MEMBER));
 
   router.get("/", async (req, res) => {
-    const { cursor } = parseBody(professionalsPageSchema, req.query);
-    const after = cursor === undefined ? undefined : decodeCursor(cursor, professionalCursorValue);
+    const { cursor } = parseInput(professionalsPageSchema, req.query);
+    const after = cursor === undefined ? undefined : decodeCursor(cursor, professionalCursorValueSchema);
     res.json(await listProfessionals(deps.db, after));
   });
 

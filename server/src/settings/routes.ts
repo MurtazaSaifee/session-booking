@@ -3,7 +3,7 @@ import type { AppDeps } from "../app.js";
 import { currentUser, notSignedIn, requireRole } from "../auth/guards.js";
 import { ErrorCode, HttpError } from "../errors.js";
 import { Role } from "../roles.js";
-import { parseBody } from "../validation.js";
+import { parseInput } from "../validation.js";
 import { findOverlappingDay, weekdayName } from "./hours.js";
 import { hoursSchema, profileChangesSchema } from "./schemas.js";
 import { findProfile, listHours, replaceHours, updateProfile } from "./store.js";
@@ -22,7 +22,7 @@ export function settingsRoutes(deps: AppDeps): express.Router {
 
   router.patch("/profile", async (req, res) => {
     const { id } = currentUser(res);
-    const changes = parseBody(profileChangesSchema, req.body);
+    const changes = parseInput(profileChangesSchema, req.body);
     const profile = await updateProfile(deps.db, id, changes);
     if (!profile) throw notSignedIn();
 
@@ -37,7 +37,7 @@ export function settingsRoutes(deps: AppDeps): express.Router {
 
   router.put("/hours", async (req, res) => {
     const { id } = currentUser(res);
-    const { ranges } = parseBody(hoursSchema, req.body);
+    const { ranges } = parseInput(hoursSchema, req.body);
     const overlappingDay = findOverlappingDay(ranges);
     if (overlappingDay !== null) {
       throw new HttpError(

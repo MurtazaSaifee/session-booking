@@ -2,7 +2,7 @@ import express from "express";
 import type { AppDeps } from "../app.js";
 import { ErrorCode, HttpError } from "../errors.js";
 import { Role } from "../roles.js";
-import { parseBody } from "../validation.js";
+import { parseInput } from "../validation.js";
 import { clearSignIn, setSignInCookies } from "./cookies.js";
 import { notSignedIn, signedInUser } from "./guards.js";
 import { hashPassword, verifyPassword } from "./passwords.js";
@@ -24,7 +24,7 @@ export function authRoutes(deps: AppDeps): express.Router {
   const router = express.Router();
 
   router.post("/signup", async (req, res) => {
-    const input = parseBody(signupSchema, req.body);
+    const input = parseInput(signupSchema, req.body);
     const passwordHash = await hashPassword(input.password);
     const details =
       input.role === Role.PROFESSIONAL ? { title: input.title, bio: input.bio } : { title: null, bio: null };
@@ -51,7 +51,7 @@ export function authRoutes(deps: AppDeps): express.Router {
   });
 
   router.post("/login", async (req, res) => {
-    const { email, password } = parseBody(loginSchema, req.body);
+    const { email, password } = parseInput(loginSchema, req.body);
     const found = await findUserByEmail(deps.db, email);
     const passwordOk = await verifyPassword(password, found ? found.passwordHash : await dummyHash);
 
