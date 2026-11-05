@@ -1,9 +1,9 @@
 import request from "supertest";
 import { afterAll, beforeEach, expect, it } from "vitest";
-import { SESSION_MINUTES } from "../src/directory/slots.js";
 import { ErrorCode } from "../src/errors.js";
 import { API_V1 } from "../src/paths.js";
-import { SessionStatus } from "../src/sessions/status.js";
+import { SessionStatus } from "../src/session-status.js";
+import { SESSION_MINUTES } from "../src/slots/slots.js";
 import { createTestApp, resetDb, signUpAgent, testClock, testMember, testProfessional } from "./app.js";
 import { createTestDb } from "./db.js";
 

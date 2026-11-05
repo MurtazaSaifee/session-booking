@@ -1,6 +1,6 @@
 import { DateTime } from "luxon";
 import { expect, it } from "vitest";
-import { SESSION_MINUTES, bookingWindowEnd, buildSlots } from "../src/directory/slots.js";
+import { SESSION_MINUTES, bookingWindowEnd, buildSlots } from "../src/slots/slots.js";
 
 const MONDAY = 1;
 const TUESDAY = 2;

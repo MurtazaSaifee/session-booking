@@ -2,9 +2,9 @@ import express from "express";
 import type { AppDeps } from "../app.js";
 import { currentUser, requireRole } from "../auth/session.js";
 import { Role } from "../roles.js";
-import { findBookingContext } from "../sessions/store.js";
+import { bookingWindowEnd, buildSlots } from "../slots/slots.js";
+import { findBookingContext } from "../slots/store.js";
 import { parseProfessionalId, professionalNotFound, professionalOr404 } from "./lookup.js";
-import { bookingWindowEnd, buildSlots } from "./slots.js";
 import { listProfessionals } from "./store.js";
 
 export function directoryRoutes(deps: AppDeps): express.Router {

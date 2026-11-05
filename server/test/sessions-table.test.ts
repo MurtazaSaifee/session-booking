@@ -1,7 +1,7 @@
 import { afterAll, beforeEach, expect, it } from "vitest";
-import { SESSION_MINUTES } from "../src/directory/slots.js";
 import { Role } from "../src/roles.js";
-import { SessionStatus } from "../src/sessions/status.js";
+import { SessionStatus } from "../src/session-status.js";
+import { SESSION_MINUTES } from "../src/slots/slots.js";
 import { resetDb } from "./app.js";
 import { createTestDb } from "./db.js";
 

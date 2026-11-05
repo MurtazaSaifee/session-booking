@@ -4,10 +4,11 @@ import { currentUser, requireRole } from "../auth/session.js";
 import { parseProfessionalId, professionalNotFound } from "../directory/lookup.js";
 import { ErrorCode, HttpError } from "../errors.js";
 import { Role } from "../roles.js";
+import { findBookingContext } from "../slots/store.js";
 import { parseBody } from "../validation.js";
 import { checkStart, sessionEnd, type BookingRefusal } from "./booking.js";
 import { bookSessionSchema } from "./schemas.js";
-import { findBookingContext, insertSession } from "./store.js";
+import { insertSession } from "./store.js";
 
 const refusals: Record<BookingRefusal, { status: number; message: string }> = {
   [ErrorCode.SLOT_NOT_AVAILABLE]: { status: 422, message: "That time isn't available." },

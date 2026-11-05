@@ -1,12 +1,6 @@
-import {
-  SESSION_MINUTES,
-  bookingWindowEnd,
-  buildSlots,
-  overlaps,
-  type Interval,
-} from "../directory/slots.js";
 import { ErrorCode } from "../errors.js";
 import type { TimeRange } from "../settings/hours.js";
+import { SESSION_MINUTES, bookingWindowEnd, buildSlots, overlaps, type Interval } from "../slots/slots.js";
 
 const MINUTE_MS = 60_000;
 
