@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ErrorCode, HttpError } from "./errors.js";
+import { hasNul } from "./validation.js";
 
 export const PAGE_SIZE = 20;
 // One row more than a page shows whether another page follows, without counting anything.
@@ -27,7 +28,7 @@ export function decodeCursor(cursor: string, value: z.ZodType<string>): Position
     throw invalidCursor();
   }
   const parsed = z.tuple([value, z.uuid()]).safeParse(decoded);
-  if (!parsed.success) throw invalidCursor();
+  if (!parsed.success || hasNul(parsed.data)) throw invalidCursor();
   return { value: parsed.data[0], id: parsed.data[1] };
 }
 

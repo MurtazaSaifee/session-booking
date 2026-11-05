@@ -28,6 +28,12 @@ describe("cursors", () => {
       expect.objectContaining({ status: 400, code: ErrorCode.VALIDATION }),
     );
   });
+
+  it("refuses a NUL character, whatever the list's check allows", () => {
+    expect(() => decodeCursor(encoded(["a\u0000b", ID]), z.string())).toThrowError(
+      expect.objectContaining({ status: 400, code: ErrorCode.VALIDATION }),
+    );
+  });
 });
 
 describe("toPage", () => {
