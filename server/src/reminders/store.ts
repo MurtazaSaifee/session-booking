@@ -9,7 +9,11 @@ export function deliverBatch(db: Db, now: Date, limit: number): Promise<number> 
   return db.transaction(async (trx) => {
     const due = await claimDueReminders(trx, now, limit);
     if (due.length === 0) return 0;
-    await saveOutcomes(trx, decideOutcomes(due, now), now);
+    const outcomes = decideOutcomes(due, now);
+    const saved = await saveOutcomes(trx, outcomes, now);
+    if (saved < outcomes.deliveries.length) {
+      console.error("A reminder came up for delivery twice. Its unique reference stopped the second one.");
+    }
     return due.length;
   });
 }
@@ -36,22 +40,32 @@ async function claimDueReminders(trx: Knex.Transaction, now: Date, limit: number
   return result.rows;
 }
 
-async function saveOutcomes(trx: Knex.Transaction, outcomes: ReminderOutcomes, now: Date): Promise<void> {
-  await trx.raw(
+// Returns how many notifications it added. The unique reminder reference is the backstop against a second
+// delivery. Skipping the conflict, rather than failing on it, marks that reminder sent, so one bad row can't
+// roll back its batch on every run and stop everyone's reminders.
+async function saveOutcomes(trx: Knex.Transaction, outcomes: ReminderOutcomes, now: Date): Promise<number> {
+  const result = await trx.raw<{ rows: { saved: string }[] }>(
     `
-    with delivered as (
+    with deliveries as (
+      select * from jsonb_to_recordset(cast(:deliveries as jsonb))
+        as d ("reminderId" uuid, "recipientId" uuid, text text)
+    ),
+    delivered as (
       insert into notifications (recipient_id, reminder_id, text, created_at)
       select d."recipientId", d."reminderId", d.text, cast(:now as timestamptz)
-      from jsonb_to_recordset(cast(:deliveries as jsonb))
-        as d ("reminderId" uuid, "recipientId" uuid, text text)
+      from deliveries d
+      on conflict (reminder_id) do nothing
       returning reminder_id
     ),
     sent as (
-      update reminders set status = :sent, sent_at = :now
-      where id in (select reminder_id from delivered)
+      update reminders set status = :sent, sent_at = coalesce(sent_at, cast(:now as timestamptz))
+      where id in (select "reminderId" from deliveries)
+    ),
+    skipped as (
+      update reminders set status = :skipped
+      where id = any(cast(:skippedIds as uuid[]))
     )
-    update reminders set status = :skipped
-    where id = any(cast(:skippedIds as uuid[]))
+    select count(*) as saved from delivered
     `,
     {
       now,
@@ -61,4 +75,5 @@ async function saveOutcomes(trx: Knex.Transaction, outcomes: ReminderOutcomes, n
       skippedIds: outcomes.skippedIds,
     },
   );
+  return Number(result.rows[0].saved);
 }

@@ -1,11 +1,9 @@
 import { afterAll, afterEach, beforeEach, expect, it, vi } from "vitest";
-import { deliverDueReminders } from "../../src/reminders/deliver.js";
 import { parseCheckIntervalMs, startReminderChecker } from "../../src/reminders/checker.js";
-import { ReminderStatus } from "../../src/reminders/reminder-values.js";
 import { createTestApp, resetDb, testClock } from "../app.js";
 import { CLOCK_START } from "../booking/helpers.js";
 import { createTestDb } from "../db.js";
-import { DAY_BEFORE_DUE, HOUR_BEFORE_DUE, bookOneSession, textsFor } from "./helpers.js";
+import { DAY_BEFORE_DUE, bookOneSession, textsFor } from "./helpers.js";
 
 const HOUR_MS = 60 * 60 * 1000;
 const SOON_MS = 10;
@@ -51,16 +49,16 @@ it("keeps checking on the interval, at the time it is then", async () => {
 });
 
 it("logs a failed check and keeps going", async () => {
-  await bookOneSession(app);
-  await deliverDueReminders(db, new Date(HOUR_BEFORE_DUE));
-  await db("reminders").update({ status: ReminderStatus.PENDING });
+  const brokenDb = createTestDb();
+  await brokenDb.destroy();
   const logged = vi.spyOn(console, "error").mockImplementation(() => {});
-  checkerClock.set(HOUR_BEFORE_DUE);
 
-  checker = startReminderChecker({ db, now: checkerClock.now }, SOON_MS);
+  checker = startReminderChecker({ db: brokenDb, now: checkerClock.now }, SOON_MS);
 
-  await vi.waitFor(() => expect(logged.mock.calls.length).toBeGreaterThanOrEqual(2));
-  expect(logged).toHaveBeenCalledWith("Reminder check failed", expect.anything());
+  await vi.waitFor(() => {
+    const reminderFailures = logged.mock.calls.filter(([message]) => message === "Reminder check failed");
+    expect(reminderFailures.length).toBeGreaterThanOrEqual(2);
+  });
 });
 
 it("the same loop cleans up dead refresh tokens", async () => {
