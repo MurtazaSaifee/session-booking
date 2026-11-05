@@ -1,5 +1,7 @@
 const API_BASE = "/api/v1";
 
+export type Page<T> = { items: T[]; next: string | null };
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,

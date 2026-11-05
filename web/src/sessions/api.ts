@@ -1,5 +1,4 @@
-import { api } from "../api";
-import type { Page } from "../usePager";
+import { api, type Page } from "../api";
 
 export const SessionStatus = { BOOKED: "BOOKED", CANCELLED: "CANCELLED" } as const;
 export type SessionStatus = (typeof SessionStatus)[keyof typeof SessionStatus];

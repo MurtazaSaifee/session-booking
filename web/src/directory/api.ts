@@ -1,5 +1,4 @@
-import { api } from "../api";
-import type { Page } from "../usePager";
+import { api, type Page } from "../api";
 
 export type Professional = {
   id: string;

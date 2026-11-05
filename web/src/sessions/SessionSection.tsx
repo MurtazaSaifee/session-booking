@@ -1,5 +1,6 @@
+import type { Page } from "../api";
 import { PageControls } from "../components/PageControls";
-import { usePager, type Page } from "../usePager";
+import { usePager } from "../usePager";
 import { getNextSessions, type MySession, type SessionList } from "./api";
 import { SessionCard } from "./SessionCard";
 

@@ -1,6 +1,7 @@
+import type { Page } from "../api";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { PageControls } from "../components/PageControls";
-import { usePager, type Page } from "../usePager";
+import { usePager } from "../usePager";
 import { useLoad } from "../useLoad";
 import { listNextProfessionals, listProfessionals, type Professional } from "./api";
 import { ProfessionalCard } from "./ProfessionalCard";

@@ -1,6 +1,5 @@
 import { useState } from "react";
-
-export type Page<T> = { items: T[]; next: string | null };
+import type { Page } from "./api";
 
 export type Pager<T> = {
   items: T[];
