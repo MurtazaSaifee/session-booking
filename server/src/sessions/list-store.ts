@@ -17,6 +17,9 @@ type SessionRow = {
 
 type ListRow = SessionRow & { list: SessionList };
 
+export const CancelledBy = { YOU: "YOU", OTHER_PERSON: "OTHER_PERSON" } as const;
+export type CancelledBy = (typeof CancelledBy)[keyof typeof CancelledBy];
+
 // Exactly what a person may see of their own session: never the other person's id or email.
 export type MySession = {
   id: string;
@@ -24,7 +27,7 @@ export type MySession = {
   start: Date;
   end: Date;
   status: SessionStatus;
-  cancelledByYou: boolean;
+  cancelledBy: CancelledBy | null;
 };
 
 export type MySessions = Record<Lowercase<SessionList>, Page<MySession>>;
@@ -34,6 +37,11 @@ const sides = {
   [Role.PROFESSIONAL]: { own: "s.professional_id", other: "s.member_id" },
 };
 
+function cancelledBy(row: SessionRow, viewer: Viewer): CancelledBy | null {
+  if (row.cancelled_by === null) return null;
+  return row.cancelled_by === viewer.id ? CancelledBy.YOU : CancelledBy.OTHER_PERSON;
+}
+
 function toMySession(row: SessionRow, viewer: Viewer): MySession {
   return {
     id: row.id,
@@ -41,7 +49,7 @@ function toMySession(row: SessionRow, viewer: Viewer): MySession {
     start: row.starts_at,
     end: row.ends_at,
     status: row.status,
-    cancelledByYou: row.cancelled_by === viewer.id,
+    cancelledBy: cancelledBy(row, viewer),
   };
 }
 

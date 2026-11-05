@@ -1,6 +1,6 @@
 import { formatFullDay, formatTimeRange, localDate } from "../time/format";
 import { SessionStatus, type MySession } from "./api";
-import { cancelledBy } from "./cancelledBy";
+import { cancelledLabel } from "./cancelledLabel";
 
 type SessionCardProps = { session: MySession; timezone: string };
 
@@ -12,7 +12,7 @@ export function SessionCard({ session, timezone }: SessionCardProps) {
       <p className="session-name">{session.otherPersonName}</p>
       <p>{formatFullDay(localDate(session.start, timezone))}</p>
       <p>{formatTimeRange(session, timezone)}</p>
-      {cancelled && <p className="session-cancelled-by">{cancelledBy(session)}</p>}
+      {cancelled && <p className="session-cancelled-by">{cancelledLabel(session)}</p>}
     </li>
   );
 }

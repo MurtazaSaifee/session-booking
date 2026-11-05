@@ -7,13 +7,16 @@ export type SessionStatus = (typeof SessionStatus)[keyof typeof SessionStatus];
 export const SessionList = { UPCOMING: "UPCOMING", PAST: "PAST", CANCELLED: "CANCELLED" } as const;
 export type SessionList = (typeof SessionList)[keyof typeof SessionList];
 
+export const CancelledBy = { YOU: "YOU", OTHER_PERSON: "OTHER_PERSON" } as const;
+export type CancelledBy = (typeof CancelledBy)[keyof typeof CancelledBy];
+
 export type MySession = {
   id: string;
   otherPersonName: string;
   start: string;
   end: string;
   status: SessionStatus;
-  cancelledByYou: boolean;
+  cancelledBy: CancelledBy | null;
 };
 
 export type MySessions = Record<Lowercase<SessionList>, Page<MySession>>;

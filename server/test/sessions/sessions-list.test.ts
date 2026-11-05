@@ -3,6 +3,7 @@ import { ErrorCode } from "../../src/errors.js";
 import { PAGE_SIZE } from "../../src/paging.js";
 import { API_V1 } from "../../src/paths.js";
 import { SessionStatus } from "../../src/session-status.js";
+import { CancelledBy } from "../../src/sessions/list-store.js";
 import { createTestApp, resetDb, signUpAgent, testClock, testMember, testProfessional } from "../app.js";
 import { createTestDb } from "../db.js";
 import {
@@ -72,7 +73,7 @@ it("shows a member the professional's name and the session's times", async () =>
           start: "2027-01-18T03:30:00.000Z",
           end: FIRST_ENDS,
           status: SessionStatus.BOOKED,
-          cancelledByYou: false,
+          cancelledBy: null,
         },
       ],
       next: null,
@@ -140,8 +141,20 @@ it("tells each person whether they were the one who cancelled", async () => {
   const professionalView = (await mySessions(professional.agent)).body.cancelled.items[0];
   const memberView = (await mySessions(member)).body.cancelled.items[0];
 
-  expect(professionalView.cancelledByYou).toBe(true);
-  expect(memberView.cancelledByYou).toBe(false);
+  expect(professionalView.cancelledBy).toBe(CancelledBy.YOU);
+  expect(memberView.cancelledBy).toBe(CancelledBy.OTHER_PERSON);
+});
+
+it("doesn't guess when a cancelled session has no record of who cancelled it", async () => {
+  const { professional, member } = await setUp();
+  const id = await bookId(member, professional.id, KOLKATA_FIRST);
+  await db("sessions").where({ id }).update({ status: SessionStatus.CANCELLED });
+
+  const memberView = (await mySessions(member)).body.cancelled.items[0];
+  const professionalView = (await mySessions(professional.agent)).body.cancelled.items[0];
+
+  expect(memberView.cancelledBy).toBeNull();
+  expect(professionalView.cancelledBy).toBeNull();
 });
 
 it("a time cancelled and rebooked shows one row in upcoming and one under cancelled", async () => {
@@ -186,7 +199,7 @@ it("looks up one session for either person on it", async () => {
     start: "2027-01-18T03:30:00.000Z",
     end: FIRST_ENDS,
     status: SessionStatus.BOOKED,
-    cancelledByYou: false,
+    cancelledBy: null,
   });
   expect(professionalView.body.session.otherPersonName).toBe(testMember.name);
 });
