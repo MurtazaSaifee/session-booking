@@ -2,6 +2,7 @@ import { createApp } from "./app.js";
 import { parseCheckIntervalMs, startBackgroundChecks } from "./background-checks.js";
 import { createDb, parsePoolMax } from "./db.js";
 import { migrate } from "./migrate.js";
+import { seedIfEmpty } from "./seed.js";
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error("DATABASE_URL is not set");
@@ -14,6 +15,8 @@ const db = createDb(databaseUrl, { max: parsePoolMax(process.env.DB_POOL_MAX) })
 const applied = await migrate(db);
 if (applied.length) console.log(`Applied migrations: ${applied.join(", ")}`);
 const now = () => new Date();
+const seeded = await seedIfEmpty(db, now());
+if (seeded) console.log("Seeded demo data");
 const app = createApp({
   db,
   now,

@@ -9,7 +9,8 @@
     "typecheck": "tsc",
     "test": "vitest run",
     "migrate:latest": "DATABASE_URL=postgres://booking:booking@localhost:5433/booking tsx src/migrate-cli.ts latest",
-    "migrate:rollback": "DATABASE_URL=postgres://booking:booking@localhost:5433/booking tsx src/migrate-cli.ts rollback"
+    "migrate:rollback": "DATABASE_URL=postgres://booking:booking@localhost:5433/booking tsx src/migrate-cli.ts rollback",
+    "seed": "DATABASE_URL=postgres://booking:booking@localhost:5433/booking tsx src/seed-cli.ts"
   },
   "dependencies": {
     "cookie-parser": "^1.4.7",
