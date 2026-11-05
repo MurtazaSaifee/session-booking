@@ -143,3 +143,19 @@ describe("api", () => {
     expect(handler).not.toHaveBeenCalled();
   });
 });
+
+describe("errorMessage", () => {
+  it("uses the message of an error", async () => {
+    const { ApiError, errorMessage } = await import("./api");
+
+    expect(errorMessage(new ApiError(409, "SLOT_TAKEN", "That time was just booked."))).toBe(
+      "That time was just booked.",
+    );
+  });
+
+  it("falls back for anything that isn't an error", async () => {
+    const { errorMessage } = await import("./api");
+
+    expect(errorMessage("nope")).toBe("Something went wrong.");
+  });
+});

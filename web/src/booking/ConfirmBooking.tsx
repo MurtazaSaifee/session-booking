@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { errorMessage } from "../api";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { formatDay, formatTimeRange, localDate } from "../time/format";
 import { bookSession, isBookingRefusal, type Slot } from "./api";
@@ -30,7 +31,7 @@ export function ConfirmBooking(props: ConfirmBookingProps) {
         return;
       }
       // Says nothing about the slot, and a retry is safe: if this one landed, the server refuses a second.
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(errorMessage(err));
       setBooking(false);
     }
   }

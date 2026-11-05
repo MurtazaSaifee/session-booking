@@ -1,4 +1,5 @@
 import { startTransition, useActionState, useState, type SubmitEvent } from "react";
+import { errorMessage } from "../api";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { Field } from "../components/Field";
 import { useLoad } from "../useLoad";
@@ -31,7 +32,7 @@ function ProfileFields({ initial }: { initial: Profile }) {
       setSaved(await saveProfile(changes));
       return { error: null, status: "Saved." };
     } catch (err) {
-      return { error: err instanceof Error ? err.message : "Something went wrong.", status: null };
+      return { error: errorMessage(err), status: null };
     }
   }
 

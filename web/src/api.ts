@@ -13,6 +13,10 @@ export class ApiError extends Error {
   }
 }
 
+export function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : "Something went wrong.";
+}
+
 type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 const noRefreshPaths = ["/auth/login", "/auth/signup", "/auth/refresh"];

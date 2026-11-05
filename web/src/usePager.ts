@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Page } from "./api";
+import { errorMessage, type Page } from "./api";
 import { addPage, canGoNext, currentPage, goBack, type PagerState } from "./pager";
 
 export type Pager<T> = {
@@ -27,7 +27,7 @@ export function usePager<T>(first: Page<T>, loadNext: (cursor: string) => Promis
       const nextPage = await loadNext(page.next);
       setState((current) => addPage(current, nextPage));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(errorMessage(err));
     } finally {
       setLoading(false);
     }

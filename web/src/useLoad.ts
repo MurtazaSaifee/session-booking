@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { errorMessage } from "./api";
 
 type Loaded<T> = { load: () => Promise<T>; data: T | null; error: string | null };
 
@@ -28,7 +29,7 @@ export function useLoad<T>(load: () => Promise<T>): {
           setLoaded({
             load,
             data: null,
-            error: err instanceof Error ? err.message : "Something went wrong.",
+            error: errorMessage(err),
           });
         }
       });

@@ -1,5 +1,6 @@
 import { startTransition, useActionState, type SubmitEvent } from "react";
 import { Link } from "react-router";
+import { errorMessage } from "../api";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { Field } from "../components/Field";
 import { useAuth } from "./AuthProvider";
@@ -12,7 +13,7 @@ export function LogInPage() {
       await logIn(String(formData.get("email") ?? ""), String(formData.get("password") ?? ""));
       return null;
     } catch (err) {
-      return err instanceof Error ? err.message : "Something went wrong.";
+      return errorMessage(err);
     }
   }
 

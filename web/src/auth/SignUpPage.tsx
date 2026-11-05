@@ -1,5 +1,6 @@
 import { startTransition, useActionState, useState, type SubmitEvent } from "react";
 import { Link } from "react-router";
+import { errorMessage } from "../api";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { Field } from "../components/Field";
 import { TimeZoneSelect, browserTimeZone } from "../components/TimeZoneSelect";
@@ -27,7 +28,7 @@ export function SignUpPage() {
       });
       return null;
     } catch (err) {
-      return err instanceof Error ? err.message : "Something went wrong.";
+      return errorMessage(err);
     }
   }
 

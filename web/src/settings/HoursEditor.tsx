@@ -1,4 +1,5 @@
 import { startTransition, useActionState, useState, type SubmitEvent } from "react";
+import { errorMessage } from "../api";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { useLoad } from "../useLoad";
 import { getHours, saveHours, type TimeRange } from "./api";
@@ -25,7 +26,7 @@ function HoursForm({ initial, timezone }: { initial: TimeRange[]; timezone: stri
       setWeek(toEditable(await saveHours(toRanges(week))));
       return { error: null, status: "Saved." };
     } catch (err) {
-      return { error: err instanceof Error ? err.message : "Something went wrong.", status: null };
+      return { error: errorMessage(err), status: null };
     }
   }
 
