@@ -6,15 +6,10 @@ import { parseInput } from "../validation.js";
 import { clearSignIn, setSignInCookies } from "./cookies.js";
 import { notSignedIn, signedInUser } from "./guards.js";
 import { hashPassword, verifyPassword } from "./passwords.js";
+import { revokeRefreshToken, rotateRefreshToken } from "./refresh-token-store.js";
 import { loginSchema, signupSchema } from "./schemas.js";
 import { createSignIn, finishSignIn, newRefreshTokenRecord } from "./sign-in.js";
-import {
-  createUserWithRefreshToken,
-  findUserByEmail,
-  findUserById,
-  revokeRefreshToken,
-  rotateRefreshToken,
-} from "./store.js";
+import { createUserWithRefreshToken, findUserByEmail, findUserById } from "./store.js";
 import { hashRefreshToken } from "./tokens.js";
 
 // Checked against when the email is unknown, so a login takes about as long either way.

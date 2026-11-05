@@ -1,5 +1,5 @@
 import type { AppDeps } from "./app.js";
-import { deleteDeadRefreshTokens } from "./auth/store.js";
+import { deleteDeadRefreshTokens } from "./auth/refresh-token-store.js";
 import { deliverDueReminders } from "./reminders/deliver.js";
 
 const DEFAULT_CHECK_SECONDS = 60;

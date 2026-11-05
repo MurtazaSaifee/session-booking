@@ -1,6 +1,6 @@
 import request from "supertest";
 import { afterAll, beforeEach, expect, it } from "vitest";
-import { deleteDeadRefreshTokens } from "../../src/auth/store.js";
+import { deleteDeadRefreshTokens } from "../../src/auth/refresh-token-store.js";
 import { API_V1 } from "../../src/paths.js";
 import { createTestApp, resetDb, signUpAgent, testClock, testMember } from "../app.js";
 import { CLOCK_START, userId } from "../booking/helpers.js";

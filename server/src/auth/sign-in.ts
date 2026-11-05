@@ -3,7 +3,8 @@ import type { AppDeps } from "../app.js";
 import type { Db } from "../db.js";
 import type { SignedInUser } from "../roles.js";
 import { setSignInCookies } from "./cookies.js";
-import { saveRefreshToken, type NewRefreshToken } from "./store.js";
+import { saveRefreshToken } from "./refresh-token-store.js";
+import type { NewRefreshToken } from "./store.js";
 import {
   REFRESH_TOKEN_MS,
   hashRefreshToken,
