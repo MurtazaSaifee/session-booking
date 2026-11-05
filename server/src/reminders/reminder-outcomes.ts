@@ -3,12 +3,13 @@ import { reminderText } from "./reminder-text.js";
 export type DueReminder = {
   id: string;
   recipientId: string;
+  sessionId: string;
   start: Date;
   timezone: string;
   otherPersonName: string;
 };
 
-export type Delivery = { reminderId: string; recipientId: string; text: string };
+export type Delivery = { reminderId: string; recipientId: string; sessionId: string; text: string };
 
 export type ReminderOutcomes = { deliveries: Delivery[]; skippedIds: string[] };
 
@@ -20,6 +21,7 @@ export function decideOutcomes(due: DueReminder[], now: Date): ReminderOutcomes 
       outcomes.deliveries.push({
         reminderId: reminder.id,
         recipientId: reminder.recipientId,
+        sessionId: reminder.sessionId,
         text: reminderText(reminder),
       });
     } else {

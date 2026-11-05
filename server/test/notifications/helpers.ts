@@ -19,6 +19,7 @@ export async function giveNotifications(db: Db, sessionId: string, recipientId: 
     reminders.map((reminder, index) => ({
       recipient_id: recipientId,
       reminder_id: reminder.id,
+      session_id: sessionId,
       text: `Notification ${index}`,
       created_at: new Date(times[index]),
     })),

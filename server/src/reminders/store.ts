@@ -23,7 +23,7 @@ export function deliverBatch(db: Db, now: Date, limit: number): Promise<number> 
 async function claimDueReminders(trx: Knex.Transaction, now: Date, limit: number): Promise<DueReminder[]> {
   const result = await trx.raw<{ rows: DueReminder[] }>(
     `
-    select r.id, r.recipient_id as "recipientId", s.starts_at as start, recipient.timezone,
+    select r.id, r.recipient_id as "recipientId", r.session_id as "sessionId", s.starts_at as start, recipient.timezone,
       other.name as "otherPersonName"
     from reminders r
     join sessions s on s.id = r.session_id
@@ -48,11 +48,11 @@ async function saveOutcomes(trx: Knex.Transaction, outcomes: ReminderOutcomes, n
     `
     with deliveries as (
       select * from jsonb_to_recordset(cast(:deliveries as jsonb))
-        as d ("reminderId" uuid, "recipientId" uuid, text text)
+        as d ("reminderId" uuid, "recipientId" uuid, "sessionId" uuid, text text)
     ),
     delivered as (
-      insert into notifications (recipient_id, reminder_id, text, created_at)
-      select d."recipientId", d."reminderId", d.text, cast(:now as timestamptz)
+      insert into notifications (recipient_id, reminder_id, session_id, text, created_at)
+      select d."recipientId", d."reminderId", d."sessionId", d.text, cast(:now as timestamptz)
       from deliveries d
       on conflict (reminder_id) do nothing
       returning reminder_id

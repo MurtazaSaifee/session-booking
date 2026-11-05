@@ -44,7 +44,7 @@ it("an empty list has no items, no next page and nothing unread", async () => {
 });
 
 it("lists delivered reminders, newest first, with the unread count", async () => {
-  const { member } = await bookOneSession(app);
+  const { member, sessionId } = await bookOneSession(app);
   await deliverDueReminders(db, new Date(DAY_BEFORE_DUE));
   await deliverDueReminders(db, new Date(HOUR_BEFORE_DUE));
 
@@ -52,8 +52,18 @@ it("lists delivered reminders, newest first, with the unread count", async () =>
 
   expect(res.body).toEqual({
     items: [
-      { id: expect.any(String), text: MEMBER_READS, createdAt: new Date(HOUR_BEFORE_DUE).toISOString() },
-      { id: expect.any(String), text: MEMBER_READS, createdAt: new Date(DAY_BEFORE_DUE).toISOString() },
+      {
+        id: expect.any(String),
+        sessionId,
+        text: MEMBER_READS,
+        createdAt: new Date(HOUR_BEFORE_DUE).toISOString(),
+      },
+      {
+        id: expect.any(String),
+        sessionId,
+        text: MEMBER_READS,
+        createdAt: new Date(DAY_BEFORE_DUE).toISOString(),
+      },
     ],
     next: null,
     unreadCount: 2,

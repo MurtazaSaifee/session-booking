@@ -6,6 +6,7 @@ const START = new Date("2027-01-18T03:30:00.000Z");
 const reminder = {
   id: "reminder-1",
   recipientId: "member-1",
+  sessionId: "session-1",
   start: START,
   timezone: "Asia/Singapore",
   otherPersonName: "Nora Quill",
@@ -17,6 +18,7 @@ it("delivers a reminder a moment before its session starts", () => {
       {
         reminderId: "reminder-1",
         recipientId: "member-1",
+        sessionId: "session-1",
         text: "Your session with Nora Quill is on Mon 18 Jan at 11:30am",
       },
     ],
