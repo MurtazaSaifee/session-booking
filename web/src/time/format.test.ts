@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDay, formatMonth, formatTime, formatTimeRange, localDate } from "./format";
+import { formatDay, formatFullDay, formatMonth, formatTime, formatTimeRange, localDate } from "./format";
 
 describe("localDate", () => {
   it("gives the date on the viewer's clock, which can differ from UTC", () => {
@@ -51,5 +51,11 @@ describe("formatTimeRange", () => {
   it("gives the start and end on the viewer's clock", () => {
     const slot = { start: "2027-01-11T03:30:00Z", end: "2027-01-11T04:20:00Z" };
     expect(formatTimeRange(slot, "Asia/Singapore")).toBe("11:30 am – 12:20 pm");
+  });
+});
+
+describe("formatFullDay", () => {
+  it("includes the year", () => {
+    expect(formatFullDay("2027-01-18")).toBe("Monday, 18 January 2027");
   });
 });

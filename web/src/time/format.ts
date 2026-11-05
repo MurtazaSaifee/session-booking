@@ -45,6 +45,17 @@ export function formatDay(date: string): string {
   }).format(utcMidnight(date));
 }
 
+// With the year, for lists that can reach back further than this year.
+export function formatFullDay(date: string): string {
+  return new Intl.DateTimeFormat(LOCALE, {
+    timeZone: "UTC",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(utcMidnight(date));
+}
+
 export function formatMonth(date: string): string {
   return new Intl.DateTimeFormat(LOCALE, { timeZone: "UTC", month: "short" }).format(utcMidnight(date));
 }

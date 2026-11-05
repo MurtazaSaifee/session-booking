@@ -1,0 +1,32 @@
+.sessions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.session {
+  background: var(--white);
+  border-radius: var(--radius-option);
+  padding: var(--space-4);
+}
+
+.session p {
+  margin: var(--space-1) 0 0;
+}
+
+.session-name {
+  color: var(--navy);
+  font-weight: var(--weight-bold);
+}
+
+.session-cancelled,
+.session-cancelled .session-name {
+  color: var(--muted);
+}
+
+.session-cancelled-by {
+  color: var(--danger);
+  font-size: var(--text-small);
+}

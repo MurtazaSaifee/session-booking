@@ -6,8 +6,8 @@ import { SignUpPage } from "./auth/SignUpPage";
 import { Header } from "./components/Header";
 import { ProfessionalPage } from "./directory/ProfessionalPage";
 import { ProfessionalsPage } from "./directory/ProfessionalsPage";
-import { HomePage } from "./home/HomePage";
 import { Role } from "./roles";
+import { MySessionsPage } from "./sessions/MySessionsPage";
 import { SettingsPage } from "./settings/SettingsPage";
 
 export function App() {
@@ -29,7 +29,10 @@ function Shell() {
       <main className="narrow">
         {!loading && (
           <Routes>
-            <Route path="/" element={user ? <HomePage user={user} /> : <Navigate to="/login" replace />} />
+            <Route
+              path="/"
+              element={user ? <MySessionsPage user={user} /> : <Navigate to="/login" replace />}
+            />
             <Route path="/login" element={user ? <Navigate to="/" replace /> : <LogInPage />} />
             <Route path="/signup" element={user ? <Navigate to="/" replace /> : <SignUpPage />} />
             <Route
