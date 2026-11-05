@@ -1,6 +1,18 @@
-import { bookingWindowEnd, buildSlots, type Interval } from "../directory/slots.js";
+import {
+  SESSION_MINUTES,
+  bookingWindowEnd,
+  buildSlots,
+  overlaps,
+  type Interval,
+} from "../directory/slots.js";
 import { ErrorCode } from "../errors.js";
 import type { TimeRange } from "../settings/hours.js";
+
+const MINUTE_MS = 60_000;
+
+export function sessionEnd(start: Date): Date {
+  return new Date(start.getTime() + SESSION_MINUTES * MINUTE_MS);
+}
 
 export type BookingRefusal =
   typeof ErrorCode.SLOT_NOT_AVAILABLE | typeof ErrorCode.MEMBER_OVERLAP | typeof ErrorCode.SLOT_TAKEN;
@@ -17,14 +29,12 @@ export function checkStart(input: {
   professionalBusy: Interval[];
 }): BookingRefusal | null {
   const { start, ranges, timezone, now, memberBusy, professionalBusy } = input;
-  const windowEnd = bookingWindowEnd(now);
-  const isSlot = (busy: Interval[]) =>
-    buildSlots({ ranges, timezone, now, windowEnd, busy }).some(
-      (slot) => slot.start.getTime() === start.getTime(),
-    );
+  const slot = buildSlots({ ranges, timezone, now, windowEnd: bookingWindowEnd(now), busy: [] }).find(
+    (candidate) => candidate.start.getTime() === start.getTime(),
+  );
 
-  if (!isSlot([])) return ErrorCode.SLOT_NOT_AVAILABLE;
-  if (!isSlot(memberBusy)) return ErrorCode.MEMBER_OVERLAP;
-  if (!isSlot(professionalBusy)) return ErrorCode.SLOT_TAKEN;
+  if (!slot) return ErrorCode.SLOT_NOT_AVAILABLE;
+  if (memberBusy.some((interval) => overlaps(slot, interval))) return ErrorCode.MEMBER_OVERLAP;
+  if (professionalBusy.some((interval) => overlaps(slot, interval))) return ErrorCode.SLOT_TAKEN;
   return null;
 }

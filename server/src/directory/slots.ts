@@ -15,6 +15,11 @@ const DAY_MS = 24 * 60 * MINUTE_MS;
 export type Interval = { start: Date; end: Date };
 export type Slot = Interval;
 
+// Two intervals overlap when each starts before the other ends, so ones that only touch do not.
+export function overlaps(a: Interval, b: Interval): boolean {
+  return a.start.getTime() < b.end.getTime() && b.start.getTime() < a.end.getTime();
+}
+
 // The latest a slot may start: BOOKING_WINDOW_DAYS from now in real elapsed time.
 export function bookingWindowEnd(now: Date): Date {
   return new Date(now.getTime() + BOOKING_WINDOW_DAYS * DAY_MS);
@@ -53,11 +58,10 @@ export function buildSlots(input: {
       // Step in real elapsed milliseconds: on a clock-change night a local range is longer or shorter
       // than its clock times suggest, and slots must stay a whole hour apart.
       for (let start = atClock(day, range.start); start + SESSION_MS <= end; start += SLOT_STEP_MS) {
-        const slotEnd = start + SESSION_MS;
         if (start < now.getTime() || start > windowEnd.getTime()) continue;
-        if (busy.some((interval) => start < interval.end.getTime() && interval.start.getTime() < slotEnd))
-          continue;
-        slots.push({ start: new Date(start), end: new Date(slotEnd) });
+        const slot = { start: new Date(start), end: new Date(start + SESSION_MS) };
+        if (busy.some((interval) => overlaps(slot, interval))) continue;
+        slots.push(slot);
       }
     }
   }
