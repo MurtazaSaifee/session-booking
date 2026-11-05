@@ -1,4 +1,3 @@
-import { setTimeout as sleep } from "node:timers/promises";
 import { afterAll, beforeEach, expect, it } from "vitest";
 import { createDb } from "../../src/db.js";
 import { deliverDueReminders } from "../../src/reminders/deliver.js";
@@ -8,13 +7,12 @@ import { createTestApp, resetDb, testClock } from "../app.js";
 import { CLOCK_START, SESSIONS_URL, type Agent } from "../booking/helpers.js";
 import { testDatabaseUrl } from "../db.js";
 import { HOUR_BEFORE_DUE, bookOneSession, textsFor } from "../reminders/helpers.js";
-import { withTrigger } from "./helpers.js";
+import { holdSave, waitUntilStuck } from "./helpers.js";
 
 // One connection each for the hold, the two sides of the race, and watching them wait.
 const db = createDb(testDatabaseUrl, { max: 4 });
 const app = createTestApp(db, testClock(CLOCK_START).now);
 
-const HOLD_LOCK_ID = 808;
 const CHECKER_SAVING = "delivered as";
 const CANCEL_SAVING = "cancelled_reminders";
 const CANCEL_ON_SESSION = {
@@ -27,41 +25,6 @@ const CANCEL_ON_SESSION = {
 beforeEach(() => resetDb(db));
 
 afterAll(() => db.destroy());
-
-type Hold = { table: string; event: string; when: string; atRow: number };
-
-// Stops a save on one row until the test releases it, so the order of a race is chosen, not hoped for.
-async function holdSave({ atRow, ...trigger }: Hold, run: (release: () => Promise<void>) => Promise<void>) {
-  await db.raw("drop sequence if exists held_rows");
-  await db.raw("create sequence held_rows");
-  const holder = await db.transaction();
-  await holder.raw("select pg_advisory_xact_lock(?)", [HOLD_LOCK_ID]);
-  const body = `if nextval('held_rows') = ${atRow} then perform pg_advisory_xact_lock(${HOLD_LOCK_ID}); end if;`;
-  try {
-    await withTrigger(db, { ...trigger, body }, () =>
-      run(async () => {
-        await holder.commit();
-      }),
-    );
-  } finally {
-    if (!holder.isCompleted()) await holder.rollback();
-    await db.raw("drop sequence held_rows");
-  }
-}
-
-// Row locks and the hold both show here, so this proves a statement really is stuck rather than slow to start.
-async function waitUntilStuck(statementPart: string, statements = 1) {
-  for (let wait = 0; wait < 300; wait++) {
-    const { rows } = await db.raw(
-      `select count(*) as stuck from pg_stat_activity
-       where datname = current_database() and wait_event_type = 'Lock' and query like ?`,
-      [`%${statementPart}%`],
-    );
-    if (Number(rows[0].stuck) === statements) return;
-    await sleep(10);
-  }
-  throw new Error(`Never saw ${statements} of "${statementPart}" waiting on a lock.`);
-}
 
 // A supertest request only starts when something waits on it, so this starts it now.
 function startCancel(professional: Agent, sessionId: string) {
@@ -97,11 +60,11 @@ it("a cancel waits for a checker holding the reminders, then leaves the delivere
     atRow: 1,
   };
 
-  await holdSave(checkerSaving, async (release) => {
+  await holdSave(db, checkerSaving, async (release) => {
     const check = deliverDueReminders(db, new Date(HOUR_BEFORE_DUE));
-    await waitUntilStuck(CHECKER_SAVING);
+    await waitUntilStuck(db, CHECKER_SAVING);
     const cancel = startCancel(professional, sessionId);
-    await waitUntilStuck(CANCEL_SAVING);
+    await waitUntilStuck(db, CANCEL_SAVING);
     await release();
     await Promise.all([check, cancel]);
   });
@@ -119,9 +82,9 @@ it("a checker that runs while a cancel holds the reminders delivers none of them
     atRow: 4,
   };
 
-  await holdSave(cancelOnLastReminder, async (release) => {
+  await holdSave(db, cancelOnLastReminder, async (release) => {
     const cancel = startCancel(professional, sessionId);
-    await waitUntilStuck(CANCEL_SAVING);
+    await waitUntilStuck(db, CANCEL_SAVING);
     await deliverDueReminders(db, new Date(HOUR_BEFORE_DUE));
     await release();
     await cancel;
@@ -134,9 +97,9 @@ it("a checker that runs while a cancel holds the reminders delivers none of them
 it("a checker that runs before the cancel reaches the reminders delivers them, and the cancel leaves them", async () => {
   const booked = await bookOneSession(app);
 
-  await holdSave(CANCEL_ON_SESSION, async (release) => {
+  await holdSave(db, CANCEL_ON_SESSION, async (release) => {
     const cancel = startCancel(booked.professional, booked.sessionId);
-    await waitUntilStuck(CANCEL_SAVING);
+    await waitUntilStuck(db, CANCEL_SAVING);
     await deliverDueReminders(db, new Date(HOUR_BEFORE_DUE));
     await release();
     await cancel;
@@ -149,11 +112,11 @@ it("two cancels at the same moment both succeed and tell the other person once",
   const { member, professional, sessionId } = await bookOneSession(app);
 
   let statuses: number[] = [];
-  await holdSave(CANCEL_ON_SESSION, async (release) => {
+  await holdSave(db, CANCEL_ON_SESSION, async (release) => {
     const first = startCancel(professional, sessionId);
-    await waitUntilStuck(CANCEL_SAVING);
+    await waitUntilStuck(db, CANCEL_SAVING);
     const second = startCancel(professional, sessionId);
-    await waitUntilStuck(CANCEL_SAVING, 2);
+    await waitUntilStuck(db, CANCEL_SAVING, 2);
     await release();
     statuses = (await Promise.all([first, second])).map((res) => res.status);
   });
