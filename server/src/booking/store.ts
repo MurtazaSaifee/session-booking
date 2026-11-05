@@ -1,5 +1,6 @@
 import type { Db } from "../db.js";
 import { ErrorCode } from "../errors.js";
+import { ReminderKind, ReminderStatus } from "../reminders/reminder-values.js";
 import { SessionStatus } from "../session-status.js";
 import type { BookingRefusal } from "./rules.js";
 
@@ -29,20 +30,40 @@ function overlapRefusal(err: unknown): BookingRefusal | undefined {
   return undefined;
 }
 
+// One statement saves the session and its reminders, so either all of them exist or none do.
 export async function insertSession(
   db: Db,
-  input: { memberId: string; professionalId: string; start: Date; end: Date },
+  input: { memberId: string; professionalId: string; start: Date; end: Date; now: Date },
 ): Promise<{ session: Session } | { refusal: BookingRefusal }> {
   try {
-    const [row]: SessionRow[] = await db<SessionRow>("sessions")
-      .insert({
-        member_id: input.memberId,
-        professional_id: input.professionalId,
-        starts_at: input.start,
-        ends_at: input.end,
-        status: SessionStatus.BOOKED,
-      })
-      .returning("*");
+    const result = await db.raw<{ rows: SessionRow[] }>(
+      `
+      with new_session as (
+        insert into sessions (member_id, professional_id, starts_at, ends_at, status)
+        values (:memberId, :professionalId, :start, :end, :booked)
+        returning *
+      ),
+      new_reminders as (
+        insert into reminders (session_id, recipient_id, kind, due_at, status)
+        select s.id, recipient.id, reminder.kind, s.starts_at - reminder.lead_time, :pending
+        from new_session s
+        cross join lateral (values (s.member_id), (s.professional_id)) as recipient (id)
+        cross join (
+          values (:dayBefore, interval '24 hours'), (:hourBefore, interval '1 hour')
+        ) as reminder (kind, lead_time)
+        where s.starts_at - reminder.lead_time > :now
+      )
+      select * from new_session
+      `,
+      {
+        ...input,
+        booked: SessionStatus.BOOKED,
+        pending: ReminderStatus.PENDING,
+        dayBefore: ReminderKind.DAY_BEFORE,
+        hourBefore: ReminderKind.HOUR_BEFORE,
+      },
+    );
+    const row = result.rows[0];
     return {
       session: {
         id: row.id,

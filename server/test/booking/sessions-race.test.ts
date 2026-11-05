@@ -112,6 +112,7 @@ it("maps the professional's overlap to SLOT_TAKEN", async () => {
     professionalId,
     start,
     end: sessionEnd(start),
+    now: clock.now(),
   });
 
   expect(result).toEqual({ refusal: ErrorCode.SLOT_TAKEN });
@@ -129,6 +130,7 @@ it("maps the member's overlap to MEMBER_OVERLAP", async () => {
     professionalId: singaporeId,
     start,
     end: sessionEnd(start),
+    now: clock.now(),
   });
 
   expect(result).toEqual({ refusal: ErrorCode.MEMBER_OVERLAP });
@@ -145,6 +147,7 @@ it("maps an insert that breaks both overlap rules to MEMBER_OVERLAP", async () =
     professionalId,
     start,
     end: sessionEnd(start),
+    now: clock.now(),
   });
 
   expect(result).toEqual({ refusal: ErrorCode.MEMBER_OVERLAP });

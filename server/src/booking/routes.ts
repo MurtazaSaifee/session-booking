@@ -32,6 +32,7 @@ export function bookingRoutes(deps: AppDeps): express.Router {
       professionalId,
       start: startsAt,
       end: sessionEnd(startsAt),
+      now,
     });
 
     if ("refusal" in saved) throw refuse(saved.refusal);
