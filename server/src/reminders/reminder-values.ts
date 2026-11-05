@@ -7,5 +7,10 @@ export const REMINDER_LEAD_TIME = {
   [ReminderKind.HOUR_BEFORE]: "1 hour",
 } as const;
 
-export const ReminderStatus = { PENDING: "PENDING", SENT: "SENT", SKIPPED: "SKIPPED" } as const;
+export const ReminderStatus = {
+  PENDING: "PENDING",
+  SENT: "SENT",
+  SKIPPED: "SKIPPED",
+  CANCELLED: "CANCELLED",
+} as const;
 export type ReminderStatus = (typeof ReminderStatus)[keyof typeof ReminderStatus];

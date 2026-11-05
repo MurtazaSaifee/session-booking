@@ -76,3 +76,26 @@ it("ignores a person id in the query: only the sign-in decides whose sessions th
   expect(res.body.upcoming.items).toHaveLength(1);
   expect(sessionIds(res.body)).not.toContain(theoSessionId);
 });
+
+it("cancelling needs a sign-in", async () => {
+  const { theoSessionId } = await twoMembersAndTwoProfessionals(app);
+
+  const res = await request(app).post(`${SESSIONS_URL}/${theoSessionId}/cancel`).send({});
+
+  expect(res.status).toBe(401);
+  expect(res.body.error).toBe(ErrorCode.UNAUTHENTICATED);
+});
+
+it.each([
+  ["another professional's session", null],
+  ["a session that doesn't exist", "00000000-0000-4000-8000-000000000000"],
+  ["an id that isn't one", "not-an-id"],
+])("cancelling %s is a 404 and changes nothing", async (_name, id) => {
+  const { owen, theo, theoSessionId } = await twoMembersAndTwoProfessionals(app);
+
+  const res = await owen.agent.post(`${SESSIONS_URL}/${id ?? theoSessionId}/cancel`).send({});
+
+  expect(res.status).toBe(404);
+  expect(res.body.error).toBe(ErrorCode.NOT_FOUND);
+  expect((await theo.get(SESSIONS_URL)).body.upcoming.items).toHaveLength(1);
+});
