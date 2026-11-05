@@ -36,24 +36,15 @@ export function formatTimeRange(slot: { start: string; end: string }, timezone: 
   return `${formatTime(slot.start, timezone)} – ${formatTime(slot.end, timezone)}`;
 }
 
+const LONG_DAY = { timeZone: "UTC", weekday: "long", day: "numeric", month: "long" } as const;
+
 export function formatDay(date: string): string {
-  return new Intl.DateTimeFormat(LOCALE, {
-    timeZone: "UTC",
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  }).format(utcMidnight(date));
+  return new Intl.DateTimeFormat(LOCALE, LONG_DAY).format(utcMidnight(date));
 }
 
 // With the year, for lists that can reach back further than this year.
 export function formatFullDay(date: string): string {
-  return new Intl.DateTimeFormat(LOCALE, {
-    timeZone: "UTC",
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(utcMidnight(date));
+  return new Intl.DateTimeFormat(LOCALE, { ...LONG_DAY, year: "numeric" }).format(utcMidnight(date));
 }
 
 export function formatMonth(date: string): string {

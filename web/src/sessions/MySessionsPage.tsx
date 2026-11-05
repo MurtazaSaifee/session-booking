@@ -4,6 +4,17 @@ import { useLoad } from "../useLoad";
 import { getMySessions, SessionList } from "./api";
 import { SessionSection } from "./SessionSection";
 
+const sections = [
+  { key: "upcoming", list: SessionList.UPCOMING, title: "Upcoming", emptyMessage: "No upcoming sessions." },
+  { key: "past", list: SessionList.PAST, title: "Past", emptyMessage: "No past sessions." },
+  {
+    key: "cancelled",
+    list: SessionList.CANCELLED,
+    title: "Cancelled",
+    emptyMessage: "No cancelled sessions.",
+  },
+] as const;
+
 export function MySessionsPage({ user }: { user: User }) {
   const { data: sessions, error: loadError } = useLoad(getMySessions);
   const { timezone } = user;
@@ -17,29 +28,16 @@ export function MySessionsPage({ user }: { user: User }) {
       ) : !sessions ? (
         <p>Loading your sessions…</p>
       ) : (
-        <>
+        sections.map((section) => (
           <SessionSection
-            title="Upcoming"
-            emptyMessage="No upcoming sessions."
-            list={SessionList.UPCOMING}
-            first={sessions.upcoming}
+            key={section.list}
+            title={section.title}
+            emptyMessage={section.emptyMessage}
+            list={section.list}
+            first={sessions[section.key]}
             timezone={timezone}
           />
-          <SessionSection
-            title="Past"
-            emptyMessage="No past sessions."
-            list={SessionList.PAST}
-            first={sessions.past}
-            timezone={timezone}
-          />
-          <SessionSection
-            title="Cancelled"
-            emptyMessage="No cancelled sessions."
-            list={SessionList.CANCELLED}
-            first={sessions.cancelled}
-            timezone={timezone}
-          />
-        </>
+        ))
       )}
     </section>
   );
