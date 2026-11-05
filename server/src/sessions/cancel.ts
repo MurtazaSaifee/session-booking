@@ -3,9 +3,9 @@ import { ErrorCode, HttpError } from "../errors.js";
 import { Role, type SignedInUser } from "../roles.js";
 import { sessionTime } from "../session-time.js";
 import { SessionStatus } from "../session-status.js";
-import { cancelSession, findToCancel } from "./cancel-store.js";
 import { sessionNotFound } from "./lookup.js";
 import { sessionIdSchema } from "./schemas.js";
+import { cancelSession, findToCancel } from "./store.js";
 
 const CHANGE_NOTICE_MS = 24 * 60 * 60 * 1000;
 
@@ -16,7 +16,7 @@ function tooLateForMember(start: Date, now: Date): boolean {
 
 export async function cancelMySession(deps: AppDeps, viewer: SignedInUser, id: unknown): Promise<void> {
   const parsed = sessionIdSchema.safeParse(id);
-  const target = parsed.success ? await findToCancel(deps.db, viewer.id, parsed.data) : undefined;
+  const target = parsed.success ? await findToCancel(deps.db, viewer, parsed.data) : undefined;
   if (!target) throw sessionNotFound();
   if (target.status === SessionStatus.CANCELLED) return;
 

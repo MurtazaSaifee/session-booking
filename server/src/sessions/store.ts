@@ -1,5 +1,6 @@
 import type { Db } from "../db.js";
 import { PAGE_QUERY_LIMIT, type Page, type Position } from "../paging.js";
+import { ReminderStatus } from "../reminders/reminder-values.js";
 import { Role, type SignedInUser } from "../roles.js";
 import { SessionStatus } from "../session-status.js";
 import { rowsToPage, toMySession, type MySession, type MySessions, type SessionRow } from "./my-session.js";
@@ -86,4 +87,75 @@ export async function findMySession(
 ): Promise<MySession | undefined> {
   const row: SessionRow | undefined = await ownSessions(db, viewer).where("s.id", id).first();
   return row && toMySession(row, viewer);
+}
+
+type CancelTargetRow = SessionRow & {
+  viewer_name: string;
+  other_person_id: string;
+  other_person_timezone: string;
+};
+
+export type CancelTarget = {
+  id: string;
+  status: SessionStatus;
+  start: Date;
+  viewerName: string;
+  otherPersonId: string;
+  otherPersonTimezone: string;
+};
+
+export async function findToCancel(
+  db: Db,
+  viewer: SignedInUser,
+  id: string,
+): Promise<CancelTarget | undefined> {
+  const row: CancelTargetRow | undefined = await ownSessions(db, viewer)
+    .join("users as me", "me.id", sides[viewer.role].own)
+    .where("s.id", id)
+    .select("me.name as viewer_name", "u.id as other_person_id", "u.timezone as other_person_timezone")
+    .first();
+  return (
+    row && {
+      id: row.id,
+      status: row.status,
+      start: row.starts_at,
+      viewerName: row.viewer_name,
+      otherPersonId: row.other_person_id,
+      otherPersonTimezone: row.other_person_timezone,
+    }
+  );
+}
+
+type CancelInput = { id: string; cancelledBy: string; recipientId: string; text: string; now: Date };
+
+// One statement, so the session, its reminders and the notice all change together or not at all. The status
+// check makes a second cancel at the same moment do nothing, and a reminder the checker is delivering at that
+// moment is waited for, not cancelled.
+export async function cancelSession(db: Db, input: CancelInput): Promise<void> {
+  await db.raw(
+    `
+    with cancelled as (
+      update sessions
+      set status = :cancelled, cancelled_by = :cancelledBy, cancelled_at = :now, updated_at = :now
+      where id = :id and status = :booked
+      returning id
+    ),
+    cancelled_reminders as (
+      update reminders set status = :reminderCancelled
+      where session_id in (select id from cancelled) and status = :pending
+    ),
+    notice as (
+      insert into notifications (recipient_id, session_id, text, created_at)
+      select :recipientId, id, :text, cast(:now as timestamptz) from cancelled
+    )
+    select id from cancelled
+    `,
+    {
+      ...input,
+      booked: SessionStatus.BOOKED,
+      cancelled: SessionStatus.CANCELLED,
+      pending: ReminderStatus.PENDING,
+      reminderCancelled: ReminderStatus.CANCELLED,
+    },
+  );
 }
