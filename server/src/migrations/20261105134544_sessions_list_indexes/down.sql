@@ -1,0 +1,2 @@
+drop index sessions_member_list_idx;
+drop index sessions_professional_list_idx;
