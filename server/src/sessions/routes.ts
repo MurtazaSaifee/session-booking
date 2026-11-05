@@ -1,11 +1,10 @@
 import express from "express";
 import type { AppDeps } from "../app.js";
 import { currentUser, requireRole } from "../auth/session.js";
-import { parseProfessionalId, professionalNotFound } from "../directory/lookup.js";
 import { ErrorCode, HttpError } from "../errors.js";
 import { Role } from "../roles.js";
+import { slotInputsOr404 } from "../slots/lookup.js";
 import { sessionEnd } from "../slots/slots.js";
-import { findSlotInputs } from "../slots/store.js";
 import { parseBody } from "../validation.js";
 import { checkStart, type BookingRefusal } from "./booking.js";
 import { bookSessionSchema } from "./schemas.js";
@@ -27,12 +26,14 @@ export function sessionRoutes(deps: AppDeps): express.Router {
   router.post("/", requireRole(deps, Role.MEMBER), async (req, res) => {
     const { id: memberId } = currentUser(res);
     const body = parseBody(bookSessionSchema, req.body);
-    const professionalId = parseProfessionalId(body.professionalId);
     const startsAt = new Date(body.start);
     const now = deps.now();
 
-    const inputs = await findSlotInputs(deps.db, { professionalId, memberId, now });
-    if (!inputs) throw professionalNotFound();
+    const { professionalId, inputs } = await slotInputsOr404(deps, {
+      professionalId: body.professionalId,
+      memberId,
+      now,
+    });
 
     const refusal = checkStart({ start: startsAt, now, ...inputs });
     if (refusal) throw refuse(refusal);
