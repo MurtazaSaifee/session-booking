@@ -1,5 +1,5 @@
 import type { Slot } from "./api";
-import { formatDay, formatTimeRange } from "./format";
+import { formatDay, formatTimeRange } from "../time/format";
 
 type DayTimesProps = {
   day: string;

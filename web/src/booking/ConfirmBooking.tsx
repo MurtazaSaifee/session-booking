@@ -1,6 +1,6 @@
 import type { Slot } from "./api";
 import { localDate } from "./calendar";
-import { formatDay, formatTimeRange } from "./format";
+import { formatDay, formatTimeRange } from "../time/format";
 
 type ConfirmBookingProps = {
   professionalName: string;

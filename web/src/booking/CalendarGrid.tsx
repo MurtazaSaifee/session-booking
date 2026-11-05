@@ -1,4 +1,4 @@
-import { formatDay, formatMonth } from "./format";
+import { formatDay, formatMonth } from "../time/format";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 

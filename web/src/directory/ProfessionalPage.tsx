@@ -1,11 +1,11 @@
 import { useCallback } from "react";
 import { Link, useParams } from "react-router";
 import type { User } from "../auth/AuthProvider";
+import { SlotCalendar } from "../booking/SlotCalendar";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { useLoad } from "../useLoad";
 import { getProfessional } from "./api";
 import { placeName } from "./place";
-import { SlotCalendar } from "./SlotCalendar";
 
 export function ProfessionalPage({ user }: { user: User }) {
   const { id } = useParams();
