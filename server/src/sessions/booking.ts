@@ -1,12 +1,6 @@
 import { ErrorCode } from "../errors.js";
 import type { TimeRange } from "../settings/hours.js";
-import { SESSION_MINUTES, bookingWindowEnd, buildSlots, overlaps, type Interval } from "../slots/slots.js";
-
-const MINUTE_MS = 60_000;
-
-export function sessionEnd(start: Date): Date {
-  return new Date(start.getTime() + SESSION_MINUTES * MINUTE_MS);
-}
+import { bookingWindowEnd, buildSlots, overlaps, type Interval } from "../slots/slots.js";
 
 export type BookingRefusal =
   typeof ErrorCode.SLOT_NOT_AVAILABLE | typeof ErrorCode.MEMBER_OVERLAP | typeof ErrorCode.SLOT_TAKEN;

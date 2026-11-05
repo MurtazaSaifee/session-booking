@@ -15,6 +15,10 @@ const DAY_MS = 24 * 60 * MINUTE_MS;
 export type Interval = { start: Date; end: Date };
 export type Slot = Interval;
 
+export function sessionEnd(start: Date): Date {
+  return new Date(start.getTime() + SESSION_MS);
+}
+
 // Two intervals overlap when each starts before the other ends, so ones that only touch do not.
 export function overlaps(a: Interval, b: Interval): boolean {
   return a.start.getTime() < b.end.getTime() && b.start.getTime() < a.end.getTime();

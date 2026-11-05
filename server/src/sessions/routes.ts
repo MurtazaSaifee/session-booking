@@ -4,9 +4,10 @@ import { currentUser, requireRole } from "../auth/session.js";
 import { parseProfessionalId, professionalNotFound } from "../directory/lookup.js";
 import { ErrorCode, HttpError } from "../errors.js";
 import { Role } from "../roles.js";
+import { sessionEnd } from "../slots/slots.js";
 import { findBookingContext } from "../slots/store.js";
 import { parseBody } from "../validation.js";
-import { checkStart, sessionEnd, type BookingRefusal } from "./booking.js";
+import { checkStart, type BookingRefusal } from "./booking.js";
 import { bookSessionSchema } from "./schemas.js";
 import { insertSession } from "./store.js";
 
