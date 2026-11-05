@@ -126,7 +126,7 @@ it.each([
 it.each([
   { case: "a time in the past", start: "2027-01-11T03:30:00Z" },
   { case: "a time off the hourly grid", start: "2027-01-18T03:47:00Z" },
-  { case: "a time outside working hours", start: "2027-01-18T10:00:00Z" },
+  { case: "a time on the hourly grid as working hours end", start: "2027-01-18T06:30:00Z" },
   { case: "a time beyond 4 weeks", start: "2027-02-08T04:30:00Z" },
 ])("refuses $case with 422", async ({ start }) => {
   const { id } = await signUpProfessional(testProfessional, "09:00", "12:00");

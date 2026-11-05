@@ -31,8 +31,8 @@ it.each<{
     expected: ErrorCode.SLOT_NOT_AVAILABLE,
   },
   {
-    case: "a start outside working hours",
-    start: "2027-01-18T10:00:00Z",
+    case: "a start on the hourly grid as working hours end",
+    start: "2027-01-18T05:30:00Z",
     expected: ErrorCode.SLOT_NOT_AVAILABLE,
   },
   { case: "a weekday with no hours", start: "2027-01-19T03:30:00Z", expected: ErrorCode.SLOT_NOT_AVAILABLE },
