@@ -2,11 +2,12 @@ import request from "supertest";
 import { afterAll, beforeEach, expect, it } from "vitest";
 import { ErrorCode } from "../../src/errors.js";
 import { encodeCursor } from "../../src/paging.js";
+import { API_V1 } from "../../src/paths.js";
 import { SessionList } from "../../src/sessions/session-list.js";
 import { createTestApp, resetDb, testClock } from "../app.js";
 import { createTestDb } from "../db.js";
-import { CLOCK_START, SESSIONS_URL, userId } from "../booking/helpers.js";
-import { twoMembersAndTwoProfessionals } from "./helpers.js";
+import { CLOCK_START, KOLKATA_SECOND, SESSIONS_URL, userId } from "../booking/helpers.js";
+import { reschedule, twoMembersAndTwoProfessionals } from "./helpers.js";
 
 const clock = testClock(CLOCK_START);
 
@@ -108,4 +109,54 @@ it("another member cancelling a member's session is a 404 and changes nothing", 
   expect(res.status).toBe(404);
   expect(res.body.error).toBe(ErrorCode.NOT_FOUND);
   expect((await theo.get(SESSIONS_URL)).body.upcoming.items).toHaveLength(1);
+});
+
+it("rescheduling needs a sign-in", async () => {
+  const { theoSessionId } = await twoMembersAndTwoProfessionals(app);
+
+  const res = await request(app)
+    .post(`${SESSIONS_URL}/${theoSessionId}/reschedule`)
+    .send({ start: KOLKATA_SECOND });
+
+  expect(res.status).toBe(401);
+  expect(res.body.error).toBe(ErrorCode.UNAUTHENTICATED);
+});
+
+it.each([
+  ["the session's own professional", "nora"],
+  ["another professional", "owen"],
+] as const)("%s can't reschedule: only members can, and nothing changes", async (_name, who) => {
+  const people = await twoMembersAndTwoProfessionals(app);
+
+  const res = await reschedule(people[who].agent, people.theoSessionId, KOLKATA_SECOND);
+
+  expect(res.status).toBe(403);
+  expect(res.body.error).toBe(ErrorCode.WRONG_ROLE);
+  expect((await people.theo.get(SESSIONS_URL)).body.upcoming.items).toMatchObject([
+    { start: "2027-01-18T03:30:00.000Z" },
+  ]);
+});
+
+it("another member rescheduling a member's session gets the same 404 as a session that doesn't exist", async () => {
+  const { iris, theo, nora, theoSessionId } = await twoMembersAndTwoProfessionals(app);
+
+  const real = await reschedule(iris, theoSessionId, KOLKATA_SECOND);
+  const missing = await reschedule(iris, "00000000-0000-4000-8000-000000000000", KOLKATA_SECOND);
+
+  expect(real.status).toBe(404);
+  expect(real.body.error).toBe(ErrorCode.NOT_FOUND);
+  expect(real.body).toEqual(missing.body);
+  expect((await theo.get(SESSIONS_URL)).body.upcoming.items).toMatchObject([
+    { start: "2027-01-18T03:30:00.000Z" },
+  ]);
+  expect((await nora.agent.get(`${API_V1}/notifications`)).body.items).toEqual([]);
+});
+
+it("rescheduling an id that isn't one is a 404", async () => {
+  const { theo } = await twoMembersAndTwoProfessionals(app);
+
+  const res = await reschedule(theo, "not-an-id", KOLKATA_SECOND);
+
+  expect(res.status).toBe(404);
+  expect(res.body.error).toBe(ErrorCode.NOT_FOUND);
 });

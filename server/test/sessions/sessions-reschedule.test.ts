@@ -85,3 +85,15 @@ it("does not count the session itself as busy when the professional's new hours 
     { id: sessionId, start: "2027-01-18T04:00:00.000Z" },
   ]);
 });
+
+it("a session the professional cancelled can't be moved: it looks like one that isn't there", async () => {
+  const { member, professional, sessionId } = await bookOneSession(app);
+  await professional.post(`${SESSIONS_URL}/${sessionId}/cancel`).send({});
+
+  const res = await reschedule(member, sessionId, KOLKATA_SECOND);
+
+  expect(res.status).toBe(404);
+  const { upcoming, cancelled } = (await member.get(SESSIONS_URL)).body;
+  expect(upcoming.items).toEqual([]);
+  expect(cancelled.items).toMatchObject([{ id: sessionId, start: "2027-01-18T03:30:00.000Z" }]);
+});
