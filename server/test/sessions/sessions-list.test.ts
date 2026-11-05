@@ -1,7 +1,6 @@
 import { afterAll, beforeEach, expect, it } from "vitest";
 import { ErrorCode } from "../../src/errors.js";
 import { PAGE_SIZE } from "../../src/paging.js";
-import { API_V1 } from "../../src/paths.js";
 import { SessionStatus } from "../../src/session-status.js";
 import { CancelledBy } from "../../src/sessions/my-session.js";
 import { createTestApp, resetDb, signUpAgent, testClock, testMember, testProfessional } from "../app.js";
@@ -10,9 +9,11 @@ import {
   CLOCK_START,
   KOLKATA_FIRST,
   KOLKATA_SECOND,
+  KOLKATA_STARTS,
   SESSIONS_URL,
   type Agent,
   book,
+  logIn,
   markCancelled,
   signUpProfessional,
   userId,
@@ -20,9 +21,6 @@ import {
 
 const FIRST_ENDS = "2027-01-18T04:20:00.000Z";
 const SECOND_ENDS = "2027-01-18T05:20:00.000Z";
-// Slots on the next three Mondays with 09:00-17:00 hours in Kolkata.
-const MONDAYS = ["2027-01-18", "2027-01-25", "2027-02-01"];
-const KOLKATA_START_TIMES = ["03:30", "04:30", "05:30", "06:30", "07:30", "08:30", "09:30", "10:30"];
 
 const clock = testClock(CLOCK_START);
 
@@ -40,10 +38,9 @@ function mySessions(agent: Agent) {
   return agent.get(SESSIONS_URL);
 }
 
-// A week's jump also expires the sign-in, so the member logs in again at the new time.
 async function memberSessionsAt(member: Agent, time: string) {
   clock.set(time);
-  await member.post(`${API_V1}/auth/login`).send({ email: testMember.email, password: testMember.password });
+  await logIn(member, testMember);
   return (await mySessions(member)).body;
 }
 
@@ -171,14 +168,13 @@ it("a time cancelled and rebooked shows one row in upcoming and one under cancel
 
 it("returns at most one page of each list, and says when more follow", async () => {
   const { professional, member } = await setUp();
-  const starts = MONDAYS.flatMap((day) => KOLKATA_START_TIMES.map((time) => `${day}T${time}:00Z`));
-  for (const start of starts.slice(0, PAGE_SIZE)) await book(member, professional.id, start);
+  for (const start of KOLKATA_STARTS.slice(0, PAGE_SIZE)) await book(member, professional.id, start);
 
   const full = (await mySessions(member)).body.upcoming;
   expect(full.items).toHaveLength(PAGE_SIZE);
   expect(full.next).toBeNull();
 
-  await book(member, professional.id, starts[PAGE_SIZE]);
+  await book(member, professional.id, KOLKATA_STARTS[PAGE_SIZE]);
 
   const more = (await mySessions(member)).body.upcoming;
   expect(more.items).toHaveLength(PAGE_SIZE);

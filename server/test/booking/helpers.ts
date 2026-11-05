@@ -14,6 +14,12 @@ export const KOLKATA_FIRST = "2027-01-18T03:30:00Z";
 export const KOLKATA_SECOND = "2027-01-18T04:30:00Z";
 // The Singapore professional's 13:00-14:00 hours overlap the Kolkata second slot.
 export const SINGAPORE_SLOT = "2027-01-18T05:00:00Z";
+// 24 slots: the next three Mondays with 09:00-17:00 hours in Kolkata.
+export const KOLKATA_STARTS = ["2027-01-18", "2027-01-25", "2027-02-01"].flatMap((day) =>
+  ["03:30", "04:30", "05:30", "06:30", "07:30", "08:30", "09:30", "10:30"].map(
+    (time) => `${day}T${time}:00.000Z`,
+  ),
+);
 
 export const otherMember = {
   ...testMember,
@@ -46,11 +52,16 @@ export async function signUpProfessional(
   return { agent, id: await userId(agent) };
 }
 
+// A week's jump on the test clock also expires the sign-in, so tests log in again at the new time.
+export function logIn(agent: Agent, user: { email: string; password: string }) {
+  return agent.post(`${API_V1}/auth/login`).send({ email: user.email, password: user.password });
+}
+
 export function book(member: Agent, professionalId: string, start: string) {
   return member.post(SESSIONS_URL).send({ professionalId, start });
 }
 
-// Cancelling has no route until ticket 08, so this writes what that route will.
+// Cancelling has no route yet, so this writes what that route will.
 export function markCancelled(db: Db, sessionId: string, cancelledBy: string, at: string) {
   return db("sessions")
     .where({ id: sessionId })

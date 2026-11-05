@@ -1,27 +1,21 @@
 import { afterAll, beforeEach, expect, it } from "vitest";
 import { ErrorCode } from "../../src/errors.js";
 import { PAGE_SIZE, encodeCursor } from "../../src/paging.js";
-import { API_V1 } from "../../src/paths.js";
 import { SessionList } from "../../src/sessions/session-list.js";
 import { createTestApp, resetDb, signUpAgent, testClock, testMember, testProfessional } from "../app.js";
 import { createTestDb } from "../db.js";
 import {
   CLOCK_START,
   KOLKATA_FIRST,
+  KOLKATA_STARTS,
   SESSIONS_URL,
   type Agent,
   book,
+  logIn,
   markCancelled,
   signUpProfessional,
   userId,
 } from "../booking/helpers.js";
-
-// 24 slots: the next three Mondays with 09:00-17:00 hours in Kolkata.
-const KOLKATA_STARTS = ["2027-01-18", "2027-01-25", "2027-02-01"].flatMap((day) =>
-  ["03:30", "04:30", "05:30", "06:30", "07:30", "08:30", "09:30", "10:30"].map(
-    (time) => `${day}T${time}:00.000Z`,
-  ),
-);
 
 const ID = "3f2b8c1e-7a4d-4e6f-9b1a-2c3d4e5f6a7b";
 
@@ -50,10 +44,6 @@ async function setUp() {
   return { professional, member };
 }
 
-async function logIn(member: Agent) {
-  await member.post(`${API_V1}/auth/login`).send({ email: testMember.email, password: testMember.password });
-}
-
 it("walks upcoming soonest first, with no row repeated or skipped", async () => {
   const { member } = await setUp();
 
@@ -68,7 +58,7 @@ it("walks upcoming soonest first, with no row repeated or skipped", async () => 
 it("walks past most recent first", async () => {
   const { member } = await setUp();
   clock.set("2027-02-02T00:00:00Z");
-  await logIn(member);
+  await logIn(member, testMember);
 
   const first = (await member.get(SESSIONS_URL)).body.past;
   const second = (await nextPage(member, SessionList.PAST, first.next)).body;
@@ -82,12 +72,12 @@ it("a session moving into past while someone pages doesn't repeat or skip a row"
   const { member } = await setUp();
   // 22 of the 24 have ended, so the first page of past stops two short of the oldest.
   clock.set("2027-02-01T09:25:00Z");
-  await logIn(member);
+  await logIn(member, testMember);
   const first = (await member.get(SESSIONS_URL)).body.past;
 
   // Two more end while the first page is on screen, which pushes every older row down by two.
   clock.set("2027-02-02T00:00:00Z");
-  await logIn(member);
+  await logIn(member, testMember);
   const second = (await nextPage(member, SessionList.PAST, first.next)).body;
 
   expect(first.items).toHaveLength(PAGE_SIZE);
