@@ -8,6 +8,7 @@ import { sessionEnd } from "../slots/slots.js";
 import { parseBody } from "../validation.js";
 import { checkStart, refuse } from "./booking.js";
 import { listMySessions, listNextSessions } from "./list-store.js";
+import { mySessionOr404 } from "./lookup.js";
 import { bookSessionSchema, sessionCursorValue, sessionsPageSchema } from "./schemas.js";
 import { insertSession } from "./store.js";
 
@@ -25,6 +26,10 @@ export function sessionRoutes(deps: AppDeps): express.Router {
     const { list, cursor } = parseBody(sessionsPageSchema, req.query);
     const after = decodeCursor(cursor, sessionCursorValue);
     res.json(await listNextSessions(deps.db, viewer, { list, after, now }));
+  });
+
+  router.get("/:id", requireSignedIn(deps), async (req, res) => {
+    res.json({ session: await mySessionOr404(deps, currentUser(res), req.params.id) });
   });
 
   router.post("/", requireRole(deps, Role.MEMBER), async (req, res) => {

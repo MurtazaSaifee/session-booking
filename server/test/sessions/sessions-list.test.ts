@@ -1,4 +1,5 @@
 import { afterAll, beforeEach, expect, it } from "vitest";
+import { ErrorCode } from "../../src/errors.js";
 import { PAGE_SIZE } from "../../src/paging.js";
 import { API_V1 } from "../../src/paths.js";
 import { SessionStatus } from "../../src/session-status.js";
@@ -169,4 +170,35 @@ it("returns at most one page of each list, and says when more follow", async () 
   const more = (await mySessions(member)).body.upcoming;
   expect(more.items).toHaveLength(PAGE_SIZE);
   expect(more.next).toEqual(expect.any(String));
+});
+
+it("looks up one session for either person on it", async () => {
+  const { professional, member } = await setUp();
+  const id = await bookId(member, professional.id, KOLKATA_FIRST);
+
+  const memberView = await member.get(`${SESSIONS_URL}/${id}`);
+  const professionalView = await professional.agent.get(`${SESSIONS_URL}/${id}`);
+
+  expect(memberView.status).toBe(200);
+  expect(memberView.body.session).toEqual({
+    id,
+    otherPersonName: testProfessional.name,
+    start: "2027-01-18T03:30:00.000Z",
+    end: FIRST_ENDS,
+    status: SessionStatus.BOOKED,
+    cancelledByYou: false,
+  });
+  expect(professionalView.body.session.otherPersonName).toBe(testMember.name);
+});
+
+it.each([
+  ["an id that doesn't exist", "00000000-0000-4000-8000-000000000000"],
+  ["a malformed id", "not-a-uuid"],
+])("looking up %s gives a 404", async (_name, id) => {
+  const member = await signUpAgent(app, testMember);
+
+  const res = await member.get(`${SESSIONS_URL}/${id}`);
+
+  expect(res.status).toBe(404);
+  expect(res.body).toEqual({ error: ErrorCode.NOT_FOUND, message: "We couldn't find that session." });
 });

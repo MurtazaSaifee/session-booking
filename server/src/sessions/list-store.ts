@@ -6,8 +6,7 @@ import { SessionList } from "./session-list.js";
 
 type Viewer = { id: string; role: Role };
 
-type ListRow = {
-  list: SessionList;
+type SessionRow = {
   id: string;
   starts_at: Date;
   ends_at: Date;
@@ -15,6 +14,8 @@ type ListRow = {
   cancelled_by: string | null;
   other_person_name: string;
 };
+
+type ListRow = SessionRow & { list: SessionList };
 
 // Exactly what a person may see of their own session: never the other person's id or email.
 export type MySession = {
@@ -33,7 +34,7 @@ const sides = {
   [Role.PROFESSIONAL]: { own: "s.professional_id", other: "s.member_id" },
 };
 
-function toMySession(row: ListRow, viewer: Viewer): MySession {
+function toMySession(row: SessionRow, viewer: Viewer): MySession {
   return {
     id: row.id,
     otherPersonName: row.other_person_name,
@@ -49,20 +50,20 @@ function rowsToPage(rows: ListRow[], viewer: Viewer): Page<MySession> {
   return { ...page, items: page.items.map((row) => toMySession(row, viewer)) };
 }
 
-// A session in progress is still upcoming: it only becomes past once its end time has gone by.
-function listQuery(db: Db, viewer: Viewer, list: SessionList, now: Date, after?: Position) {
+// Every read starts here, so a person can only ever reach their own sessions.
+function ownSessions(db: Db, viewer: Viewer) {
   const { own, other } = sides[viewer.role];
-  const order = list === SessionList.UPCOMING ? "asc" : "desc";
-  const query = db("sessions as s")
+  return db("sessions as s")
     .join("users as u", "u.id", other)
     .where(own, viewer.id)
+    .select("s.id", "s.starts_at", "s.ends_at", "s.status", "s.cancelled_by", "u.name as other_person_name");
+}
+
+// A session in progress is still upcoming: it only becomes past once its end time has gone by.
+function listQuery(db: Db, viewer: Viewer, list: SessionList, now: Date, after?: Position) {
+  const order = list === SessionList.UPCOMING ? "asc" : "desc";
+  const query = ownSessions(db, viewer)
     .select(
-      "s.id",
-      "s.starts_at",
-      "s.ends_at",
-      "s.status",
-      "s.cancelled_by",
-      "u.name as other_person_name",
       db.raw("cast(? as text) as list", [list]),
       db.raw(`row_number() over (order by s.ends_at ${order}, s.id ${order}) as position`),
     )
@@ -109,4 +110,9 @@ export async function listNextSessions(
 ): Promise<Page<MySession>> {
   const rows: ListRow[] = await listQuery(db, viewer, input.list, input.now, input.after);
   return rowsToPage(rows, viewer);
+}
+
+export async function findMySession(db: Db, viewer: Viewer, id: string): Promise<MySession | undefined> {
+  const row: SessionRow | undefined = await ownSessions(db, viewer).where("s.id", id).first();
+  return row && toMySession(row, viewer);
 }
