@@ -44,7 +44,7 @@ async function toApiError(res: Response): Promise<ApiError> {
 }
 
 // Requests that fail together share one refresh, because a refresh token works only once.
-function refreshSession(): Promise<boolean> {
+function refreshSignIn(): Promise<boolean> {
   refreshing ??= send("/auth/refresh", "POST", {})
     .then(
       (res) => res.ok,
@@ -67,7 +67,7 @@ export async function api<T>(path: string, options: { method?: Method; body?: un
   const res = await send(path, method, options.body);
   if (res.status !== 401 || noRefreshPaths.includes(path)) return parse<T>(res);
 
-  const retry = (await refreshSession()) ? await send(path, method, options.body) : res;
+  const retry = (await refreshSignIn()) ? await send(path, method, options.body) : res;
   if (retry.status !== 401) return parse<T>(retry);
 
   signedOutHandler?.();

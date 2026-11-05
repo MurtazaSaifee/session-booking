@@ -13,7 +13,7 @@ import {
   setSignInCookies,
   signedInUser,
   signInTokens,
-} from "./session.js";
+} from "./sign-in.js";
 import {
   createUserWithRefreshToken,
   findUserByEmail,
