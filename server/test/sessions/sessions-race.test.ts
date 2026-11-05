@@ -96,6 +96,7 @@ it("one member's two racing requests for the same slot make one session", async 
   ]);
 
   expect(results.map((res) => res.status).sort()).toEqual([201, 409]);
+  expect(results.find((res) => res.status === 409)?.body.error).toBe(ErrorCode.MEMBER_OVERLAP);
   expect(await bookedCount()).toBe(1);
 });
 
@@ -126,6 +127,22 @@ it("maps the member's overlap to MEMBER_OVERLAP", async () => {
   const result = await insertSession(db, {
     memberId: await userId(member),
     professionalId: singaporeId,
+    start,
+    end: sessionEnd(start),
+  });
+
+  expect(result).toEqual({ refusal: ErrorCode.MEMBER_OVERLAP });
+});
+
+it("maps an insert that breaks both overlap rules to MEMBER_OVERLAP", async () => {
+  const { id: professionalId } = await signUpProfessional(app, testProfessional, "09:00", "12:00");
+  const member = await signUpAgent(app, testMember);
+  await book(member, professionalId, KOLKATA_SECOND);
+  const start = new Date(KOLKATA_SECOND);
+
+  const result = await insertSession(db, {
+    memberId: await userId(member),
+    professionalId,
     start,
     end: sessionEnd(start),
   });
