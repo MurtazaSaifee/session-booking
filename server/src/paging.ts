@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ErrorCode, HttpError } from "./errors.js";
-import { hasNul } from "./validation.js";
+import { hasNul, parseInput } from "./validation.js";
 
 export const PAGE_SIZE = 20;
 // One row more than a page shows whether another page follows, without counting anything.
@@ -19,8 +19,14 @@ export function encodeCursor(position: Position): string {
   return Buffer.from(JSON.stringify([position.value, position.id])).toString("base64url");
 }
 
+const INVALID_CURSOR_MESSAGE = "That page link isn't valid.";
+
+export const cursorSchema = z.string(INVALID_CURSOR_MESSAGE);
+
+const pageQuerySchema = z.object({ cursor: cursorSchema.optional() });
+
 function invalidCursor() {
-  return new HttpError(400, ErrorCode.VALIDATION, "That page link isn't valid.");
+  return new HttpError(400, ErrorCode.VALIDATION, INVALID_CURSOR_MESSAGE);
 }
 
 // Checked before any query because Postgres throws on a malformed uuid or date.
@@ -34,6 +40,12 @@ export function decodeCursor(cursor: string, value: z.ZodType<string>): Position
   const parsed = z.tuple([value, z.uuid()]).safeParse(decoded);
   if (!parsed.success || hasNul(parsed.data)) throw invalidCursor();
   return { value: parsed.data[0], id: parsed.data[1] };
+}
+
+// For a list whose first page has no cursor: where to continue from, or undefined to start at the top.
+export function pageAfter(query: unknown, value: z.ZodType<string>): Position | undefined {
+  const { cursor } = parseInput(pageQuerySchema, query);
+  return cursor === undefined ? undefined : decodeCursor(cursor, value);
 }
 
 // Takes rows fetched with PAGE_QUERY_LIMIT.
