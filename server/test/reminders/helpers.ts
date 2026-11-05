@@ -1,7 +1,9 @@
 import type { Express } from "express";
-import type { Db } from "../../src/db.js";
+import { API_V1 } from "../../src/paths.js";
 import { signUpAgent, testMember, testProfessional } from "../app.js";
-import { KOLKATA_FIRST, book, signUpProfessional, userId } from "../booking/helpers.js";
+import { KOLKATA_FIRST, book, signUpProfessional, userId, type Agent } from "../booking/helpers.js";
+
+export const NOTIFICATIONS_URL = `${API_V1}/notifications`;
 
 // A Singapore member books the Kolkata professional's first slot next Monday, which is 9:00am for the
 // professional and 11:30am for the member.
@@ -25,9 +27,7 @@ export async function bookOneSession(app: Express) {
   };
 }
 
-export async function textsFor(db: Db, recipientId: string): Promise<string[]> {
-  const rows: { text: string }[] = await db("notifications")
-    .where({ recipient_id: recipientId })
-    .select("text");
-  return rows.map((row) => row.text);
+export async function textsFor(agent: Agent): Promise<string[]> {
+  const res = await agent.get(NOTIFICATIONS_URL);
+  return (res.body.items as { text: string }[]).map((item) => item.text);
 }

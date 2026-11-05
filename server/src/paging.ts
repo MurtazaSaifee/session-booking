@@ -9,6 +9,10 @@ export const PAGE_QUERY_LIMIT = PAGE_SIZE + 1;
 // Where a list's sort order had got to: the sort value of the last row seen, and its id to break ties.
 export type Position = { value: string; id: string };
 
+// A cursor for a list sorted by time holds that time. The server writes these in UTC, and Postgres has no
+// year 0000, though the format allows it.
+export const timeCursorValueSchema = z.iso.datetime().refine((value) => !value.startsWith("0000"));
+
 export type Page<T> = { items: T[]; next: string | null };
 
 export function encodeCursor(position: Position): string {

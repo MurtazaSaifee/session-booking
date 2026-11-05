@@ -35,24 +35,24 @@ function reminderStatuses(sessionId: string) {
 }
 
 it("delivers both reminders to both people, each when it comes due", async () => {
-  const { memberId, professionalId } = await bookOneSession(app);
+  const { member, professional } = await bookOneSession(app);
 
   await deliverAt(DAY_BEFORE_DUE);
-  expect(await textsFor(db, memberId)).toEqual([MEMBER_READS]);
-  expect(await textsFor(db, professionalId)).toEqual([PROFESSIONAL_READS]);
+  expect(await textsFor(member)).toEqual([MEMBER_READS]);
+  expect(await textsFor(professional)).toEqual([PROFESSIONAL_READS]);
 
   await deliverAt(HOUR_BEFORE_DUE);
-  expect(await textsFor(db, memberId)).toEqual([MEMBER_READS, MEMBER_READS]);
-  expect(await textsFor(db, professionalId)).toEqual([PROFESSIONAL_READS, PROFESSIONAL_READS]);
+  expect(await textsFor(member)).toEqual([MEMBER_READS, MEMBER_READS]);
+  expect(await textsFor(professional)).toEqual([PROFESSIONAL_READS, PROFESSIONAL_READS]);
 });
 
 it("delivers nothing a moment before a reminder is due", async () => {
-  const { memberId, professionalId } = await bookOneSession(app);
+  const { member, professional } = await bookOneSession(app);
 
   await deliverAt("2027-01-17T03:29:59Z");
 
-  expect(await textsFor(db, memberId)).toEqual([]);
-  expect(await textsFor(db, professionalId)).toEqual([]);
+  expect(await textsFor(member)).toEqual([]);
+  expect(await textsFor(professional)).toEqual([]);
 });
 
 it("marks a delivered reminder sent at the time passed in", async () => {
@@ -70,23 +70,23 @@ it("marks a delivered reminder sent at the time passed in", async () => {
 });
 
 it("delivers late reminders if the session hasn't started", async () => {
-  const { memberId } = await bookOneSession(app);
+  const { member } = await bookOneSession(app);
 
   await deliverAt("2027-01-18T03:29:59Z");
 
-  expect(await textsFor(db, memberId)).toEqual([MEMBER_READS, MEMBER_READS]);
+  expect(await textsFor(member)).toEqual([MEMBER_READS, MEMBER_READS]);
 });
 
 it.each([
   { case: "as the session starts", now: SESSION_START },
   { case: "after the session starts", now: "2027-01-18T03:30:01Z" },
 ])("skips reminders checked $case", async ({ now }) => {
-  const { memberId, professionalId, sessionId } = await bookOneSession(app);
+  const { member, professional, sessionId } = await bookOneSession(app);
 
   await deliverAt(now);
 
-  expect(await textsFor(db, memberId)).toEqual([]);
-  expect(await textsFor(db, professionalId)).toEqual([]);
+  expect(await textsFor(member)).toEqual([]);
+  expect(await textsFor(professional)).toEqual([]);
   expect(await reminderStatuses(sessionId)).toEqual(
     Array(4).fill({ status: ReminderStatus.SKIPPED, sent_at: null }),
   );
@@ -97,12 +97,12 @@ it.each([
   { case: "a part-filled last batch", batchSize: 3 },
   { case: "an exactly filled batch", batchSize: 4 },
 ])("delivers everything due across $case", async ({ batchSize }) => {
-  const { memberId, professionalId, sessionId } = await bookOneSession(app);
+  const { member, professional, sessionId } = await bookOneSession(app);
 
   await deliverAt(HOUR_BEFORE_DUE, batchSize);
 
-  expect(await textsFor(db, memberId)).toHaveLength(2);
-  expect(await textsFor(db, professionalId)).toHaveLength(2);
+  expect(await textsFor(member)).toHaveLength(2);
+  expect(await textsFor(professional)).toHaveLength(2);
   const statuses = await reminderStatuses(sessionId);
   expect(statuses.every((reminder) => reminder.status === ReminderStatus.SENT)).toBe(true);
 });

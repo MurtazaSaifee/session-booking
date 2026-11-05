@@ -4,6 +4,7 @@ import { authRoutes } from "./auth/routes.js";
 import { bookingRoutes } from "./booking/routes.js";
 import { directoryRoutes } from "./directory/routes.js";
 import { healthRoutes } from "./health/routes.js";
+import { notificationRoutes } from "./notifications/routes.js";
 import { API_V1 } from "./paths.js";
 import { sessionRoutes } from "./sessions/routes.js";
 import { settingsRoutes } from "./settings/routes.js";
@@ -45,6 +46,7 @@ export function createApp(deps: AppDeps) {
   v1.use("/professionals", directoryRoutes(deps));
   v1.use("/sessions", bookingRoutes(deps));
   v1.use("/sessions", sessionRoutes(deps));
+  v1.use("/notifications", notificationRoutes(deps));
 
   app.use(API_V1, v1);
 
