@@ -21,13 +21,22 @@ function ownSessions(db: Db, viewer: SignedInUser) {
     .select("s.id", "s.starts_at", "s.ends_at", "s.status", "s.cancelled_by", "u.name as other_person_name");
 }
 
-// A session in progress is still upcoming: it only becomes past once its end time has gone by.
+// What each list holds and how it sorts. A session in progress is still upcoming: it only becomes past
+// once its end time has gone by.
+const listRules = {
+  [SessionList.UPCOMING]: { status: SessionStatus.BOOKED, endsAt: ">", order: "asc", after: ">" },
+  [SessionList.PAST]: { status: SessionStatus.BOOKED, endsAt: "<=", order: "desc", after: "<" },
+  [SessionList.CANCELLED]: { status: SessionStatus.CANCELLED, endsAt: null, order: "desc", after: "<" },
+} as const;
+
 function listQuery(db: Db, viewer: SignedInUser, list: SessionList, now: Date, after?: Position) {
-  const order = list === SessionList.UPCOMING ? "asc" : "desc";
+  const rules = listRules[list];
+  const { order } = rules;
   const query = ownSessions(db, viewer)
+    .where("s.status", rules.status)
     .select(
       db.raw("cast(? as text) as list", [list]),
-      db.raw(`row_number() over (order by s.ends_at ${order}, s.id ${order}) as position`),
+      db.raw(`row_number() over (order by s.ends_at ${order}, s.id ${order}) as list_order`),
     )
     .orderBy([
       { column: "s.ends_at", order },
@@ -35,16 +44,12 @@ function listQuery(db: Db, viewer: SignedInUser, list: SessionList, now: Date, a
     ])
     .limit(PAGE_QUERY_LIMIT);
 
-  if (after) {
-    query.whereRaw(`(s.ends_at, s.id) ${order === "asc" ? ">" : "<"} (?, ?)`, [after.value, after.id]);
-  }
-  if (list === SessionList.CANCELLED) return query.where("s.status", SessionStatus.CANCELLED);
-  return query
-    .where("s.status", SessionStatus.BOOKED)
-    .where("s.ends_at", list === SessionList.UPCOMING ? ">" : "<=", now);
+  if (rules.endsAt) query.where("s.ends_at", rules.endsAt, now);
+  if (after) query.whereRaw(`(s.ends_at, s.id) ${rules.after} (?, ?)`, [after.value, after.id]);
+  return query;
 }
 
-// One round trip for all three lists. Postgres doesn't promise a union keeps each part's order, hence position.
+// One round trip for all three lists. Postgres doesn't promise a union keeps each part's order, hence list_order.
 export async function listMySessions(db: Db, viewer: SignedInUser, now: Date): Promise<MySessions> {
   const rows: ListRow[] = await db
     .queryBuilder()
@@ -52,7 +57,7 @@ export async function listMySessions(db: Db, viewer: SignedInUser, now: Date): P
       Object.values(SessionList).map((list) => listQuery(db, viewer, list, now)),
       true,
     )
-    .orderBy("position");
+    .orderBy("list_order");
   const pageOf = (list: SessionList) =>
     rowsToPage(
       rows.filter((row) => row.list === list),
