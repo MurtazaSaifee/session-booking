@@ -30,6 +30,7 @@ function deliverAt(iso: string, batchSize?: number) {
   return deliverDueReminders(db, new Date(iso), batchSize);
 }
 
+// "Mark it sent" and "mark it skipped" are ticket boxes that no API shows, so these two tests read the table.
 function reminderStatuses(sessionId: string) {
   return db("reminders").where({ session_id: sessionId }).select("status", "sent_at");
 }
@@ -97,12 +98,10 @@ it.each([
   { case: "a part-filled last batch", batchSize: 3 },
   { case: "an exactly filled batch", batchSize: 4 },
 ])("delivers everything due across $case", async ({ batchSize }) => {
-  const { member, professional, sessionId } = await bookOneSession(app);
+  const { member, professional } = await bookOneSession(app);
 
   await deliverAt(HOUR_BEFORE_DUE, batchSize);
 
   expect(await textsFor(member)).toHaveLength(2);
   expect(await textsFor(professional)).toHaveLength(2);
-  const statuses = await reminderStatuses(sessionId);
-  expect(statuses.every((reminder) => reminder.status === ReminderStatus.SENT)).toBe(true);
 });

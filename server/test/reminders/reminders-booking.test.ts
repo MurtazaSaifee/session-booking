@@ -1,11 +1,11 @@
 import { afterAll, beforeEach, expect, it } from "vitest";
-import { ReminderKind, ReminderStatus } from "../../src/reminders/reminder-values.js";
+import { deliverDueReminders } from "../../src/reminders/deliver.js";
 import { createTestApp, resetDb, signUpAgent, testClock } from "../app.js";
 import { CLOCK_START, book, otherMember } from "../booking/helpers.js";
 import { createTestDb } from "../db.js";
-import { SESSION_START, bookOneSession } from "./helpers.js";
+import { DAY_BEFORE_DUE, HOUR_BEFORE_DUE, SESSION_START, bookOneSession, textsFor } from "./helpers.js";
 
-const HOUR = 60 * 60 * 1000;
+const JUST_BEFORE_START = "2027-01-18T03:29:59Z";
 
 const clock = testClock(CLOCK_START);
 
@@ -19,67 +19,51 @@ beforeEach(() => {
 
 afterAll(() => db.destroy());
 
-function dueBefore(start: string, hours: number) {
-  return new Date(new Date(start).getTime() - hours * HOUR);
+function checkAt(iso: string | number) {
+  return deliverDueReminders(db, new Date(iso));
 }
 
-function bookAt(now: string) {
-  clock.set(now);
-  return bookOneSession(app);
-}
+it("plans each person a reminder 24 hours before and another 1 hour before", async () => {
+  const { member, professional } = await bookOneSession(app);
+  const counts = async () => [(await textsFor(member)).length, (await textsFor(professional)).length];
 
-function remindersFor(sessionId: string) {
-  return db("reminders")
-    .where({ session_id: sessionId })
-    .select("recipient_id", "kind", "due_at", "status", "sent_at");
-}
+  await checkAt(new Date(DAY_BEFORE_DUE).getTime() - 1);
+  expect(await counts()).toEqual([0, 0]);
 
-it("plans both reminders for both people", async () => {
-  const { professionalId, memberId, sessionId } = await bookAt(CLOCK_START);
+  await checkAt(DAY_BEFORE_DUE);
+  expect(await counts()).toEqual([1, 1]);
 
-  const reminders = await remindersFor(sessionId);
+  await checkAt(new Date(HOUR_BEFORE_DUE).getTime() - 1);
+  expect(await counts()).toEqual([1, 1]);
 
-  const planned = (recipient_id: string, kind: ReminderKind, hours: number) => ({
-    recipient_id,
-    kind,
-    due_at: dueBefore(SESSION_START, hours),
-    status: ReminderStatus.PENDING,
-    sent_at: null,
-  });
-  expect(reminders).toHaveLength(4);
-  expect(reminders).toEqual(
-    expect.arrayContaining([
-      planned(memberId, ReminderKind.DAY_BEFORE, 24),
-      planned(memberId, ReminderKind.HOUR_BEFORE, 1),
-      planned(professionalId, ReminderKind.DAY_BEFORE, 24),
-      planned(professionalId, ReminderKind.HOUR_BEFORE, 1),
-    ]),
-  );
+  await checkAt(HOUR_BEFORE_DUE);
+  expect(await counts()).toEqual([2, 2]);
 });
 
 it.each([
-  { case: "a little over 24 hours before", now: "2027-01-17T03:29:59Z", count: 4 },
-  { case: "exactly 24 hours before", now: "2027-01-17T03:30:00Z", count: 2 },
-  { case: "inside 24 hours", now: "2027-01-17T04:00:00Z", count: 2 },
-  { case: "exactly 1 hour before", now: "2027-01-18T02:30:00Z", count: 0 },
-  { case: "inside 1 hour", now: "2027-01-18T03:00:00Z", count: 0 },
-])("booked $case, only reminders still in the future are planned", async ({ now, count }) => {
-  const { sessionId } = await bookAt(now);
+  { case: "a little over 24 hours before", now: "2027-01-17T03:29:59Z", each: 2 },
+  { case: "exactly 24 hours before", now: DAY_BEFORE_DUE, each: 1 },
+  { case: "inside 24 hours", now: "2027-01-17T04:00:00Z", each: 1 },
+  { case: "exactly 1 hour before", now: HOUR_BEFORE_DUE, each: 0 },
+  { case: "inside 1 hour", now: "2027-01-18T03:00:00Z", each: 0 },
+])("booked $case, each person only gets reminders still in the future", async ({ now, each }) => {
+  clock.set(now);
+  const { member, professional } = await bookOneSession(app);
 
-  const reminders = await remindersFor(sessionId);
+  await checkAt(JUST_BEFORE_START);
 
-  expect(reminders).toHaveLength(count);
-  for (const reminder of reminders) {
-    expect(reminder.due_at.getTime()).toBeGreaterThan(new Date(now).getTime());
-  }
+  expect(await textsFor(member)).toHaveLength(each);
+  expect(await textsFor(professional)).toHaveLength(each);
 });
 
 it("a booking the database refuses leaves no reminders behind", async () => {
-  const { professionalId, sessionId } = await bookAt(CLOCK_START);
-  const second = await signUpAgent(app, otherMember);
+  const { member, professionalId } = await bookOneSession(app);
+  const refused = await signUpAgent(app, otherMember);
 
-  const res = await book(second, professionalId, SESSION_START);
+  const res = await book(refused, professionalId, SESSION_START);
+  await checkAt(JUST_BEFORE_START);
 
   expect(res.status).toBe(409);
-  expect(await db("reminders").whereNot({ session_id: sessionId }).select("id")).toEqual([]);
+  expect(await textsFor(refused)).toEqual([]);
+  expect(await textsFor(member)).toHaveLength(2);
 });
