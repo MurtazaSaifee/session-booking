@@ -30,3 +30,7 @@
   color: var(--danger);
   font-size: var(--text-small);
 }
+
+.session button {
+  margin-top: var(--space-3);
+}

@@ -27,3 +27,7 @@ export function getMySessions(): Promise<MySessions> {
 export function getNextSessions(list: SessionList, cursor: string): Promise<Page<MySession>> {
   return api<Page<MySession>>(`/sessions/lists/${list}?cursor=${encodeURIComponent(cursor)}`);
 }
+
+export async function cancelSession(id: string): Promise<void> {
+  await api(`/sessions/${encodeURIComponent(id)}/cancel`, { method: "POST" });
+}

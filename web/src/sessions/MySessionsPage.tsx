@@ -16,8 +16,8 @@ const sections = [
 ] as const;
 
 export function MySessionsPage({ user }: { user: User }) {
-  const { data: sessions, error: loadError } = useLoad(getMySessions);
-  const { timezone } = user;
+  const { data: sessions, error: loadError, reload } = useLoad(getMySessions);
+  const { timezone, role } = user;
 
   return (
     <section className="card">
@@ -36,6 +36,8 @@ export function MySessionsPage({ user }: { user: User }) {
             list={section.list}
             first={sessions[section.key]}
             timezone={timezone}
+            role={role}
+            onCancelled={reload}
           />
         ))
       )}
