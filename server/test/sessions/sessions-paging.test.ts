@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, expect, it } from "vitest";
 import { ErrorCode } from "../../src/errors.js";
-import { PAGE_SIZE } from "../../src/paging.js";
+import { PAGE_SIZE, encodeCursor } from "../../src/paging.js";
 import { API_V1 } from "../../src/paths.js";
 import { SessionList } from "../../src/sessions/session-list.js";
 import { createTestApp, resetDb, signUpAgent, testClock, testMember, testProfessional } from "../app.js";
@@ -22,6 +22,8 @@ const KOLKATA_STARTS = ["2027-01-18", "2027-01-25", "2027-02-01"].flatMap((day) 
     (time) => `${day}T${time}:00.000Z`,
   ),
 );
+
+const ID = "3f2b8c1e-7a4d-4e6f-9b1a-2c3d4e5f6a7b";
 
 const clock = testClock(CLOCK_START);
 
@@ -116,6 +118,10 @@ it.each([
   ["a list with no cursor", { list: SessionList.PAST }],
   ["a cursor with no list", { cursor: "abc" }],
   ["a tampered cursor", { list: SessionList.PAST, cursor: "@@@" }],
+  [
+    "a cursor with a date Postgres can't read",
+    { list: SessionList.PAST, cursor: encodeCursor({ value: "0000-01-01T00:00:00.000Z", id: ID }) },
+  ],
 ])("refuses %s with a 400", async (_name, query) => {
   const member = await signUpAgent(app, testMember);
 
