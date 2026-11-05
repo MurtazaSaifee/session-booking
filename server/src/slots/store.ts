@@ -24,7 +24,7 @@ function toIntervals(busy: BusyJson): Interval[] {
   return busy.map((row) => ({ start: new Date(row.start), end: new Date(row.end) }));
 }
 
-// Raw SQL so everything a booking needs comes back in one round trip, instead of one per table.
+// Raw SQL so the hours, timezone and both busy lists come back in one round trip, instead of one per table.
 export async function findBookingContext(
   db: Db,
   input: { professionalId: string; memberId: string; now: Date },
