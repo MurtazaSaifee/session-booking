@@ -1,15 +1,4 @@
-// Days are "YYYY-MM-DD" strings on the viewer's own calendar. Callers pass the viewer's profile timezone,
-// not the browser's, so the calendar matches the zone the member chose.
-export function localDate(instant: string | Date, timezone: string): string {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date(instant));
-  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((entry) => entry.type === type)?.value;
-  return `${part("year")}-${part("month")}-${part("day")}`;
-}
+import { localDate } from "../time/format";
 
 export function groupByLocalDay<T extends { start: string }>(slots: T[], timezone: string): Map<string, T[]> {
   const days = new Map<string, T[]>();

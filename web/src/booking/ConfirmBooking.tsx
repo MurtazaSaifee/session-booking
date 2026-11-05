@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { ErrorMessage } from "../components/ErrorMessage";
-import { formatDay, formatTimeRange } from "../time/format";
+import { formatDay, formatTimeRange, localDate } from "../time/format";
 import { bookSession, isBookingRefusal, type Slot } from "./api";
-import { localDate } from "./calendar";
 
 type ConfirmBookingProps = {
   professionalId: string;

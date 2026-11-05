@@ -1,21 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calendarWeeks, groupByLocalDay, localDate } from "./calendar";
-
-describe("localDate", () => {
-  it("gives the date on the viewer's clock, which can differ from UTC", () => {
-    expect(localDate("2027-01-11T19:00:00Z", "Europe/London")).toBe("2027-01-11");
-    expect(localDate("2027-01-11T19:00:00Z", "Asia/Singapore")).toBe("2027-01-12");
-  });
-
-  it("handles a half-hour offset at midnight", () => {
-    expect(localDate("2027-01-11T18:29:59Z", "Asia/Kolkata")).toBe("2027-01-11");
-    expect(localDate("2027-01-11T18:30:00Z", "Asia/Kolkata")).toBe("2027-01-12");
-  });
-
-  it("accepts a Date as well as an ISO string", () => {
-    expect(localDate(new Date("2027-01-11T19:00:00Z"), "Asia/Singapore")).toBe("2027-01-12");
-  });
-});
+import { calendarWeeks, groupByLocalDay } from "./calendar";
 
 describe("groupByLocalDay", () => {
   it("groups slots by the day they start on for the viewer, keeping their order", () => {

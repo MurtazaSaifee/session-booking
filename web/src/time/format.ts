@@ -7,6 +7,19 @@ function utcMidnight(date: string): number {
   return Date.UTC(year, month - 1, day);
 }
 
+// Days are "YYYY-MM-DD" strings on the viewer's own calendar. Callers pass the viewer's profile timezone,
+// not the browser's, so dates match the zone the viewer chose.
+export function localDate(instant: string | Date, timezone: string): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(instant));
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((entry) => entry.type === type)?.value;
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
 // Newer ICU versions put a narrow no-break space before am/pm; a plain space keeps the output predictable.
 export function formatTime(instant: string, timezone: string): string {
   return new Intl.DateTimeFormat(LOCALE, {

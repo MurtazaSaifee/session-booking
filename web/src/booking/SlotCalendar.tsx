@@ -1,10 +1,10 @@
 import { useCallback, useState } from "react";
 import { ErrorMessage } from "../components/ErrorMessage";
-import { formatDay, formatTimeRange } from "../time/format";
+import { formatDay, formatTimeRange, localDate } from "../time/format";
 import { useLoad } from "../useLoad";
 import { getSlots, type Slot } from "./api";
 import { BookingNotice } from "./BookingNotice";
-import { calendarWeeks, groupByLocalDay, localDate } from "./calendar";
+import { calendarWeeks, groupByLocalDay } from "./calendar";
 import { CalendarGrid } from "./CalendarGrid";
 import { ConfirmBooking } from "./ConfirmBooking";
 import { DayTimes } from "./DayTimes";
