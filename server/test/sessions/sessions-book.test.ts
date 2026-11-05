@@ -6,30 +6,20 @@ import { SessionStatus } from "../../src/session-status.js";
 import { SESSION_MINUTES } from "../../src/slots/slots.js";
 import { createTestApp, resetDb, signUpAgent, testClock, testMember, testProfessional } from "../app.js";
 import { createTestDb } from "../db.js";
-
-const otherMember = {
-  ...testMember,
-  name: "Iris Penn",
-  email: "iris@example.com",
-  timezone: "Europe/London",
-};
-
-const singaporeProfessional = {
-  ...testProfessional,
-  name: "Owen Hale",
-  email: "owen@example.com",
-  timezone: "Asia/Singapore",
-};
+import {
+  CLOCK_START,
+  KOLKATA_FIRST,
+  KOLKATA_SECOND,
+  SESSIONS_URL,
+  SINGAPORE_SLOT,
+  book,
+  otherMember,
+  signUpProfessional,
+  singaporeProfessional,
+  userId,
+} from "./helpers.js";
 
 const MONDAY = 1;
-const SESSIONS_URL = `${API_V1}/sessions`;
-const CLOCK_START = "2027-01-11T04:00:00Z";
-
-// Next Monday's slots with the Kolkata professional's 09:00-12:00 hours.
-const KOLKATA_FIRST = "2027-01-18T03:30:00Z";
-const KOLKATA_SECOND = "2027-01-18T04:30:00Z";
-// The Singapore professional's 13:00-14:00 hours overlap the Kolkata second slot.
-const SINGAPORE_SLOT = "2027-01-18T05:00:00Z";
 
 const clock = testClock(CLOCK_START);
 
@@ -43,19 +33,8 @@ beforeEach(() => {
 
 afterAll(() => db.destroy());
 
-async function signUpProfessional(user: typeof testProfessional, start: string, end: string) {
-  const agent = await signUpAgent(app, user);
-  const { id } = (await agent.get(`${API_V1}/auth/me`)).body.user;
-  await agent.put(`${API_V1}/settings/hours`).send({ ranges: [{ weekday: MONDAY, start, end }] });
-  return { agent, id: id as string };
-}
-
-function book(member: Awaited<ReturnType<typeof signUpAgent>>, professionalId: string, start: string) {
-  return member.post(SESSIONS_URL).send({ professionalId, start });
-}
-
 it("a member books a free slot", async () => {
-  const { id } = await signUpProfessional(testProfessional, "09:00", "12:00");
+  const { id } = await signUpProfessional(app, testProfessional, "09:00", "12:00");
   const member = await signUpAgent(app, testMember);
 
   const res = await book(member, id, KOLKATA_FIRST);
@@ -73,7 +52,7 @@ it("a member books a free slot", async () => {
 });
 
 it("refuses a request that is not signed in", async () => {
-  const { id } = await signUpProfessional(testProfessional, "09:00", "12:00");
+  const { id } = await signUpProfessional(app, testProfessional, "09:00", "12:00");
 
   const res = await request(app).post(SESSIONS_URL).send({ professionalId: id, start: KOLKATA_FIRST });
 
@@ -82,7 +61,7 @@ it("refuses a request that is not signed in", async () => {
 });
 
 it("a professional is refused with 403", async () => {
-  const { agent, id } = await signUpProfessional(testProfessional, "09:00", "12:00");
+  const { agent, id } = await signUpProfessional(app, testProfessional, "09:00", "12:00");
 
   const res = await book(agent, id, KOLKATA_FIRST);
 
@@ -98,7 +77,7 @@ it.each([
   },
   { case: "a missing professional id", body: () => ({ start: KOLKATA_FIRST }) },
 ])("refuses $case with 400", async ({ body }) => {
-  const { id } = await signUpProfessional(testProfessional, "09:00", "12:00");
+  const { id } = await signUpProfessional(app, testProfessional, "09:00", "12:00");
   const member = await signUpAgent(app, testMember);
 
   const res = await member.post(SESSIONS_URL).send(body(id));
@@ -112,9 +91,9 @@ it.each([
   { case: "an unknown id", id: () => "00000000-0000-4000-8000-000000000000" },
   { case: "a member's id", id: (memberId: string) => memberId },
 ])("refuses $case with 404", async ({ id }) => {
-  await signUpProfessional(testProfessional, "09:00", "12:00");
+  await signUpProfessional(app, testProfessional, "09:00", "12:00");
   const iris = await signUpAgent(app, otherMember);
-  const irisId = (await iris.get(`${API_V1}/auth/me`)).body.user.id;
+  const irisId = await userId(iris);
   const member = await signUpAgent(app, testMember);
 
   const res = await book(member, id(irisId), KOLKATA_FIRST);
@@ -129,7 +108,7 @@ it.each([
   { case: "a time on the hourly grid as working hours end", start: "2027-01-18T06:30:00Z" },
   { case: "a time beyond 4 weeks", start: "2027-02-08T04:30:00Z" },
 ])("refuses $case with 422", async ({ start }) => {
-  const { id } = await signUpProfessional(testProfessional, "09:00", "12:00");
+  const { id } = await signUpProfessional(app, testProfessional, "09:00", "12:00");
   const member = await signUpAgent(app, testMember);
 
   const res = await book(member, id, start);
@@ -139,7 +118,7 @@ it.each([
 });
 
 it("a second member booking the same slot is told it was taken", async () => {
-  const { id } = await signUpProfessional(testProfessional, "09:00", "12:00");
+  const { id } = await signUpProfessional(app, testProfessional, "09:00", "12:00");
   await book(await signUpAgent(app, testMember), id, KOLKATA_FIRST);
   const iris = await signUpAgent(app, otherMember);
 
@@ -153,8 +132,8 @@ it("a second member booking the same slot is told it was taken", async () => {
 });
 
 it("a member cannot book a slot that overlaps a session with another professional", async () => {
-  const kolkata = await signUpProfessional(testProfessional, "09:00", "12:00");
-  const singapore = await signUpProfessional(singaporeProfessional, "13:00", "14:00");
+  const kolkata = await signUpProfessional(app, testProfessional, "09:00", "12:00");
+  const singapore = await signUpProfessional(app, singaporeProfessional, "13:00", "14:00");
   const member = await signUpAgent(app, testMember);
   await book(member, singapore.id, SINGAPORE_SLOT);
 
@@ -168,7 +147,7 @@ it("a member cannot book a slot that overlaps a session with another professiona
 });
 
 it("booking the same slot again says the member already has it, not that it was taken", async () => {
-  const { id } = await signUpProfessional(testProfessional, "09:00", "12:00");
+  const { id } = await signUpProfessional(app, testProfessional, "09:00", "12:00");
   const member = await signUpAgent(app, testMember);
   await book(member, id, KOLKATA_FIRST);
 
@@ -179,7 +158,7 @@ it("booking the same slot again says the member already has it, not that it was 
 });
 
 it("a member can book two slots one after the other", async () => {
-  const { id } = await signUpProfessional(testProfessional, "09:00", "12:00");
+  const { id } = await signUpProfessional(app, testProfessional, "09:00", "12:00");
   const member = await signUpAgent(app, testMember);
 
   const first = await book(member, id, KOLKATA_FIRST);
@@ -190,11 +169,11 @@ it("a member can book two slots one after the other", async () => {
 });
 
 it("books for the signed-in member and ignores a member id in the body", async () => {
-  const kolkata = await signUpProfessional(testProfessional, "09:00", "12:00");
-  const singapore = await signUpProfessional(singaporeProfessional, "13:00", "14:00");
+  const kolkata = await signUpProfessional(app, testProfessional, "09:00", "12:00");
+  const singapore = await signUpProfessional(app, singaporeProfessional, "13:00", "14:00");
   const theo = await signUpAgent(app, testMember);
   const iris = await signUpAgent(app, otherMember);
-  const irisId = (await iris.get(`${API_V1}/auth/me`)).body.user.id;
+  const irisId = await userId(iris);
 
   const booked = await theo
     .post(SESSIONS_URL)
@@ -208,7 +187,7 @@ it("books for the signed-in member and ignores a member id in the body", async (
 });
 
 it("a time freed by a cancelled session can be booked", async () => {
-  const { id } = await signUpProfessional(testProfessional, "09:00", "12:00");
+  const { id } = await signUpProfessional(app, testProfessional, "09:00", "12:00");
   await book(await signUpAgent(app, testMember), id, KOLKATA_FIRST);
   await db("sessions").update({ status: SessionStatus.CANCELLED });
   const iris = await signUpAgent(app, otherMember);
@@ -219,7 +198,7 @@ it("a time freed by a cancelled session can be booked", async () => {
 });
 
 it("hours that were replaced no longer count", async () => {
-  const { agent, id } = await signUpProfessional(testProfessional, "09:00", "12:00");
+  const { agent, id } = await signUpProfessional(app, testProfessional, "09:00", "12:00");
   await agent
     .put(`${API_V1}/settings/hours`)
     .send({ ranges: [{ weekday: MONDAY, start: "13:00", end: "14:00" }] });
