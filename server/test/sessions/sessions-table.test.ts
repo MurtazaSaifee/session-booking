@@ -72,6 +72,17 @@ it("a cancelled session doesn't block the time", async () => {
   await expect(insertSession(theo, nora, "2027-01-18T09:00:00Z")).resolves.toBeDefined();
 });
 
+it("who cancelled a session must be a real user", async () => {
+  const theo = await insertUser(Role.MEMBER, "Theo Marsh", "theo@example.com", "Asia/Singapore");
+  const nora = await insertUser(Role.PROFESSIONAL, "Nora Quill", "nora@example.com", "Asia/Kolkata");
+  await insertSession(theo, nora, "2027-01-18T09:00:00Z", SessionStatus.CANCELLED);
+
+  await expect(db("sessions").update({ cancelled_by: theo })).resolves.toBe(1);
+  await expect(
+    db("sessions").update({ cancelled_by: "00000000-0000-4000-8000-000000000000" }),
+  ).rejects.toMatchObject({ constraint: "sessions_cancelled_by_fkey" });
+});
+
 it("two different pairs of people can have sessions at the same time", async () => {
   const theo = await insertUser(Role.MEMBER, "Theo Marsh", "theo@example.com", "Asia/Singapore");
   const iris = await insertUser(Role.MEMBER, "Iris Penn", "iris@example.com", "Europe/London");
