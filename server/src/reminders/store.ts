@@ -1,19 +1,22 @@
+import type { Knex } from "knex";
 import type { Db } from "../db.js";
+import { decideOutcomes, type DueReminder, type ReminderOutcomes } from "./reminder-outcomes.js";
 import { ReminderStatus } from "./reminder-values.js";
 
-export type DueReminder = {
-  id: string;
-  recipientId: string;
-  start: Date;
-  timezone: string;
-  otherPersonName: string;
-};
+// Saving the notification and marking the reminder sent commit together, which is what makes delivery exactly
+// once. Returns how many reminders it claimed.
+export function deliverBatch(db: Db, now: Date, limit: number): Promise<number> {
+  return db.transaction(async (trx) => {
+    const due = await claimDueReminders(trx, now, limit);
+    if (due.length === 0) return 0;
+    await saveOutcomes(trx, decideOutcomes(due, now), now);
+    return due.length;
+  });
+}
 
-export type Delivery = { reminderId: string; recipientId: string; text: string };
-
-// Run inside a transaction: the locks last until it ends. Rows another checker holds are skipped, not waited
+// The locks last until the transaction ends. Rows another checker holds are skipped, not waited
 // for. If that checker has just finished, Postgres re-checks the status and drops the row as no longer pending.
-export async function claimDueReminders(trx: Db, now: Date, limit: number): Promise<DueReminder[]> {
+async function claimDueReminders(trx: Knex.Transaction, now: Date, limit: number): Promise<DueReminder[]> {
   const result = await trx.raw<{ rows: DueReminder[] }>(
     `
     select r.id, r.recipient_id as "recipientId", s.starts_at as start, recipient.timezone,
@@ -33,10 +36,7 @@ export async function claimDueReminders(trx: Db, now: Date, limit: number): Prom
   return result.rows;
 }
 
-export async function saveOutcomes(
-  trx: Db,
-  outcomes: { deliveries: Delivery[]; skippedIds: string[]; now: Date },
-): Promise<void> {
+async function saveOutcomes(trx: Knex.Transaction, outcomes: ReminderOutcomes, now: Date): Promise<void> {
   await trx.raw(
     `
     with delivered as (
@@ -54,7 +54,7 @@ export async function saveOutcomes(
     where id = any(cast(:skippedIds as uuid[]))
     `,
     {
-      now: outcomes.now,
+      now,
       deliveries: JSON.stringify(outcomes.deliveries),
       sent: ReminderStatus.SENT,
       skipped: ReminderStatus.SKIPPED,

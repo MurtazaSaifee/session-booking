@@ -1,5 +1,6 @@
 import { afterAll, beforeEach, expect, it } from "vitest";
-import { deliverBatch, deliverDueReminders } from "../../src/reminders/deliver.js";
+import { deliverDueReminders } from "../../src/reminders/deliver.js";
+import { deliverBatch } from "../../src/reminders/store.js";
 import { ReminderStatus } from "../../src/reminders/reminder-values.js";
 import { createTestApp, resetDb, signUpAgent, testClock, testMember, testProfessional } from "../app.js";
 import { CLOCK_START, KOLKATA_STARTS, book, signUpProfessional, type Agent } from "../booking/helpers.js";
