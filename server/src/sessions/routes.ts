@@ -1,8 +1,7 @@
 import express from "express";
 import type { AppDeps } from "../app.js";
-import { currentUser, requireRole, requireSignedIn } from "../auth/guards.js";
+import { currentUser, requireSignedIn } from "../auth/guards.js";
 import { decodeCursor, timeCursorValueSchema } from "../paging.js";
-import { Role } from "../roles.js";
 import { parseInput } from "../validation.js";
 import { cancelMySession } from "./cancel.js";
 import { mySessionOr404 } from "./lookup.js";
@@ -29,7 +28,7 @@ export function sessionRoutes(deps: AppDeps): express.Router {
     res.json({ session: await mySessionOr404(deps, currentUser(res), req.params.id) });
   });
 
-  router.post("/:id/cancel", requireRole(deps, Role.PROFESSIONAL), async (req, res) => {
+  router.post("/:id/cancel", requireSignedIn(deps), async (req, res) => {
     await cancelMySession(deps, currentUser(res), req.params.id);
     res.status(204).end();
   });

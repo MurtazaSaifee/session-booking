@@ -99,3 +99,13 @@ it.each([
   expect(res.body.error).toBe(ErrorCode.NOT_FOUND);
   expect((await theo.get(SESSIONS_URL)).body.upcoming.items).toHaveLength(1);
 });
+
+it("another member cancelling a member's session is a 404 and changes nothing", async () => {
+  const { iris, theo, theoSessionId } = await twoMembersAndTwoProfessionals(app);
+
+  const res = await iris.post(`${SESSIONS_URL}/${theoSessionId}/cancel`).send({});
+
+  expect(res.status).toBe(404);
+  expect(res.body.error).toBe(ErrorCode.NOT_FOUND);
+  expect((await theo.get(SESSIONS_URL)).body.upcoming.items).toHaveLength(1);
+});
