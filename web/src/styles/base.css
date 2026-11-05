@@ -199,6 +199,13 @@ legend {
   margin: 0 0 var(--space-4);
 }
 
+.page-controls {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
 @media (max-width: 480px) {
   .card {
     padding: var(--space-5);
