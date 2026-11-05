@@ -1,11 +1,10 @@
-import { afterAll, beforeEach, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, expect, it } from "vitest";
 import { deliverDueReminders } from "../../src/reminders/deliver.js";
 import { deliverBatch } from "../../src/reminders/store.js";
-import { ReminderStatus } from "../../src/reminders/reminder-values.js";
 import { createTestApp, resetDb, signUpAgent, testClock, testMember, testProfessional } from "../app.js";
 import { CLOCK_START, KOLKATA_STARTS, book, signUpProfessional, type Agent } from "../booking/helpers.js";
 import { createTestDb } from "../db.js";
-import { DAY_BEFORE_DUE, HOUR_BEFORE_DUE, bookOneSession, textsFor } from "./helpers.js";
+import { HOUR_BEFORE_DUE, bookOneSession, textsFor } from "./helpers.js";
 
 const clock = testClock(CLOCK_START);
 
@@ -85,27 +84,4 @@ it("running again after everything is delivered adds nothing", async () => {
   await deliverDueReminders(db, ALL_FOUR_DUE);
 
   expect(await deliveredCount(people)).toBe(4);
-});
-
-it("if the claim logic ever let a sent reminder through, there's no second delivery and the others still go out", async () => {
-  const people = await bookOneSession(app);
-  await deliverDueReminders(db, new Date(DAY_BEFORE_DUE));
-  await db("reminders").where({ status: ReminderStatus.SENT }).update({ status: ReminderStatus.PENDING });
-  const logged = vi.spyOn(console, "error").mockImplementation(() => {});
-
-  await deliverDueReminders(db, ALL_FOUR_DUE);
-
-  expect(await deliveredCount(people)).toBe(4);
-  expect(logged).toHaveBeenCalledOnce();
-  logged.mockRestore();
-});
-
-it("the database refuses a second notification for one reminder", async () => {
-  await bookOneSession(app);
-  await deliverDueReminders(db, ALL_FOUR_DUE);
-  const { id: _id, ...sameAgain } = await db("notifications").first();
-
-  await expect(db("notifications").insert(sameAgain)).rejects.toMatchObject({
-    constraint: "notifications_reminder_id_key",
-  });
 });

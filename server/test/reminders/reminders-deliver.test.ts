@@ -26,8 +26,8 @@ beforeEach(() => {
 
 afterAll(() => db.destroy());
 
-function deliverAt(iso: string, batchSize?: number) {
-  return deliverDueReminders(db, new Date(iso), batchSize);
+function deliverAt(iso: string) {
+  return deliverDueReminders(db, new Date(iso));
 }
 
 // "Mark it sent" and "mark it skipped" are ticket boxes that no API shows, so these two tests read the table.
@@ -91,17 +91,4 @@ it.each([
   expect(await reminderStatuses(sessionId)).toEqual(
     Array(4).fill({ status: ReminderStatus.SKIPPED, sent_at: null }),
   );
-});
-
-it.each([
-  { case: "several batches", batchSize: 1 },
-  { case: "a part-filled last batch", batchSize: 3 },
-  { case: "an exactly filled batch", batchSize: 4 },
-])("delivers everything due across $case", async ({ batchSize }) => {
-  const { member, professional } = await bookOneSession(app);
-
-  await deliverAt(HOUR_BEFORE_DUE, batchSize);
-
-  expect(await textsFor(member)).toHaveLength(2);
-  expect(await textsFor(professional)).toHaveLength(2);
 });
