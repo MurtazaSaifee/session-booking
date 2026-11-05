@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { findOverlappingDay } from "../src/settings/hours.js";
+import { findOverlappingDay } from "../../src/settings/hours.js";
 
 const MONDAY = 1;
 const WEDNESDAY = 3;

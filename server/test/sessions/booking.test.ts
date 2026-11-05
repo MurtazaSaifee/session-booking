@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
-import { ErrorCode } from "../src/errors.js";
-import { checkStart, type BookingRefusal } from "../src/sessions/booking.js";
-import type { Interval } from "../src/slots/slots.js";
+import { ErrorCode } from "../../src/errors.js";
+import { checkStart, type BookingRefusal } from "../../src/sessions/booking.js";
+import type { Interval } from "../../src/slots/slots.js";
 
 const MONDAY = 1;
 

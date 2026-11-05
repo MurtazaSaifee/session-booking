@@ -1,8 +1,8 @@
 import { afterAll, beforeEach, expect, it } from "vitest";
-import { ErrorCode } from "../src/errors.js";
-import { API_V1 } from "../src/paths.js";
-import { createTestApp, resetDb, signUpAgent, testClock, testProfessional } from "./app.js";
-import { createTestDb } from "./db.js";
+import { ErrorCode } from "../../src/errors.js";
+import { API_V1 } from "../../src/paths.js";
+import { createTestApp, resetDb, signUpAgent, testClock, testProfessional } from "../app.js";
+import { createTestDb } from "../db.js";
 
 const MONDAY = 1;
 const WEDNESDAY = 3;

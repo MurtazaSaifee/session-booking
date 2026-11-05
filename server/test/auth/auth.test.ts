@@ -1,10 +1,10 @@
 import request from "supertest";
 import { afterAll, beforeEach, expect, it } from "vitest";
-import { signAccessToken, hashRefreshToken } from "../src/auth/tokens.js";
-import { ErrorCode } from "../src/errors.js";
-import { Role } from "../src/roles.js";
-import { createTestApp, resetDb, testClock } from "./app.js";
-import { createTestDb } from "./db.js";
+import { signAccessToken, hashRefreshToken } from "../../src/auth/tokens.js";
+import { ErrorCode } from "../../src/errors.js";
+import { Role } from "../../src/roles.js";
+import { createTestApp, resetDb, testClock } from "../app.js";
+import { createTestDb } from "../db.js";
 
 const START = "2027-01-15T09:00:00Z";
 const clock = testClock(START);
