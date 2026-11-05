@@ -1,14 +1,14 @@
 import type { Db } from "../db.js";
 import { Role } from "../roles.js";
 import { SessionStatus } from "../session-status.js";
-import type { TimeRange } from "../settings/hours.js";
+import { toTimeRange, type HoursColumns } from "../settings/hours.js";
 import type { Interval, SlotInputs } from "./slots.js";
 
 type BusyJson = { start: string; end: string }[];
 
 type SlotInputsRow = {
   timezone: string;
-  ranges: TimeRange[];
+  ranges: HoursColumns[];
   member_busy: BusyJson;
   professional_busy: BusyJson;
 };
@@ -27,8 +27,8 @@ export async function findSlotInputs(
     select u.timezone,
       coalesce((select json_agg(json_build_object(
                   'weekday', h.weekday,
-                  'start', left(cast(h.start_time as text), 5),
-                  'end', left(cast(h.end_time as text), 5)))
+                  'start_time', h.start_time,
+                  'end_time', h.end_time))
                 from working_hours h
                 where h.professional_id = u.id and h.deleted_at is null), '[]') as ranges,
       coalesce((select json_agg(json_build_object('start', s.starts_at, 'end', s.ends_at))
@@ -54,7 +54,7 @@ export async function findSlotInputs(
   if (!row) return undefined;
   return {
     timezone: row.timezone,
-    ranges: row.ranges,
+    ranges: row.ranges.map(toTimeRange),
     memberBusy: toIntervals(row.member_busy),
     professionalBusy: toIntervals(row.professional_busy),
   };

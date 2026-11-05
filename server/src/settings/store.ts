@@ -1,5 +1,5 @@
 import type { Db } from "../db.js";
-import type { TimeRange } from "./hours.js";
+import { toTimeRange, type HoursColumns, type TimeRange } from "./hours.js";
 
 export type Profile = { title: string | null; bio: string | null };
 
@@ -29,13 +29,6 @@ type WorkingHoursRow = {
   end_time: string;
   deleted_at: Date | null;
 };
-
-type HoursColumns = Pick<WorkingHoursRow, "weekday" | "start_time" | "end_time">;
-
-// Postgres returns times as "09:00:00"; the API speaks "09:00".
-function toTimeRange(row: HoursColumns): TimeRange {
-  return { weekday: row.weekday, start: row.start_time.slice(0, 5), end: row.end_time.slice(0, 5) };
-}
 
 export async function listHours(db: Db, professionalId: string): Promise<TimeRange[]> {
   const rows = await db<WorkingHoursRow>("working_hours")
