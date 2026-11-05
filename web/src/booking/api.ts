@@ -9,11 +9,11 @@ export async function getSlots(professionalId: string): Promise<Slot[]> {
   return slots;
 }
 
-// The server's answers that mean this time can't be booked, so the free times on screen are out of date.
-const BOOKING_REFUSALS = ["SLOT_NOT_AVAILABLE", "SLOT_TAKEN", "MEMBER_OVERLAP"];
+// How the server says this time can't be booked, so the free times on screen are out of date.
+const REFUSED_STATUSES = [409, 422];
 
 export function isBookingRefusal(err: unknown): err is ApiError {
-  return err instanceof ApiError && BOOKING_REFUSALS.includes(err.code);
+  return err instanceof ApiError && REFUSED_STATUSES.includes(err.status);
 }
 
 export async function bookSession(professionalId: string, start: string): Promise<void> {
