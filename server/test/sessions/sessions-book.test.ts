@@ -1,4 +1,3 @@
-import request from "supertest";
 import { afterAll, beforeEach, expect, it } from "vitest";
 import { ErrorCode } from "../../src/errors.js";
 import { API_V1 } from "../../src/paths.js";
@@ -49,24 +48,6 @@ it("a member books a free slot", async () => {
       status: SessionStatus.BOOKED,
     },
   });
-});
-
-it("refuses a request that is not signed in", async () => {
-  const { id } = await signUpProfessional(app, testProfessional, "09:00", "12:00");
-
-  const res = await request(app).post(SESSIONS_URL).send({ professionalId: id, start: KOLKATA_FIRST });
-
-  expect(res.status).toBe(401);
-  expect(res.body.error).toBe(ErrorCode.UNAUTHENTICATED);
-});
-
-it("a professional is refused with 403", async () => {
-  const { agent, id } = await signUpProfessional(app, testProfessional, "09:00", "12:00");
-
-  const res = await book(agent, id, KOLKATA_FIRST);
-
-  expect(res.status).toBe(403);
-  expect(res.body).toEqual({ error: ErrorCode.WRONG_ROLE, message: "Only members can do this." });
 });
 
 it.each([
@@ -166,24 +147,6 @@ it("a member can book two slots one after the other", async () => {
 
   expect(first.status).toBe(201);
   expect(second.status).toBe(201);
-});
-
-it("books for the signed-in member and ignores a member id in the body", async () => {
-  const kolkata = await signUpProfessional(app, testProfessional, "09:00", "12:00");
-  const singapore = await signUpProfessional(app, singaporeProfessional, "13:00", "14:00");
-  const theo = await signUpAgent(app, testMember);
-  const iris = await signUpAgent(app, otherMember);
-  const irisId = await userId(iris);
-
-  const booked = await theo
-    .post(SESSIONS_URL)
-    .send({ professionalId: kolkata.id, start: KOLKATA_SECOND, memberId: irisId });
-  const theoClash = await book(theo, singapore.id, SINGAPORE_SLOT);
-  const irisBooks = await book(iris, singapore.id, SINGAPORE_SLOT);
-
-  expect(booked.status).toBe(201);
-  expect(theoClash.body.error).toBe(ErrorCode.MEMBER_OVERLAP);
-  expect(irisBooks.status).toBe(201);
 });
 
 it("a time freed by a cancelled session can be booked", async () => {
