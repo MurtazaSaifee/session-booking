@@ -47,6 +47,7 @@ it("looks up one session for either person on it", async () => {
   expect(memberView.body.session).toEqual({
     id,
     otherPersonName: testProfessional.name,
+    professionalId: professional.id,
     start: "2027-01-18T03:30:00.000Z",
     end: FIRST_ENDS,
     status: SessionStatus.BOOKED,

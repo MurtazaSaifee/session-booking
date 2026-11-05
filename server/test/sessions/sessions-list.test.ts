@@ -61,6 +61,7 @@ it("shows a member the professional's name and the session's times", async () =>
         {
           id,
           otherPersonName: testProfessional.name,
+          professionalId: professional.id,
           start: "2027-01-18T03:30:00.000Z",
           end: FIRST_ENDS,
           status: SessionStatus.BOOKED,

@@ -20,7 +20,15 @@ function ownSessions(db: Db, viewer: SignedInUser) {
   return db("sessions as s")
     .join("users as u", "u.id", other)
     .where(own, viewer.id)
-    .select("s.id", "s.starts_at", "s.ends_at", "s.status", "s.cancelled_by", "u.name as other_person_name");
+    .select(
+      "s.id",
+      "s.starts_at",
+      "s.ends_at",
+      "s.status",
+      "s.cancelled_by",
+      "u.name as other_person_name",
+      "u.id as other_person_id",
+    );
 }
 
 // What each list holds and how it sorts. A session in progress is still upcoming: it only becomes past
@@ -92,7 +100,6 @@ export async function findMySession(
 
 type CancelTargetRow = SessionRow & {
   viewer_name: string;
-  other_person_id: string;
   other_person_timezone: string;
 };
 
@@ -113,7 +120,7 @@ export async function findToCancel(
   const row: CancelTargetRow | undefined = await ownSessions(db, viewer)
     .join("users as me", "me.id", sides[viewer.role].own)
     .where("s.id", id)
-    .select("me.name as viewer_name", "u.id as other_person_id", "u.timezone as other_person_timezone")
+    .select("me.name as viewer_name", "u.timezone as other_person_timezone")
     .first();
   return (
     row && {

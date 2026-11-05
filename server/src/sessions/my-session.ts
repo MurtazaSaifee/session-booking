@@ -1,5 +1,5 @@
 import { toPage, type Page } from "../paging.js";
-import type { SignedInUser } from "../roles.js";
+import { Role, type SignedInUser } from "../roles.js";
 import type { SessionStatus } from "../session-status.js";
 import type { SessionList } from "./session-list.js";
 
@@ -10,15 +10,18 @@ export type SessionRow = {
   status: SessionStatus;
   cancelled_by: string | null;
   other_person_name: string;
+  other_person_id: string;
 };
 
 export const CancelledBy = { YOU: "YOU", OTHER_PERSON: "OTHER_PERSON" } as const;
 export type CancelledBy = (typeof CancelledBy)[keyof typeof CancelledBy];
 
-// Exactly what a person may see of their own session: never the other person's id or email.
+// Exactly what a person may see of their own session: never the other person's email. A member also gets
+// the professional's id, which the directory already shows them, so they can open the calendar to reschedule.
 export type MySession = {
   id: string;
   otherPersonName: string;
+  professionalId?: string;
   start: Date;
   end: Date;
   status: SessionStatus;
@@ -36,6 +39,7 @@ export function toMySession(row: SessionRow, viewer: SignedInUser): MySession {
   return {
     id: row.id,
     otherPersonName: row.other_person_name,
+    ...(viewer.role === Role.MEMBER && { professionalId: row.other_person_id }),
     start: row.starts_at,
     end: row.ends_at,
     status: row.status,

@@ -27,7 +27,7 @@ it("another person's session looks exactly like one that doesn't exist", async (
   expect(otherProfessionals.body).toEqual(missing.body);
 });
 
-it("sends the other person's name, but never their id or email", async () => {
+it("sends the other person's name, never their email, and only a professional's id to a member", async () => {
   const { nora, theo, theoSessionId } = await twoMembersAndTwoProfessionals(app);
   const theoId = await userId(theo);
 
@@ -41,7 +41,8 @@ it("sends the other person's name, but never their id or email", async () => {
   ]);
 
   expect(theoView).toContain(testProfessional.name);
-  expect(theoView).not.toContain(nora.id);
+  // The directory already shows a member the professional's id; a professional never gets the member's.
+  expect(theoView).toContain(nora.id);
   expect(theoView).not.toContain(testProfessional.email);
   expect(noraView).toContain(testMember.name);
   expect(noraView).not.toContain(theoId);
