@@ -1,15 +1,9 @@
 import { afterAll, beforeEach, expect, it } from "vitest";
 import { ReminderKind, ReminderStatus } from "../../src/reminders/reminder-values.js";
-import { createTestApp, resetDb, signUpAgent, testClock, testMember, testProfessional } from "../app.js";
-import {
-  CLOCK_START,
-  KOLKATA_FIRST,
-  book,
-  otherMember,
-  signUpProfessional,
-  userId,
-} from "../booking/helpers.js";
+import { createTestApp, resetDb, signUpAgent, testClock } from "../app.js";
+import { CLOCK_START, book, otherMember } from "../booking/helpers.js";
 import { createTestDb } from "../db.js";
+import { SESSION_START, bookOneSession } from "./helpers.js";
 
 const HOUR = 60 * 60 * 1000;
 
@@ -29,13 +23,9 @@ function dueBefore(start: string, hours: number) {
   return new Date(new Date(start).getTime() - hours * HOUR);
 }
 
-async function bookAt(now: string) {
+function bookAt(now: string) {
   clock.set(now);
-  const { id: professionalId } = await signUpProfessional(app, testProfessional, "09:00", "12:00");
-  const member = await signUpAgent(app, testMember);
-  const res = await book(member, professionalId, KOLKATA_FIRST);
-  expect(res.status).toBe(201);
-  return { professionalId, memberId: await userId(member), sessionId: res.body.session.id as string };
+  return bookOneSession(app);
 }
 
 function remindersFor(sessionId: string) {
@@ -52,7 +42,7 @@ it("plans both reminders for both people", async () => {
   const planned = (recipient_id: string, kind: ReminderKind, hours: number) => ({
     recipient_id,
     kind,
-    due_at: dueBefore(KOLKATA_FIRST, hours),
+    due_at: dueBefore(SESSION_START, hours),
     status: ReminderStatus.PENDING,
     sent_at: null,
   });
@@ -88,7 +78,7 @@ it("a booking the database refuses leaves no reminders behind", async () => {
   const { professionalId, sessionId } = await bookAt(CLOCK_START);
   const second = await signUpAgent(app, otherMember);
 
-  const res = await book(second, professionalId, KOLKATA_FIRST);
+  const res = await book(second, professionalId, SESSION_START);
 
   expect(res.status).toBe(409);
   expect(await db("reminders").whereNot({ session_id: sessionId }).select("id")).toEqual([]);
