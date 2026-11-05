@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Page } from "./api";
+import { addPage, canGoNext, currentPage, goBack, type PagerState } from "./pager";
 
 export type Pager<T> = {
   items: T[];
@@ -13,10 +14,10 @@ export type Pager<T> = {
 
 // `first` is the page already loaded. Pages seen so far are kept, so Previous needs nothing from the server.
 export function usePager<T>(first: Page<T>, loadNext: (cursor: string) => Promise<Page<T>>): Pager<T> {
-  const [later, setLater] = useState<Page<T>[]>([]);
+  const [state, setState] = useState<PagerState<T>>({ later: [], atEnd: false });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const page = later.at(-1) ?? first;
+  const page = currentPage(first, state);
 
   async function next() {
     if (page.next === null) return;
@@ -24,7 +25,7 @@ export function usePager<T>(first: Page<T>, loadNext: (cursor: string) => Promis
     setError(null);
     try {
       const nextPage = await loadNext(page.next);
-      setLater((pages) => [...pages, nextPage]);
+      setState((current) => addPage(current, nextPage));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -34,13 +35,13 @@ export function usePager<T>(first: Page<T>, loadNext: (cursor: string) => Promis
 
   function previous() {
     setError(null);
-    setLater((pages) => pages.slice(0, -1));
+    setState(goBack);
   }
 
   return {
     items: page.items,
-    hasPrevious: later.length > 0,
-    hasNext: page.next !== null,
+    hasPrevious: state.later.length > 0,
+    hasNext: canGoNext(first, state),
     loading,
     error,
     previous,
