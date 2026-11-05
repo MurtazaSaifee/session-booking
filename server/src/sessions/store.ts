@@ -1,11 +1,9 @@
 import type { Db } from "../db.js";
 import { PAGE_QUERY_LIMIT, type Page, type Position } from "../paging.js";
-import { Role } from "../roles.js";
+import { Role, type SignedInUser } from "../roles.js";
 import { SessionStatus } from "../session-status.js";
 import { rowsToPage, toMySession, type MySession, type MySessions, type SessionRow } from "./my-session.js";
 import { SessionList } from "./session-list.js";
-
-type Viewer = { id: string; role: Role };
 
 type ListRow = SessionRow & { list: SessionList };
 
@@ -15,7 +13,7 @@ const sides = {
 };
 
 // Every read starts here, so a person can only ever reach their own sessions.
-function ownSessions(db: Db, viewer: Viewer) {
+function ownSessions(db: Db, viewer: SignedInUser) {
   const { own, other } = sides[viewer.role];
   return db("sessions as s")
     .join("users as u", "u.id", other)
@@ -24,7 +22,7 @@ function ownSessions(db: Db, viewer: Viewer) {
 }
 
 // A session in progress is still upcoming: it only becomes past once its end time has gone by.
-function listQuery(db: Db, viewer: Viewer, list: SessionList, now: Date, after?: Position) {
+function listQuery(db: Db, viewer: SignedInUser, list: SessionList, now: Date, after?: Position) {
   const order = list === SessionList.UPCOMING ? "asc" : "desc";
   const query = ownSessions(db, viewer)
     .select(
@@ -47,7 +45,7 @@ function listQuery(db: Db, viewer: Viewer, list: SessionList, now: Date, after?:
 }
 
 // One round trip for all three lists. Postgres doesn't promise a union keeps each part's order, hence position.
-export async function listMySessions(db: Db, viewer: Viewer, now: Date): Promise<MySessions> {
+export async function listMySessions(db: Db, viewer: SignedInUser, now: Date): Promise<MySessions> {
   const rows: ListRow[] = await db
     .queryBuilder()
     .unionAll(
@@ -69,14 +67,18 @@ export async function listMySessions(db: Db, viewer: Viewer, now: Date): Promise
 
 export async function listNextSessions(
   db: Db,
-  viewer: Viewer,
+  viewer: SignedInUser,
   input: { list: SessionList; after: Position; now: Date },
 ): Promise<Page<MySession>> {
   const rows: ListRow[] = await listQuery(db, viewer, input.list, input.now, input.after);
   return rowsToPage(rows, viewer);
 }
 
-export async function findMySession(db: Db, viewer: Viewer, id: string): Promise<MySession | undefined> {
+export async function findMySession(
+  db: Db,
+  viewer: SignedInUser,
+  id: string,
+): Promise<MySession | undefined> {
   const row: SessionRow | undefined = await ownSessions(db, viewer).where("s.id", id).first();
   return row && toMySession(row, viewer);
 }

@@ -1,7 +1,7 @@
 import type { Response } from "express";
 import type { AppDeps } from "../app.js";
 import type { Db } from "../db.js";
-import type { Role } from "../roles.js";
+import type { SignedInUser } from "../roles.js";
 import { setSignInCookies } from "./cookies.js";
 import { saveRefreshToken, type NewRefreshToken } from "./store.js";
 import {
@@ -23,7 +23,7 @@ export function newRefreshTokenRecord(now: Date): NewRefreshToken & { refreshTok
 }
 
 async function signInTokens(
-  user: { id: string; role: Role },
+  user: SignedInUser,
   refreshToken: string,
   deps: AppDeps,
   now: Date,
@@ -31,7 +31,7 @@ async function signInTokens(
   return { accessToken: await signAccessToken(user, deps.jwtSecret, now), refreshToken };
 }
 
-export async function createSignIn(db: Db, user: { id: string; role: Role }, deps: AppDeps): Promise<SignIn> {
+export async function createSignIn(db: Db, user: SignedInUser, deps: AppDeps): Promise<SignIn> {
   const now = deps.now();
   const { refreshToken, tokenHash, expiresAt } = newRefreshTokenRecord(now);
   await saveRefreshToken(db, { userId: user.id, tokenHash, expiresAt });
@@ -41,7 +41,7 @@ export async function createSignIn(db: Db, user: { id: string; role: Role }, dep
 // For a refresh token that is already saved: it goes out with a new access token.
 export async function finishSignIn(
   res: Response,
-  user: { id: string; role: Role },
+  user: SignedInUser,
   refreshToken: string,
   deps: AppDeps,
   now: Date,

@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import type { AppDeps } from "../app.js";
 import { ErrorCode, HttpError } from "../errors.js";
-import { Role } from "../roles.js";
+import { Role, type SignedInUser } from "../roles.js";
 import { verifyAccessToken } from "./tokens.js";
 
 export function notSignedIn() {
@@ -9,7 +9,7 @@ export function notSignedIn() {
 }
 
 // The server only trusts the user id inside the access token cookie.
-export async function signedInUser(req: Request, deps: AppDeps): Promise<{ id: string; role: Role }> {
+export async function signedInUser(req: Request, deps: AppDeps): Promise<SignedInUser> {
   try {
     return await verifyAccessToken(req.cookies.access_token, deps.jwtSecret, deps.now());
   } catch {
@@ -41,7 +41,7 @@ export function requireSignedIn(deps: AppDeps) {
 }
 
 // Only valid behind requireRole or requireSignedIn, which put the user on res.locals.
-export function currentUser(res: Response): { id: string; role: Role } {
+export function currentUser(res: Response): SignedInUser {
   if (!res.locals.user) throw new Error("currentUser needs requireRole or requireSignedIn to run first");
   return res.locals.user;
 }

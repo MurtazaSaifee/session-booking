@@ -1,9 +1,7 @@
 import { toPage, type Page } from "../paging.js";
-import type { Role } from "../roles.js";
+import type { SignedInUser } from "../roles.js";
 import type { SessionStatus } from "../session-status.js";
 import type { SessionList } from "./session-list.js";
-
-type Viewer = { id: string; role: Role };
 
 export type SessionRow = {
   id: string;
@@ -29,12 +27,12 @@ export type MySession = {
 
 export type MySessions = Record<Lowercase<SessionList>, Page<MySession>>;
 
-function cancelledBy(row: SessionRow, viewer: Viewer): CancelledBy | null {
+function cancelledBy(row: SessionRow, viewer: SignedInUser): CancelledBy | null {
   if (row.cancelled_by === null) return null;
   return row.cancelled_by === viewer.id ? CancelledBy.YOU : CancelledBy.OTHER_PERSON;
 }
 
-export function toMySession(row: SessionRow, viewer: Viewer): MySession {
+export function toMySession(row: SessionRow, viewer: SignedInUser): MySession {
   return {
     id: row.id,
     otherPersonName: row.other_person_name,
@@ -45,7 +43,7 @@ export function toMySession(row: SessionRow, viewer: Viewer): MySession {
   };
 }
 
-export function rowsToPage(rows: SessionRow[], viewer: Viewer): Page<MySession> {
+export function rowsToPage(rows: SessionRow[], viewer: SignedInUser): Page<MySession> {
   const page = toPage(rows, (row) => ({ value: row.ends_at.toISOString(), id: row.id }));
   return { ...page, items: page.items.map((row) => toMySession(row, viewer)) };
 }

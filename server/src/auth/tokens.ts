@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { SignJWT, jwtVerify } from "jose";
-import { Role } from "../roles.js";
+import { Role, type SignedInUser } from "../roles.js";
 
 const MINUTE_MS = 60_000;
 const ACCESS_TOKEN_MINUTES = 15;
@@ -9,11 +9,7 @@ export const REFRESH_TOKEN_MS = 7 * 24 * 60 * MINUTE_MS;
 
 export type SignIn = { accessToken: string; refreshToken: string };
 
-export async function signAccessToken(
-  user: { id: string; role: Role },
-  secret: string,
-  now: Date,
-): Promise<string> {
+export async function signAccessToken(user: SignedInUser, secret: string, now: Date): Promise<string> {
   const iat = Math.floor(now.getTime() / 1000);
   return new SignJWT({ role: user.role })
     .setProtectedHeader({ alg: "HS256" })
@@ -23,11 +19,7 @@ export async function signAccessToken(
     .sign(new TextEncoder().encode(secret));
 }
 
-export async function verifyAccessToken(
-  token: string,
-  secret: string,
-  now: Date,
-): Promise<{ id: string; role: Role }> {
+export async function verifyAccessToken(token: string, secret: string, now: Date): Promise<SignedInUser> {
   const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
     algorithms: ["HS256"],
     currentDate: now,
