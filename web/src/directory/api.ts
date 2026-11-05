@@ -1,4 +1,5 @@
 import { api } from "../api";
+import type { Page } from "../usePager";
 
 export type Professional = {
   id: string;
@@ -8,9 +9,12 @@ export type Professional = {
   timezone: string;
 };
 
-export async function listProfessionals(): Promise<Professional[]> {
-  const { items } = await api<{ items: Professional[] }>("/professionals");
-  return items;
+export function listProfessionals(): Promise<Page<Professional>> {
+  return api<Page<Professional>>("/professionals");
+}
+
+export function listNextProfessionals(cursor: string): Promise<Page<Professional>> {
+  return api<Page<Professional>>(`/professionals?cursor=${encodeURIComponent(cursor)}`);
 }
 
 export async function getProfessional(id: string): Promise<Professional> {
