@@ -1,20 +1,30 @@
 import express from "express";
 import type { AppDeps } from "../app.js";
 import { currentUser, requireRole, requireSignedIn } from "../auth/sign-in.js";
+import { decodeCursor } from "../paging.js";
 import { Role } from "../roles.js";
 import { slotInputsOr404 } from "../slots/lookup.js";
 import { sessionEnd } from "../slots/slots.js";
 import { parseBody } from "../validation.js";
 import { checkStart, refuse } from "./booking.js";
-import { listMySessions } from "./list-store.js";
-import { bookSessionSchema } from "./schemas.js";
+import { listMySessions, listNextSessions } from "./list-store.js";
+import { bookSessionSchema, sessionCursorValue, sessionsPageSchema } from "./schemas.js";
 import { insertSession } from "./store.js";
 
 export function sessionRoutes(deps: AppDeps): express.Router {
   const router = express.Router();
 
-  router.get("/", requireSignedIn(deps), async (_req, res) => {
-    res.json(await listMySessions(deps.db, currentUser(res), deps.now()));
+  // With no query, the first page of every list. Next on one list sends that list and its cursor.
+  router.get("/", requireSignedIn(deps), async (req, res) => {
+    const viewer = currentUser(res);
+    const now = deps.now();
+    if (Object.keys(req.query).length === 0) {
+      res.json(await listMySessions(deps.db, viewer, now));
+      return;
+    }
+    const { list, cursor } = parseBody(sessionsPageSchema, req.query);
+    const after = decodeCursor(cursor, sessionCursorValue);
+    res.json(await listNextSessions(deps.db, viewer, { list, after, now }));
   });
 
   router.post("/", requireRole(deps, Role.MEMBER), async (req, res) => {

@@ -1,11 +1,8 @@
 import type { Db } from "../db.js";
-import { PAGE_QUERY_LIMIT, toPage, type Page } from "../paging.js";
+import { PAGE_QUERY_LIMIT, toPage, type Page, type Position } from "../paging.js";
 import { Role } from "../roles.js";
 import { SessionStatus } from "../session-status.js";
-
-// Upcoming will happen, past did happen, cancelled won't or didn't.
-export const SessionList = { UPCOMING: "UPCOMING", PAST: "PAST", CANCELLED: "CANCELLED" } as const;
-export type SessionList = (typeof SessionList)[keyof typeof SessionList];
+import { SessionList } from "./session-list.js";
 
 type Viewer = { id: string; role: Role };
 
@@ -53,7 +50,7 @@ function rowsToPage(rows: ListRow[], viewer: Viewer): Page<MySession> {
 }
 
 // A session in progress is still upcoming: it only becomes past once its end time has gone by.
-function listQuery(db: Db, viewer: Viewer, list: SessionList, now: Date) {
+function listQuery(db: Db, viewer: Viewer, list: SessionList, now: Date, after?: Position) {
   const { own, other } = sides[viewer.role];
   const order = list === SessionList.UPCOMING ? "asc" : "desc";
   const query = db("sessions as s")
@@ -75,6 +72,9 @@ function listQuery(db: Db, viewer: Viewer, list: SessionList, now: Date) {
     ])
     .limit(PAGE_QUERY_LIMIT);
 
+  if (after) {
+    query.whereRaw(`(s.ends_at, s.id) ${order === "asc" ? ">" : "<"} (?, ?)`, [after.value, after.id]);
+  }
   if (list === SessionList.CANCELLED) return query.where("s.status", SessionStatus.CANCELLED);
   return query
     .where("s.status", SessionStatus.BOOKED)
@@ -100,4 +100,13 @@ export async function listMySessions(db: Db, viewer: Viewer, now: Date): Promise
     past: pageOf(SessionList.PAST),
     cancelled: pageOf(SessionList.CANCELLED),
   };
+}
+
+export async function listNextSessions(
+  db: Db,
+  viewer: Viewer,
+  input: { list: SessionList; after: Position; now: Date },
+): Promise<Page<MySession>> {
+  const rows: ListRow[] = await listQuery(db, viewer, input.list, input.now, input.after);
+  return rowsToPage(rows, viewer);
 }
