@@ -1,20 +1,25 @@
 import { setTimeout as sleep } from "node:timers/promises";
 import { afterAll, beforeEach, expect, it } from "vitest";
+import { createDb } from "../../src/db.js";
 import { deliverDueReminders } from "../../src/reminders/deliver.js";
 import { ReminderStatus } from "../../src/reminders/reminder-values.js";
 import { SessionStatus } from "../../src/session-status.js";
 import { createTestApp, resetDb, testClock } from "../app.js";
 import { CLOCK_START, SESSIONS_URL, type Agent } from "../booking/helpers.js";
-import { createTestDb } from "../db.js";
+import { testDatabaseUrl } from "../db.js";
 import { HOUR_BEFORE_DUE, bookOneSession } from "../reminders/helpers.js";
 
 const clock = testClock(CLOCK_START);
 
-// Each test needs a connection for the checker and one for the cancel.
-const db = createTestDb();
+// One connection each for the hold, the two sides of the race, and watching them wait.
+const db = createDb(testDatabaseUrl, { max: 4 });
 const app = createTestApp(db, clock.now);
 
-const HEAD_START_MS = 100;
+const HOLD_LOCK_ID = 808;
+// Also run first, because a hold left by a killed run would stop every later test that saves that row.
+const DROP_HOLD = "drop function if exists hold_save() cascade; drop sequence if exists held_rows";
+const CHECKER_SAVING = "delivered as";
+const CANCEL_SAVING = "cancelled_reminders";
 
 beforeEach(() => {
   clock.set(CLOCK_START);
@@ -23,50 +28,48 @@ beforeEach(() => {
 
 afterAll(() => db.destroy());
 
-// Holds back the checker's saving, so a cancel can arrive while the checker holds its reminders.
-async function slowCheckerSaves(run: () => Promise<void>) {
-  await db.raw(
-    "create function slow_down() returns trigger language plpgsql as $$ begin perform pg_sleep(0.15); return new; end $$",
-  );
-  await db.raw(
-    "create trigger slow_down before insert on notifications for each row execute function slow_down()",
-  );
-  try {
-    await run();
-  } finally {
-    await db.raw("drop trigger slow_down on notifications");
-    await db.raw("drop function slow_down()");
-  }
-}
+type Hold = { table: string; event: string; when: string; atRow: number };
 
-// Holds the cancel on its last reminder row until the test says the checker may run. By then the cancel has
-// locked all four reminders.
-async function holdCancelOnLastReminder(run: (cancelHoldsAllRows: () => Promise<void>) => Promise<void>) {
-  await db.raw("create sequence rows_locked");
+// Stops a save on one row until the test releases it, so the order of a race is chosen, not hoped for.
+async function holdSave(
+  { table, event, when, atRow }: Hold,
+  run: (release: () => Promise<void>) => Promise<void>,
+) {
+  await db.raw(DROP_HOLD);
+  const holder = await db.transaction();
+  await holder.raw("select pg_advisory_xact_lock(?)", [HOLD_LOCK_ID]);
+  await db.raw("create sequence held_rows");
   await db.raw(`
-    create function hold_last() returns trigger language plpgsql as $$
+    create function hold_save() returns trigger language plpgsql as $$
     begin
-      if nextval('rows_locked') = 4 then perform pg_sleep(0.5); end if;
+      if nextval('held_rows') = ${atRow} then perform pg_advisory_xact_lock(${HOLD_LOCK_ID}); end if;
       return new;
     end $$`);
   await db.raw(
-    "create trigger hold_last before update on reminders for each row execute function hold_last()",
+    `create trigger hold_save before ${event} on ${table} for each row when (${when}) execute function hold_save()`,
   );
-  const lockedAll = async () => {
-    for (let wait = 0; wait < 100; wait++) {
-      const { rows } = await db.raw("select last_value, is_called from rows_locked");
-      if (rows[0].is_called && Number(rows[0].last_value) === 4) return;
-      await sleep(10);
-    }
-    throw new Error("The cancel never reached its last reminder.");
-  };
   try {
-    await run(lockedAll);
+    await run(async () => {
+      await holder.commit();
+    });
   } finally {
-    await db.raw("drop trigger hold_last on reminders");
-    await db.raw("drop function hold_last()");
-    await db.raw("drop sequence rows_locked");
+    if (!holder.isCompleted()) await holder.rollback();
+    await db.raw(DROP_HOLD);
   }
+}
+
+// Row locks and the hold both show here, so this proves a statement really is stuck rather than slow to start.
+async function waitUntilStuck(statementPart: string, statements = 1) {
+  for (let wait = 0; wait < 300; wait++) {
+    const { rows } = await db.raw(
+      `select count(*) as stuck from pg_stat_activity
+       where datname = current_database() and wait_event_type = 'Lock' and query like ?`,
+      [`%${statementPart}%`],
+    );
+    if (Number(rows[0].stuck) === statements) return;
+    await sleep(10);
+  }
+  throw new Error(`Never saw ${statements} of "${statementPart}" waiting on a lock.`);
 }
 
 // A supertest request only starts when something waits on it, so this starts it now.
@@ -81,13 +84,21 @@ async function afterTheRace(sessionId: string) {
   return { reminders, deliveredIds, session };
 }
 
-it("a checker that holds the reminders first delivers them, and the cancel then leaves nothing pending", async () => {
+it("a cancel waits for a checker holding the reminders, then leaves the delivered ones alone", async () => {
   const { professional, sessionId } = await bookOneSession(app);
+  const checkerSaving = {
+    table: "notifications",
+    event: "insert",
+    when: "new.reminder_id is not null",
+    atRow: 1,
+  };
 
-  await slowCheckerSaves(async () => {
+  await holdSave(checkerSaving, async (release) => {
     const check = deliverDueReminders(db, new Date(HOUR_BEFORE_DUE));
-    await sleep(HEAD_START_MS);
+    await waitUntilStuck(CHECKER_SAVING);
     const cancel = startCancel(professional, sessionId);
+    await waitUntilStuck(CANCEL_SAVING);
+    await release();
     await Promise.all([check, cancel]);
   });
 
@@ -99,11 +110,18 @@ it("a checker that holds the reminders first delivers them, and the cancel then 
 
 it("a checker that runs while a cancel holds the reminders delivers none of them", async () => {
   const { professional, sessionId } = await bookOneSession(app);
+  const cancelOnLastReminder = {
+    table: "reminders",
+    event: "update",
+    when: `new.status = '${ReminderStatus.CANCELLED}'`,
+    atRow: 4,
+  };
 
-  await holdCancelOnLastReminder(async (cancelHoldsAllRows) => {
+  await holdSave(cancelOnLastReminder, async (release) => {
     const cancel = startCancel(professional, sessionId);
-    await cancelHoldsAllRows();
+    await waitUntilStuck(CANCEL_SAVING);
     await deliverDueReminders(db, new Date(HOUR_BEFORE_DUE));
+    await release();
     await cancel;
   });
   await deliverDueReminders(db, new Date(HOUR_BEFORE_DUE));
