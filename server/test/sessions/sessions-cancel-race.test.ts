@@ -7,7 +7,7 @@ import { SessionStatus } from "../../src/session-status.js";
 import { createTestApp, resetDb, testClock } from "../app.js";
 import { CLOCK_START, SESSIONS_URL, type Agent } from "../booking/helpers.js";
 import { testDatabaseUrl } from "../db.js";
-import { HOUR_BEFORE_DUE, bookOneSession } from "../reminders/helpers.js";
+import { HOUR_BEFORE_DUE, bookOneSession, textsFor } from "../reminders/helpers.js";
 
 const clock = testClock(CLOCK_START);
 
@@ -130,4 +130,27 @@ it("a checker that runs while a cancel holds the reminders delivers none of them
   expect(session.status).toBe(SessionStatus.CANCELLED);
   expect(deliveredIds).toEqual([]);
   expect(reminders.map((reminder) => reminder.status)).toEqual(Array(4).fill(ReminderStatus.CANCELLED));
+});
+
+it("two cancels at the same moment both succeed and tell the other person once", async () => {
+  const { member, professional, sessionId } = await bookOneSession(app);
+  const firstCancelOnSession = {
+    table: "sessions",
+    event: "update",
+    when: `new.status = '${SessionStatus.CANCELLED}'`,
+    atRow: 1,
+  };
+
+  let statuses: number[] = [];
+  await holdSave(firstCancelOnSession, async (release) => {
+    const first = startCancel(professional, sessionId);
+    await waitUntilStuck(CANCEL_SAVING);
+    const second = startCancel(professional, sessionId);
+    await waitUntilStuck(CANCEL_SAVING, 2);
+    await release();
+    statuses = (await Promise.all([first, second])).map((res) => res.status);
+  });
+
+  expect(statuses).toEqual([204, 204]);
+  expect(await textsFor(member)).toHaveLength(1);
 });
