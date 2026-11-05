@@ -1,5 +1,7 @@
 import type { Express } from "express";
+import type { Db } from "../../src/db.js";
 import { API_V1 } from "../../src/paths.js";
+import { SessionStatus } from "../../src/session-status.js";
 import { signUpAgent, testMember, testProfessional } from "../app.js";
 
 const MONDAY = 1;
@@ -46,4 +48,11 @@ export async function signUpProfessional(
 
 export function book(member: Agent, professionalId: string, start: string) {
   return member.post(SESSIONS_URL).send({ professionalId, start });
+}
+
+// Cancelling has no route until ticket 08, so this writes what that route will.
+export function markCancelled(db: Db, sessionId: string, cancelledBy: string, at: string) {
+  return db("sessions")
+    .where({ id: sessionId })
+    .update({ status: SessionStatus.CANCELLED, cancelled_by: cancelledBy, cancelled_at: new Date(at) });
 }

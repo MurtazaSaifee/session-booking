@@ -45,9 +45,17 @@ export function requireRole(deps: AppDeps, role: Role) {
   };
 }
 
-// Only valid behind requireRole, which is what puts the user on res.locals.
+// For routes open to both roles. Each person still only reaches their own records.
+export function requireSignedIn(deps: AppDeps) {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    res.locals.user = await signedInUser(req, deps);
+    next();
+  };
+}
+
+// Only valid behind requireRole or requireSignedIn, which put the user on res.locals.
 export function currentUser(res: Response): { id: string; role: Role } {
-  if (!res.locals.user) throw new Error("currentUser needs requireRole to run first");
+  if (!res.locals.user) throw new Error("currentUser needs requireRole or requireSignedIn to run first");
   return res.locals.user;
 }
 

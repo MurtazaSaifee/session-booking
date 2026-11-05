@@ -1,16 +1,21 @@
 import express from "express";
 import type { AppDeps } from "../app.js";
-import { currentUser, requireRole } from "../auth/sign-in.js";
+import { currentUser, requireRole, requireSignedIn } from "../auth/sign-in.js";
 import { Role } from "../roles.js";
 import { slotInputsOr404 } from "../slots/lookup.js";
 import { sessionEnd } from "../slots/slots.js";
 import { parseBody } from "../validation.js";
 import { checkStart, refuse } from "./booking.js";
+import { listMySessions } from "./list-store.js";
 import { bookSessionSchema } from "./schemas.js";
 import { insertSession } from "./store.js";
 
 export function sessionRoutes(deps: AppDeps): express.Router {
   const router = express.Router();
+
+  router.get("/", requireSignedIn(deps), async (_req, res) => {
+    res.json(await listMySessions(deps.db, currentUser(res), deps.now()));
+  });
 
   router.post("/", requireRole(deps, Role.MEMBER), async (req, res) => {
     const { id: memberId } = currentUser(res);
