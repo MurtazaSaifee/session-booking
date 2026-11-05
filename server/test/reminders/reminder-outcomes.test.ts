@@ -10,6 +10,7 @@ const reminder = {
   start: START,
   timezone: "Asia/Singapore",
   otherPersonName: "Nora Quill",
+  sessionCancelled: false,
 };
 
 it("delivers a reminder a moment before its session starts", () => {
@@ -31,4 +32,13 @@ it.each([
   { case: "after its session starts", now: new Date(START.getTime() + 1) },
 ])("skips a reminder $case", ({ now }) => {
   expect(decideOutcomes([reminder], now)).toEqual({ deliveries: [], skippedIds: ["reminder-1"] });
+});
+
+it("skips a reminder whose session was cancelled, even before it starts", () => {
+  const cancelled = { ...reminder, sessionCancelled: true };
+
+  expect(decideOutcomes([cancelled], new Date(START.getTime() - 1))).toEqual({
+    deliveries: [],
+    skippedIds: ["reminder-1"],
+  });
 });

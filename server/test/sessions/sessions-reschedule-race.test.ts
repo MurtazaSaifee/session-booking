@@ -125,6 +125,25 @@ it("a move can't overwrite a cancel that saves first", async () => {
   expect(await remindersFor(professional)).toEqual([]);
 });
 
+it("a cancel that saves just after a move leaves no reminder that would still be delivered", async () => {
+  const { member, professional, sessionId } = await bookOneSession(app);
+
+  await holdSave(db, MOVE_ON_SESSION, async (release) => {
+    const move = startMove(member, sessionId, KOLKATA_SECOND);
+    await waitUntilStuck(db, MOVE_SAVING);
+    const cancel = startCancel(professional, sessionId);
+    await waitUntilStuck(db, CANCEL_SAVING);
+    await release();
+    expect((await move).status).toBe(204);
+    expect((await cancel).status).toBe(204);
+  });
+  await deliverDueReminders(db, new Date("2027-01-18T03:30:00Z"));
+
+  expect((await member.get(SESSIONS_URL)).body.cancelled.items).toHaveLength(1);
+  expect(await remindersFor(member)).toEqual([]);
+  expect(await remindersFor(professional)).toEqual([]);
+});
+
 it("two moves at the same moment: one wins, the other is refused, and the member still has one session", async () => {
   const { member, professional, sessionId } = await bookOneSession(app);
 

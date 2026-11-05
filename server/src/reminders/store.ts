@@ -1,6 +1,7 @@
 import type { Knex } from "knex";
 import type { Db } from "../db.js";
 import { decideOutcomes, type DueReminder, type ReminderOutcomes } from "./reminder-outcomes.js";
+import { SessionStatus } from "../session-status.js";
 import { ReminderStatus } from "./reminder-values.js";
 
 // Saving the notification and marking the reminder sent commit together, which is what makes delivery exactly
@@ -23,7 +24,7 @@ export function deliverBatch(db: Db, now: Date, limit: number): Promise<number> 
 async function claimDueReminders(trx: Knex.Transaction, now: Date, limit: number): Promise<DueReminder[]> {
   const result = await trx.raw<{ rows: DueReminder[] }>(
     `
-    select r.id, r.recipient_id as "recipientId", r.session_id as "sessionId", s.starts_at as start, recipient.timezone,
+    select r.id, r.recipient_id as "recipientId", r.session_id as "sessionId", s.starts_at as start, s.status = :cancelledSession as "sessionCancelled", recipient.timezone,
       other.name as "otherPersonName"
     from reminders r
     join sessions s on s.id = r.session_id
@@ -35,7 +36,7 @@ async function claimDueReminders(trx: Knex.Transaction, now: Date, limit: number
     limit :limit
     for update of r skip locked
     `,
-    { pending: ReminderStatus.PENDING, now, limit },
+    { pending: ReminderStatus.PENDING, cancelledSession: SessionStatus.CANCELLED, now, limit },
   );
   return result.rows;
 }
