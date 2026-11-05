@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDay, formatMonth, formatTime } from "./format";
+import { formatDay, formatMonth, formatTime, formatTimeRange } from "./format";
 
 describe("formatTime", () => {
   it("reads a slot on the viewer's clock", () => {
@@ -28,5 +28,12 @@ describe("formatDay", () => {
 describe("formatMonth", () => {
   it("gives a short month name", () => {
     expect(formatMonth("2027-02-01")).toBe("Feb");
+  });
+});
+
+describe("formatTimeRange", () => {
+  it("gives the start and end on the viewer's clock", () => {
+    const slot = { start: "2027-01-11T03:30:00Z", end: "2027-01-11T04:20:00Z" };
+    expect(formatTimeRange(slot, "Asia/Singapore")).toBe("11:30 am – 12:20 pm");
   });
 });

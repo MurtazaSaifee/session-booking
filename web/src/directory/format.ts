@@ -19,6 +19,10 @@ export function formatTime(instant: string, timezone: string): string {
     .replace(/\s/g, " ");
 }
 
+export function formatTimeRange(slot: { start: string; end: string }, timezone: string): string {
+  return `${formatTime(slot.start, timezone)} – ${formatTime(slot.end, timezone)}`;
+}
+
 export function formatDay(date: string): string {
   return new Intl.DateTimeFormat(LOCALE, {
     timeZone: "UTC",

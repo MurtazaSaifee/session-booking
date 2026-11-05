@@ -120,9 +120,28 @@
   gap: var(--space-2);
 }
 
-.day-times li {
+.day-time {
   background: var(--teal-tint);
-  border-radius: var(--radius-pill);
-  padding: var(--space-1) var(--space-3);
+  color: var(--navy);
+  padding: var(--space-2) var(--space-3);
   font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+}
+
+.day-time:hover:not(:disabled) {
+  background: var(--line);
+}
+
+.confirm-details {
+  margin: 0 0 var(--space-4);
+}
+
+.confirm-name {
+  color: var(--navy);
+  font-weight: var(--weight-bold);
+  margin: 0;
+}
+
+.confirm-time {
+  margin: var(--space-1) 0 0;
 }
