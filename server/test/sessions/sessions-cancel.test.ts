@@ -3,7 +3,7 @@ import { API_V1 } from "../../src/paths.js";
 import { deliverDueReminders } from "../../src/reminders/deliver.js";
 import { CancelledBy } from "../../src/sessions/my-session.js";
 import { createTestApp, resetDb, testClock, testMember, testProfessional } from "../app.js";
-import { CLOCK_START, SESSIONS_URL, logIn } from "../booking/helpers.js";
+import { CLOCK_START, SESSIONS_URL, book, logIn } from "../booking/helpers.js";
 import { createTestDb } from "../db.js";
 import { HOUR_BEFORE_DUE, SESSION_START, bookOneSession, textsFor } from "../reminders/helpers.js";
 
@@ -42,7 +42,7 @@ it("a professional's cancel moves the session to cancelled on both screens and t
   expect(await textsFor(professional)).toEqual([]);
 });
 
-it("the cancelled time is a free slot again", async () => {
+it("the cancelled time is a free slot again, and can be booked", async () => {
   const { member, professional, professionalId, sessionId } = await bookOneSession(app);
   const freeStarts = async () =>
     (
@@ -53,6 +53,7 @@ it("the cancelled time is a free slot again", async () => {
   await professional.post(cancelUrl(sessionId)).send({});
 
   expect(await freeStarts()).toContain(new Date(SESSION_START).toISOString());
+  expect((await book(member, professionalId, SESSION_START)).status).toBe(201);
 });
 
 it.each([
