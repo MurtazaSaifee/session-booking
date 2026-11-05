@@ -1,9 +1,7 @@
 import express from "express";
 import type { AppDeps } from "../app.js";
-import { currentUser, requireRole } from "../auth/session.js";
+import { requireRole } from "../auth/session.js";
 import { Role } from "../roles.js";
-import { slotInputsOr404 } from "../slots/lookup.js";
-import { bookingWindowEnd, buildSlots } from "../slots/slots.js";
 import { professionalOr404 } from "./lookup.js";
 import { listProfessionals } from "./store.js";
 
@@ -17,16 +15,6 @@ export function directoryRoutes(deps: AppDeps): express.Router {
 
   router.get("/:id", async (req, res) => {
     res.json({ professional: await professionalOr404(deps, req.params.id) });
-  });
-
-  router.get("/:id/slots", async (req, res) => {
-    const { id: memberId } = currentUser(res);
-    const now = deps.now();
-    const { inputs } = await slotInputsOr404(deps, { professionalId: req.params.id, memberId, now });
-    const { ranges, timezone, memberBusy, professionalBusy } = inputs;
-    // Merged so the response can't reveal whether a slot is missing because of this member or someone else.
-    const busy = [...memberBusy, ...professionalBusy];
-    res.json({ slots: buildSlots({ ranges, timezone, now, windowEnd: bookingWindowEnd(now), busy }) });
   });
 
   return router;

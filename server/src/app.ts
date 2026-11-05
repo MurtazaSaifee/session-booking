@@ -6,6 +6,7 @@ import { healthRoutes } from "./health/routes.js";
 import { API_V1 } from "./paths.js";
 import { sessionRoutes } from "./sessions/routes.js";
 import { settingsRoutes } from "./settings/routes.js";
+import { slotRoutes } from "./slots/routes.js";
 import { ErrorCode, HttpError } from "./errors.js";
 import type { Db } from "./db.js";
 
@@ -39,6 +40,7 @@ export function createApp(deps: AppDeps) {
   v1.use("/health", healthRoutes(deps));
   v1.use("/auth", authRoutes(deps));
   v1.use("/settings", settingsRoutes(deps));
+  v1.use("/professionals", slotRoutes(deps));
   v1.use("/professionals", directoryRoutes(deps));
   v1.use("/sessions", sessionRoutes(deps));
 
