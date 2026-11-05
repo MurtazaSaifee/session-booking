@@ -55,9 +55,12 @@ it("the cancelled time is a free slot again", async () => {
   expect(await freeStarts()).toContain(new Date(SESSION_START).toISOString());
 });
 
-it("a professional can cancel a session that has already ended", async () => {
+it.each([
+  ["in progress", "2027-01-18T03:40:00Z"],
+  ["already ended", "2027-01-18T05:00:00Z"],
+])("a professional can cancel a session that is %s", async (_name, time) => {
   const { member, professional, sessionId } = await bookOneSession(app);
-  clock.set("2027-01-18T05:00:00Z");
+  clock.set(time);
   await logIn(professional, testProfessional);
   await logIn(member, testMember);
 
