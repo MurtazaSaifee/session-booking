@@ -4,7 +4,7 @@ import type { Db } from "../db.js";
 import { ErrorCode, HttpError } from "../errors.js";
 import { AUTH_PATH } from "../paths.js";
 import { Role } from "../roles.js";
-import { saveRefreshToken } from "./store.js";
+import { saveRefreshToken, type NewRefreshToken } from "./store.js";
 import {
   ACCESS_TOKEN_MINUTES,
   REFRESH_TOKEN_DAYS,
@@ -55,27 +55,35 @@ function cookieOptions(deps: AppDeps) {
   return { httpOnly: true, sameSite: "lax" as const, secure: deps.secureCookies };
 }
 
-export async function createSignIn(
-  db: Db,
-  user: { id: string; role: Role },
-  deps: AppDeps,
-): Promise<{ accessToken: string; refreshToken: string }> {
-  const now = deps.now();
-  const accessToken = await signAccessToken(user, deps.jwtSecret, now);
+export type SignIn = { accessToken: string; refreshToken: string };
+
+// A new refresh token and what the database stores for it: only the hash, never the token.
+export function newRefreshTokenRecord(now: Date): NewRefreshToken & { refreshToken: string } {
   const refreshToken = newRefreshToken();
-  await saveRefreshToken(db, {
-    userId: user.id,
+  return {
+    refreshToken,
     tokenHash: hashRefreshToken(refreshToken),
     expiresAt: new Date(now.getTime() + REFRESH_TOKEN_DAYS * DAY_MS),
-  });
-  return { accessToken, refreshToken };
+  };
 }
 
-export function setSignInCookies(
-  res: Response,
-  tokens: { accessToken: string; refreshToken: string },
+export async function signInTokens(
+  user: { id: string; role: Role },
+  refreshToken: string,
   deps: AppDeps,
-): void {
+  now: Date,
+): Promise<SignIn> {
+  return { accessToken: await signAccessToken(user, deps.jwtSecret, now), refreshToken };
+}
+
+export async function createSignIn(db: Db, user: { id: string; role: Role }, deps: AppDeps): Promise<SignIn> {
+  const now = deps.now();
+  const { refreshToken, tokenHash, expiresAt } = newRefreshTokenRecord(now);
+  await saveRefreshToken(db, { userId: user.id, tokenHash, expiresAt });
+  return signInTokens(user, refreshToken, deps, now);
+}
+
+export function setSignInCookies(res: Response, tokens: SignIn, deps: AppDeps): void {
   const cookie = cookieOptions(deps);
   res.cookie("access_token", tokens.accessToken, {
     ...cookie,

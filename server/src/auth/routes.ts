@@ -5,13 +5,21 @@ import { Role } from "../roles.js";
 import { parseBody } from "../validation.js";
 import { hashPassword, verifyPassword } from "./passwords.js";
 import { loginSchema, signupSchema } from "./schemas.js";
-import { clearSignIn, createSignIn, notSignedIn, setSignInCookies, signedInUser } from "./session.js";
 import {
-  createUser,
+  clearSignIn,
+  createSignIn,
+  newRefreshTokenRecord,
+  notSignedIn,
+  setSignInCookies,
+  signedInUser,
+  signInTokens,
+} from "./session.js";
+import {
+  createUserWithRefreshToken,
   findUserByEmail,
   findUserById,
-  redeemRefreshToken,
   revokeRefreshToken,
+  rotateRefreshToken,
 } from "./store.js";
 import { hashRefreshToken } from "./tokens.js";
 
@@ -27,9 +35,11 @@ export function authRoutes(deps: AppDeps): express.Router {
     const details =
       input.role === Role.PROFESSIONAL ? { title: input.title, bio: input.bio } : { title: null, bio: null };
 
-    // Saving the user and their refresh token succeed or fail together.
-    const { user, tokens } = await deps.db.transaction(async (trx) => {
-      const row = await createUser(trx, {
+    const now = deps.now();
+    const refresh = newRefreshTokenRecord(now);
+    const user = await createUserWithRefreshToken(
+      deps.db,
+      {
         role: input.role,
         name: input.name,
         email: input.email,
@@ -37,12 +47,12 @@ export function authRoutes(deps: AppDeps): express.Router {
         timezone: input.timezone,
         title: details.title,
         bio: details.bio,
-      });
-      if (!row) throw new HttpError(409, ErrorCode.EMAIL_TAKEN, "An account with this email already exists.");
-      return { user: row, tokens: await createSignIn(trx, row, deps) };
-    });
+      },
+      refresh,
+    );
+    if (!user) throw new HttpError(409, ErrorCode.EMAIL_TAKEN, "An account with this email already exists.");
 
-    setSignInCookies(res, tokens, deps);
+    setSignInCookies(res, await signInTokens(user, refresh.refreshToken, deps, now), deps);
     res.status(201).json({ user });
   });
 
@@ -69,21 +79,19 @@ export function authRoutes(deps: AppDeps): express.Router {
 
   router.post("/refresh", async (req, res) => {
     const token = req.cookies.refresh_token;
-    // Revoking the old token and saving the new one succeed or fail together.
-    const result =
+    const now = deps.now();
+    const refresh = newRefreshTokenRecord(now);
+    const user =
       typeof token === "string"
-        ? await deps.db.transaction(async (trx) => {
-            const user = await redeemRefreshToken(trx, hashRefreshToken(token), deps.now());
-            return user && { user, tokens: await createSignIn(trx, user, deps) };
-          })
+        ? await rotateRefreshToken(deps.db, hashRefreshToken(token), refresh, now)
         : null;
-    if (!result) {
+    if (!user) {
       clearSignIn(res, deps);
       throw notSignedIn();
     }
 
-    setSignInCookies(res, result.tokens, deps);
-    res.json({ user: result.user });
+    setSignInCookies(res, await signInTokens(user, refresh.refreshToken, deps, now), deps);
+    res.json({ user });
   });
 
   router.post("/logout", async (req, res) => {
