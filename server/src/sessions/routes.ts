@@ -15,17 +15,17 @@ import { insertSession } from "./store.js";
 export function sessionRoutes(deps: AppDeps): express.Router {
   const router = express.Router();
 
-  // With no query, the first page of every list. Next on one list sends that list and its cursor.
-  router.get("/", requireSignedIn(deps), async (req, res) => {
-    const viewer = currentUser(res);
-    const now = deps.now();
-    if (Object.keys(req.query).length === 0) {
-      res.json(await listMySessions(deps.db, viewer, now));
-      return;
-    }
-    const { list, cursor } = parseBody(sessionsPageSchema, req.query);
+  router.get("/", requireSignedIn(deps), async (_req, res) => {
+    res.json(await listMySessions(deps.db, currentUser(res), deps.now()));
+  });
+
+  router.get("/lists/:list", requireSignedIn(deps), async (req, res) => {
+    const { list, cursor } = parseBody(sessionsPageSchema, {
+      list: req.params.list,
+      cursor: req.query.cursor,
+    });
     const after = decodeCursor(cursor, sessionCursorValue);
-    res.json(await listNextSessions(deps.db, viewer, { list, after, now }));
+    res.json(await listNextSessions(deps.db, currentUser(res), { list, after, now: deps.now() }));
   });
 
   router.get("/:id", requireSignedIn(deps), async (req, res) => {

@@ -25,5 +25,5 @@ export function getMySessions(): Promise<MySessions> {
 }
 
 export function getNextSessions(list: SessionList, cursor: string): Promise<Page<MySession>> {
-  return api<Page<MySession>>(`/sessions?list=${list}&cursor=${encodeURIComponent(cursor)}`);
+  return api<Page<MySession>>(`/sessions/lists/${list}?cursor=${encodeURIComponent(cursor)}`);
 }

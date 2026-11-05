@@ -40,7 +40,7 @@ afterAll(() => db.destroy());
 type Row = { id: string; start: string };
 
 function nextPage(agent: Agent, list: SessionList, cursor: string) {
-  return agent.get(SESSIONS_URL).query({ list, cursor });
+  return agent.get(`${SESSIONS_URL}/lists/${list}`).query({ cursor });
 }
 
 async function setUp() {
@@ -114,18 +114,18 @@ it("two cancelled sessions at the same time, split by a page edge, both appear o
 });
 
 it.each([
-  ["a list that doesn't exist", { list: "ARCHIVE", cursor: "abc" }],
-  ["a list with no cursor", { list: SessionList.PAST }],
-  ["a cursor with no list", { cursor: "abc" }],
-  ["a tampered cursor", { list: SessionList.PAST, cursor: "@@@" }],
+  ["a list that doesn't exist", "ARCHIVE", { cursor: "abc" }],
+  ["a list with no cursor", SessionList.PAST, {}],
+  ["a tampered cursor", SessionList.PAST, { cursor: "@@@" }],
   [
     "a cursor with a date Postgres can't read",
-    { list: SessionList.PAST, cursor: encodeCursor({ value: "0000-01-01T00:00:00.000Z", id: ID }) },
+    SessionList.PAST,
+    { cursor: encodeCursor({ value: "0000-01-01T00:00:00.000Z", id: ID }) },
   ],
-])("refuses %s with a 400", async (_name, query) => {
+])("refuses %s with a 400", async (_name, list, query) => {
   const member = await signUpAgent(app, testMember);
 
-  const res = await member.get(SESSIONS_URL).query(query);
+  const res = await member.get(`${SESSIONS_URL}/lists/${list}`).query(query);
 
   expect(res.status).toBe(400);
   expect(res.body.error).toBe(ErrorCode.VALIDATION);

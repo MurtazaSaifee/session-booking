@@ -79,7 +79,7 @@ function sessionIds(body: Record<string, { items: { id: string }[] }>) {
 
 it.each([
   ["the list", SESSIONS_URL],
-  ["a next page", `${SESSIONS_URL}?list=${SessionList.PAST}&cursor=abc`],
+  ["a next page", `${SESSIONS_URL}/lists/${SessionList.PAST}?cursor=abc`],
   ["one session", `${SESSIONS_URL}/00000000-0000-4000-8000-000000000000`],
 ])("reading %s needs a sign-in", async (_name, url) => {
   const res = await request(app).get(url);
@@ -128,7 +128,9 @@ it("a hand-made cursor can't reach another person's sessions", async () => {
   const { iris, theoSessionId } = await twoMembersAndTwoProfessionals();
   const beforeEverything = encodeCursor({ value: CLOCK_START, id: theoSessionId });
 
-  const res = await iris.get(SESSIONS_URL).query({ list: SessionList.UPCOMING, cursor: beforeEverything });
+  const res = await iris
+    .get(`${SESSIONS_URL}/lists/${SessionList.UPCOMING}`)
+    .query({ cursor: beforeEverything });
 
   expect(res.status).toBe(200);
   expect(res.body.items.map((session: { id: string }) => session.id)).not.toContain(theoSessionId);
@@ -155,12 +157,13 @@ it("sends the other person's name, but never their id or email", async () => {
   expect(noraView).not.toContain(testMember.email);
 });
 
-it("refuses a person id in the query: only the sign-in decides whose sessions these are", async () => {
+it("ignores a person id in the query: only the sign-in decides whose sessions these are", async () => {
   const { iris, theo, theoSessionId } = await twoMembersAndTwoProfessionals();
   const theoId = await userId(theo);
 
   const res = await iris.get(SESSIONS_URL).query({ memberId: theoId });
 
-  expect(res.status).toBe(400);
-  expect(JSON.stringify(res.body)).not.toContain(theoSessionId);
+  expect(res.status).toBe(200);
+  expect(res.body.upcoming.items).toHaveLength(1);
+  expect(sessionIds(res.body)).not.toContain(theoSessionId);
 });
