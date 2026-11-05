@@ -92,6 +92,18 @@ it("a reminder delivered after mark all read counts as unread", async () => {
   expect((await member.get(NOTIFICATIONS_URL)).body.unreadCount).toBe(1);
 });
 
+it("the unread count alone follows delivery and mark all read", async () => {
+  const { member } = await bookOneSession(app);
+  const unreadCount = async () => (await member.get(`${NOTIFICATIONS_URL}/unread-count`)).body;
+  expect(await unreadCount()).toEqual({ unreadCount: 0 });
+
+  await deliverDueReminders(db, new Date(DAY_BEFORE_DUE));
+  expect(await unreadCount()).toEqual({ unreadCount: 1 });
+
+  await member.post(`${NOTIFICATIONS_URL}/read`).send({});
+  expect(await unreadCount()).toEqual({ unreadCount: 0 });
+});
+
 it("exactly one full page has no next page", async () => {
   const { member, memberId, sessionId } = await bookOneSession(app);
   await giveNotifications(db, sessionId, memberId, minutesAfter(SAME_TIME, PAGE_SIZE));

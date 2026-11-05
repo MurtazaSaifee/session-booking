@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router";
-import { getNotifications, NOTIFICATIONS_PATH } from "./api";
+import { getUnreadCount, NOTIFICATIONS_PATH } from "./api";
 
 const REFRESH_MS = 30_000;
 
@@ -12,9 +12,9 @@ export function NotificationBell() {
   useEffect(() => {
     let active = true;
     function refresh() {
-      getNotifications()
-        .then((page) => {
-          if (active) setUnread(page.unreadCount);
+      getUnreadCount()
+        .then((count) => {
+          if (active) setUnread(count);
         })
         // The count stays as it was, and the next refresh tries again.
         .catch(() => {});

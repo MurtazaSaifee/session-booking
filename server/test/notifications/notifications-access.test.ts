@@ -37,6 +37,23 @@ it("reading the list needs a sign-in", async () => {
   expect(res.body.error).toBe(ErrorCode.UNAUTHENTICATED);
 });
 
+it("reading the unread count needs a sign-in", async () => {
+  const res = await request(app).get(`${NOTIFICATIONS_URL}/unread-count`);
+
+  expect(res.status).toBe(401);
+  expect(res.body.error).toBe(ErrorCode.UNAUTHENTICATED);
+});
+
+it("the unread count covers only the person asking", async () => {
+  const { member, stranger, memberId } = await aDeliveredReminderAndAStranger();
+
+  const mine = await member.get(`${NOTIFICATIONS_URL}/unread-count`);
+  const theirs = await stranger.get(`${NOTIFICATIONS_URL}/unread-count`).query({ recipientId: memberId });
+
+  expect(mine.body.unreadCount).toBe(1);
+  expect(theirs.body.unreadCount).toBe(0);
+});
+
 it("marking all read needs a sign-in", async () => {
   const res = await request(app).post(`${NOTIFICATIONS_URL}/read`).send({});
 

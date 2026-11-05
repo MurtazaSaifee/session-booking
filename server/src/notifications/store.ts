@@ -11,7 +11,7 @@ type ListRow = { unread_count: string } & (
   | { id: null; session_id: null; text: null; created_at: null }
 );
 
-// One round trip for the page and the unread count, on every page, since the bell reads the count from here.
+// One round trip for the page and the unread count, on every page.
 export async function listMyNotifications(
   db: Db,
   recipientId: string,
@@ -43,6 +43,16 @@ export async function listMyNotifications(
     ...toPage(rows, (row) => ({ value: row.createdAt.toISOString(), id: row.id })),
     unreadCount: Number(result.rows[0].unread_count),
   };
+}
+
+// The bell asks every 30 seconds in every open tab, so it reads only the unread index, not a page of rows.
+export async function countUnread(db: Db, recipientId: string): Promise<number> {
+  const row = await db("notifications")
+    .where({ recipient_id: recipientId })
+    .whereNull("read_at")
+    .count<{ count: string }>("* as count")
+    .first();
+  return Number(row?.count);
 }
 
 export async function markAllRead(db: Db, recipientId: string, now: Date): Promise<void> {

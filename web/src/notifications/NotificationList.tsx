@@ -1,9 +1,10 @@
+import type { Page } from "../api";
 import { PageControls } from "../components/PageControls";
 import { formatFullDay, formatTime, localDate } from "../time/format";
 import { usePager } from "../usePager";
-import { getNotifications, type MyNotifications } from "./api";
+import { getNotifications, type MyNotification } from "./api";
 
-type NotificationListProps = { first: MyNotifications; timezone: string };
+type NotificationListProps = { first: Page<MyNotification>; timezone: string };
 
 export function NotificationList({ first, timezone }: NotificationListProps) {
   const pager = usePager(first, getNotifications);
