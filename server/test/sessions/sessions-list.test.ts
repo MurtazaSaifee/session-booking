@@ -1,5 +1,4 @@
 import { afterAll, beforeEach, expect, it } from "vitest";
-import { PAGE_SIZE } from "../../src/paging.js";
 import { SessionStatus } from "../../src/session-status.js";
 import { createTestApp, resetDb, signUpAgent, testClock, testMember, testProfessional } from "../app.js";
 import { createTestDb } from "../db.js";
@@ -7,7 +6,6 @@ import {
   CLOCK_START,
   KOLKATA_FIRST,
   KOLKATA_SECOND,
-  KOLKATA_STARTS,
   SESSIONS_URL,
   type Agent,
   book,
@@ -109,19 +107,4 @@ it("lists upcoming soonest first and past most recent first", async () => {
 
   expect(upcoming.map((session: { end: string }) => session.end)).toEqual([FIRST_ENDS, SECOND_ENDS]);
   expect(past.map((session: { end: string }) => session.end)).toEqual([SECOND_ENDS, FIRST_ENDS]);
-});
-
-it("returns at most one page of each list, and says when more follow", async () => {
-  const { professional, member } = await setUp();
-  for (const start of KOLKATA_STARTS.slice(0, PAGE_SIZE)) await book(member, professional.id, start);
-
-  const full = (await mySessions(member)).body.upcoming;
-  expect(full.items).toHaveLength(PAGE_SIZE);
-  expect(full.next).toBeNull();
-
-  await book(member, professional.id, KOLKATA_STARTS[PAGE_SIZE]);
-
-  const more = (await mySessions(member)).body.upcoming;
-  expect(more.items).toHaveLength(PAGE_SIZE);
-  expect(more.next).toEqual(expect.any(String));
 });

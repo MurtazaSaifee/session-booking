@@ -50,29 +50,52 @@ async function bookId(member: Agent, professionalId: string, start: string) {
 
 it("lists a cancelled session only under cancelled, whether its time is ahead or gone", async () => {
   const { professional, member } = await setUp();
-  const ahead = await bookId(member, professional.id, KOLKATA_FIRST);
-  const gone = await bookId(member, professional.id, KOLKATA_SECOND);
-  await markCancelled(db, ahead, await userId(member), CLOCK_START);
+  const gone = await bookId(member, professional.id, KOLKATA_FIRST);
+  const ahead = await bookId(member, professional.id, KOLKATA_SECOND);
   await markCancelled(db, gone, await userId(member), CLOCK_START);
+  await markCancelled(db, ahead, await userId(member), CLOCK_START);
 
   const res = await memberSessionsAt(member, "2027-01-18T04:25:00Z");
 
   expect(res.upcoming.items).toEqual([]);
   expect(res.past.items).toEqual([]);
-  expect(res.cancelled.items.map((session: { id: string }) => session.id)).toEqual([gone, ahead]);
+  expect(res.cancelled.items.map((session: { id: string }) => session.id)).toEqual([ahead, gone]);
   expect(res.cancelled.items[0].status).toBe(SessionStatus.CANCELLED);
 });
 
-it("tells each person whether they were the one who cancelled", async () => {
+function cancelledRow(id: string, otherPersonName: string, cancelledBy: CancelledBy) {
+  return {
+    id,
+    otherPersonName,
+    start: "2027-01-18T03:30:00.000Z",
+    end: "2027-01-18T04:20:00.000Z",
+    status: SessionStatus.CANCELLED,
+    cancelledBy,
+  };
+}
+
+it("shows exactly the cancelled row, with no ids, when the professional cancels", async () => {
   const { professional, member } = await setUp();
   const id = await bookId(member, professional.id, KOLKATA_FIRST);
   await markCancelled(db, id, professional.id, CLOCK_START);
 
-  const professionalView = (await mySessions(professional.agent)).body.cancelled.items[0];
-  const memberView = (await mySessions(member)).body.cancelled.items[0];
+  const professionalView = (await mySessions(professional.agent)).body.cancelled.items;
+  const memberView = (await mySessions(member)).body.cancelled.items;
 
-  expect(professionalView.cancelledBy).toBe(CancelledBy.YOU);
-  expect(memberView.cancelledBy).toBe(CancelledBy.OTHER_PERSON);
+  expect(professionalView).toEqual([cancelledRow(id, testMember.name, CancelledBy.YOU)]);
+  expect(memberView).toEqual([cancelledRow(id, testProfessional.name, CancelledBy.OTHER_PERSON)]);
+});
+
+it("shows exactly the cancelled row, with no ids, when the member cancels", async () => {
+  const { professional, member } = await setUp();
+  const id = await bookId(member, professional.id, KOLKATA_FIRST);
+  await markCancelled(db, id, await userId(member), CLOCK_START);
+
+  const professionalView = (await mySessions(professional.agent)).body.cancelled.items;
+  const memberView = (await mySessions(member)).body.cancelled.items;
+
+  expect(professionalView).toEqual([cancelledRow(id, testMember.name, CancelledBy.OTHER_PERSON)]);
+  expect(memberView).toEqual([cancelledRow(id, testProfessional.name, CancelledBy.YOU)]);
 });
 
 it("doesn't guess when a cancelled session has no record of who cancelled it", async () => {
