@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router";
-import { getUnreadCount, NOTIFICATIONS_PATH } from "./api";
+import { getUnreadCount } from "./api";
+import { NOTIFICATIONS_ROUTE } from "./route";
 
 const REFRESH_MS = 30_000;
 
 export function NotificationBell() {
   const { key, pathname } = useLocation();
-  const opensList = pathname === NOTIFICATIONS_PATH;
+  const opensList = pathname === NOTIFICATIONS_ROUTE;
   const [unread, setUnread] = useState(0);
   const [lastKey, setLastKey] = useState(key);
 
@@ -38,7 +39,7 @@ export function NotificationBell() {
 
   return (
     <Link
-      to={NOTIFICATIONS_PATH}
+      to={NOTIFICATIONS_ROUTE}
       className="bell"
       aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}
     >

@@ -1,7 +1,5 @@
 import { api, type Page } from "../api";
 
-export const NOTIFICATIONS_PATH = "/notifications";
-
 export type MyNotification = { id: string; text: string; createdAt: string };
 
 export function getNotifications(cursor?: string): Promise<Page<MyNotification>> {

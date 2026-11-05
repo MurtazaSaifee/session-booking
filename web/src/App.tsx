@@ -6,8 +6,8 @@ import { SignUpPage } from "./auth/SignUpPage";
 import { Header } from "./components/Header";
 import { ProfessionalPage } from "./directory/ProfessionalPage";
 import { ProfessionalsPage } from "./directory/ProfessionalsPage";
-import { NOTIFICATIONS_PATH } from "./notifications/api";
 import { NotificationsPage } from "./notifications/NotificationsPage";
+import { NOTIFICATIONS_ROUTE } from "./notifications/route";
 import { Role } from "./roles";
 import { MySessionsPage } from "./sessions/MySessionsPage";
 import { SettingsPage } from "./settings/SettingsPage";
@@ -36,7 +36,7 @@ function Shell() {
               element={user ? <MySessionsPage user={user} /> : <Navigate to="/login" replace />}
             />
             <Route
-              path={NOTIFICATIONS_PATH}
+              path={NOTIFICATIONS_ROUTE}
               element={user ? <NotificationsPage user={user} /> : <Navigate to="/login" replace />}
             />
             <Route path="/login" element={user ? <Navigate to="/" replace /> : <LogInPage />} />
