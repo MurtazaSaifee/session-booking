@@ -7,4 +7,5 @@ RUN npm ci
 
 FROM deps AS test
 COPY server server
+COPY web web
 CMD ["npm", "test"]
