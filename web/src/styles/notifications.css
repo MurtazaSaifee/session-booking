@@ -1,0 +1,53 @@
+.bell {
+  position: relative;
+  display: inline-flex;
+  color: var(--navy);
+}
+
+.bell-icon {
+  width: var(--bell-size);
+  height: var(--bell-size);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: var(--bell-stroke);
+  stroke-linejoin: round;
+}
+
+.bell-count {
+  position: absolute;
+  top: calc(var(--space-1) * -1);
+  right: calc(var(--space-2) * -1);
+  min-width: var(--bell-count-size);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--danger);
+  color: var(--white);
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-bold);
+  line-height: var(--bell-count-size);
+  text-align: center;
+}
+
+.notifications {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.notification {
+  background: var(--white);
+  border-radius: var(--radius-option);
+  padding: var(--space-4);
+}
+
+.notification p {
+  margin: 0;
+}
+
+.notification .notification-time {
+  margin-top: var(--space-1);
+  color: var(--muted);
+  font-size: var(--text-small);
+}

@@ -43,4 +43,7 @@
   --narrow-width: 480px;
   --time-input-width: 110px;
   --calendar-cell-height: 52px;
+  --bell-size: 24px;
+  --bell-stroke: 1.75;
+  --bell-count-size: 18px;
 }

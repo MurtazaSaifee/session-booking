@@ -6,6 +6,7 @@ import "./styles/settings.css";
 import "./styles/directory.css";
 import "./styles/booking.css";
 import "./styles/sessions.css";
+import "./styles/notifications.css";
 import { App } from "./App";
 
 createRoot(document.getElementById("root")!).render(

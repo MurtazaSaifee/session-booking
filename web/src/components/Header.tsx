@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import { useAuth } from "../auth/AuthProvider";
+import { NotificationBell } from "../notifications/NotificationBell";
 import { Role } from "../roles";
 
 export function Header() {
@@ -19,6 +20,7 @@ export function Header() {
             <Link to="/">My sessions</Link>
             {user.role === Role.PROFESSIONAL && <Link to="/settings">My hours and profile</Link>}
             {user.role === Role.MEMBER && <Link to="/professionals">Professionals</Link>}
+            <NotificationBell />
             <span>Times shown in {user.timezone}</span>
             <button type="button" className="secondary" onClick={logOut}>
               Log out
