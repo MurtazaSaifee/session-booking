@@ -1,5 +1,5 @@
 import { createApp } from "./app.js";
-import { createDb } from "./db.js";
+import { createDb, parsePoolMax } from "./db.js";
 import { migrate } from "./migrate.js";
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -8,7 +8,7 @@ const jwtSecret = process.env.JWT_SECRET;
 if (!jwtSecret) throw new Error("JWT_SECRET is not set");
 
 const port = Number(process.env.PORT ?? 3000);
-const db = createDb(databaseUrl);
+const db = createDb(databaseUrl, { max: parsePoolMax(process.env.DB_POOL_MAX) });
 const applied = await migrate(db);
 if (applied.length) console.log(`Applied migrations: ${applied.join(", ")}`);
 const app = createApp({
