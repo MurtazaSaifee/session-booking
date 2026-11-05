@@ -1,4 +1,4 @@
-import { afterAll, beforeEach, expect, it } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createDb } from "../../src/db.js";
 import { ErrorCode } from "../../src/errors.js";
 import { SessionStatus } from "../../src/session-status.js";
@@ -19,6 +19,9 @@ import {
 } from "./helpers.js";
 
 const MEMBER_COUNT = 10;
+
+// Postgres takes about a second to settle each deadlock, and a busy machine can hit several in a row.
+const DEADLOCKS_TIME_LIMIT_MS = 20_000;
 
 const clock = testClock(CLOCK_START);
 
@@ -48,24 +51,28 @@ async function bookedCount() {
   return Number(count);
 }
 
-it("10 members booking the same slot at once: exactly one succeeds", async () => {
-  const { id: professionalId } = await signUpProfessional(app, testProfessional, "09:00", "12:00");
-  const members = await signUpMembers(MEMBER_COUNT);
+it(
+  "10 members booking the same slot at once: exactly one succeeds",
+  async () => {
+    const { id: professionalId } = await signUpProfessional(app, testProfessional, "09:00", "12:00");
+    const members = await signUpMembers(MEMBER_COUNT);
 
-  const results = await Promise.all(members.map((member) => book(member, professionalId, KOLKATA_SECOND)));
+    const results = await Promise.all(members.map((member) => book(member, professionalId, KOLKATA_SECOND)));
 
-  expect(results.filter((res) => res.status === 201)).toHaveLength(1);
-  const rejected = results.filter((res) => res.status !== 201);
-  expect(rejected).toHaveLength(MEMBER_COUNT - 1);
-  for (const res of rejected) {
-    expect(res.status).toBe(409);
-    expect(res.body).toEqual({
-      error: ErrorCode.SLOT_TAKEN,
-      message: "That time was just booked. Please pick another.",
-    });
-  }
-  expect(await bookedCount()).toBe(1);
-});
+    expect(results.filter((res) => res.status === 201)).toHaveLength(1);
+    const rejected = results.filter((res) => res.status !== 201);
+    expect(rejected).toHaveLength(MEMBER_COUNT - 1);
+    for (const res of rejected) {
+      expect(res.status).toBe(409);
+      expect(res.body).toEqual({
+        error: ErrorCode.SLOT_TAKEN,
+        message: "That time was just booked. Please pick another.",
+      });
+    }
+    expect(await bookedCount()).toBe(1);
+  },
+  DEADLOCKS_TIME_LIMIT_MS,
+);
 
 it("one member booking two professionals' overlapping slots at once gets only one", async () => {
   const { id: kolkataId } = await signUpProfessional(app, testProfessional, "09:00", "12:00");
@@ -134,6 +141,42 @@ it("maps the member's overlap to MEMBER_OVERLAP", async () => {
   });
 
   expect(result).toEqual({ refusal: ErrorCode.MEMBER_OVERLAP });
+});
+
+describe("when Postgres cancels a booking as a deadlock", () => {
+  const deadlock = Object.assign(new Error("deadlock detected"), { code: "40P01" });
+
+  afterEach(() => vi.restoreAllMocks());
+
+  async function bookTakenSlot() {
+    const { id: professionalId } = await signUpProfessional(app, testProfessional, "09:00", "12:00");
+    const first = await signUpAgent(app, testMember);
+    const second = await signUpAgent(app, otherMember);
+    await book(first, professionalId, KOLKATA_SECOND);
+    const start = new Date(KOLKATA_SECOND);
+    return {
+      memberId: await userId(second),
+      professionalId,
+      start,
+      end: sessionEnd(start),
+      now: clock.now(),
+    };
+  }
+
+  it("retries once and gives the normal refusal", async () => {
+    const input = await bookTakenSlot();
+    vi.spyOn(db, "raw").mockRejectedValueOnce(deadlock);
+
+    expect(await insertSession(db, input)).toEqual({ refusal: ErrorCode.SLOT_TAKEN });
+  });
+
+  it("gives up after a second deadlock", async () => {
+    const input = await bookTakenSlot();
+    const raw = vi.spyOn(db, "raw").mockRejectedValue(deadlock);
+
+    await expect(insertSession(db, input)).rejects.toBe(deadlock);
+    expect(raw).toHaveBeenCalledTimes(2);
+  });
 });
 
 it("maps an insert that breaks both overlap rules to MEMBER_OVERLAP", async () => {
