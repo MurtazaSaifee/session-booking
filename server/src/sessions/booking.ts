@@ -1,20 +1,12 @@
 import { ErrorCode } from "../errors.js";
-import type { TimeRange } from "../settings/hours.js";
-import { bookingWindowEnd, buildSlots, overlaps, type Interval } from "../slots/slots.js";
+import { bookingWindowEnd, buildSlots, overlaps, type SlotInputs } from "../slots/slots.js";
 
 export type BookingRefusal =
   typeof ErrorCode.SLOT_NOT_AVAILABLE | typeof ErrorCode.MEMBER_OVERLAP | typeof ErrorCode.SLOT_TAKEN;
 
 // The member's own clash is checked before the professional's, so someone retrying after their
 // session already went through is told they already have it, not that someone else took it.
-export function checkStart(input: {
-  start: Date;
-  ranges: TimeRange[];
-  timezone: string;
-  now: Date;
-  memberBusy: Interval[];
-  professionalBusy: Interval[];
-}): BookingRefusal | null {
+export function checkStart(input: SlotInputs & { start: Date; now: Date }): BookingRefusal | null {
   const { start, ranges, timezone, now, memberBusy, professionalBusy } = input;
   const slot = buildSlots({ ranges, timezone, now, windowEnd: bookingWindowEnd(now), busy: [] }).find(
     (candidate) => candidate.start.getTime() === start.getTime(),

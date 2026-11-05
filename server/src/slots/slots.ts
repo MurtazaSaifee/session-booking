@@ -15,6 +15,14 @@ const DAY_MS = 24 * 60 * MINUTE_MS;
 export type Interval = { start: Date; end: Date };
 export type Slot = Interval;
 
+// What a professional's slots are worked out from.
+export type SlotInputs = {
+  timezone: string;
+  ranges: TimeRange[];
+  memberBusy: Interval[];
+  professionalBusy: Interval[];
+};
+
 export function sessionEnd(start: Date): Date {
   return new Date(start.getTime() + SESSION_MS);
 }

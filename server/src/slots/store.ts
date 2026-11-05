@@ -2,18 +2,11 @@ import type { Db } from "../db.js";
 import { Role } from "../roles.js";
 import { SessionStatus } from "../session-status.js";
 import type { TimeRange } from "../settings/hours.js";
-import type { Interval } from "./slots.js";
-
-export type BookingContext = {
-  timezone: string;
-  ranges: TimeRange[];
-  memberBusy: Interval[];
-  professionalBusy: Interval[];
-};
+import type { Interval, SlotInputs } from "./slots.js";
 
 type BusyJson = { start: string; end: string }[];
 
-type BookingContextRow = {
+type SlotInputsRow = {
   timezone: string;
   ranges: TimeRange[];
   member_busy: BusyJson;
@@ -25,11 +18,11 @@ function toIntervals(busy: BusyJson): Interval[] {
 }
 
 // Raw SQL so the hours, timezone and both busy lists come back in one round trip, instead of one per table.
-export async function findBookingContext(
+export async function findSlotInputs(
   db: Db,
   input: { professionalId: string; memberId: string; now: Date },
-): Promise<BookingContext | undefined> {
-  const result = await db.raw<{ rows: BookingContextRow[] }>(
+): Promise<SlotInputs | undefined> {
+  const result = await db.raw<{ rows: SlotInputsRow[] }>(
     `
     select u.timezone,
       coalesce((select json_agg(json_build_object(

@@ -5,7 +5,7 @@ import { parseProfessionalId, professionalNotFound } from "../directory/lookup.j
 import { ErrorCode, HttpError } from "../errors.js";
 import { Role } from "../roles.js";
 import { sessionEnd } from "../slots/slots.js";
-import { findBookingContext } from "../slots/store.js";
+import { findSlotInputs } from "../slots/store.js";
 import { parseBody } from "../validation.js";
 import { checkStart, type BookingRefusal } from "./booking.js";
 import { bookSessionSchema } from "./schemas.js";
@@ -31,10 +31,10 @@ export function sessionRoutes(deps: AppDeps): express.Router {
     const startsAt = new Date(body.start);
     const now = deps.now();
 
-    const context = await findBookingContext(deps.db, { professionalId, memberId, now });
-    if (!context) throw professionalNotFound();
+    const inputs = await findSlotInputs(deps.db, { professionalId, memberId, now });
+    if (!inputs) throw professionalNotFound();
 
-    const refusal = checkStart({ start: startsAt, now, ...context });
+    const refusal = checkStart({ start: startsAt, now, ...inputs });
     if (refusal) throw refuse(refusal);
 
     const saved = await insertSession(deps.db, {
