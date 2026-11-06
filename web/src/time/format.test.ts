@@ -52,6 +52,25 @@ describe("formatTimeRange", () => {
     const slot = { start: "2027-01-11T03:30:00Z", end: "2027-01-11T04:20:00Z" };
     expect(formatTimeRange(slot, "Asia/Singapore")).toBe("11:30 am – 12:20 pm");
   });
+
+  it("tells apart the two 1:00 am slots on the night London's clocks go back", () => {
+    const first = { start: "2027-10-31T00:00:00Z", end: "2027-10-31T00:50:00Z" };
+    const second = { start: "2027-10-31T01:00:00Z", end: "2027-10-31T01:50:00Z" };
+    expect(formatTimeRange(first, "Europe/London")).toBe("1:00 am – 1:50 am (GMT+1)");
+    expect(formatTimeRange(second, "Europe/London")).toBe("1:00 am – 1:50 am (GMT+0)");
+  });
+
+  it("adds no offset to the hours around the repeated one", () => {
+    const before = { start: "2027-10-30T23:00:00Z", end: "2027-10-30T23:50:00Z" };
+    const after = { start: "2027-10-31T02:00:00Z", end: "2027-10-31T02:50:00Z" };
+    expect(formatTimeRange(before, "Europe/London")).toBe("12:00 am – 12:50 am");
+    expect(formatTimeRange(after, "Europe/London")).toBe("2:00 am – 2:50 am");
+  });
+
+  it("handles a half-hour clock change", () => {
+    const slot = { start: "2027-04-03T15:15:00Z", end: "2027-04-03T16:05:00Z" };
+    expect(formatTimeRange(slot, "Australia/Lord_Howe")).toBe("1:45 am – 2:35 am (GMT+10:30)");
+  });
 });
 
 describe("formatFullDay", () => {

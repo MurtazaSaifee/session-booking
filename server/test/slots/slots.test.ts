@@ -114,6 +114,11 @@ it("keeps slots an hour apart, never overlapping, when London's clocks go back",
   ]);
 });
 
+it("moves a range that starts in the hour London's clocks skip forward by that hour", () => {
+  const starts = slotStarts([[SUNDAY, "01:30", "05:00"]], "Europe/London", "2027-03-28");
+  expect(starts).toEqual(["2027-03-28T01:30:00.000Z", "2027-03-28T02:30:00.000Z"]);
+});
+
 it("handles a half-hour offset in Asia/Kolkata", () => {
   const starts = slotStarts([[MONDAY, "09:00", "11:00"]], "Asia/Kolkata", "2027-01-11");
   expect(starts).toEqual(["2027-01-11T03:30:00.000Z", "2027-01-11T04:30:00.000Z"]);

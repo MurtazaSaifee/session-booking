@@ -32,8 +32,26 @@ export function formatTime(instant: string, timezone: string): string {
     .replace(/\s/g, " ");
 }
 
+// Clocks go back by an hour almost everywhere, and by 30 minutes on Lord Howe Island.
+const CLOCK_BACK_MINUTES = [-60, -30, 30, 60];
+
+function isRepeatedTime(instant: string, timezone: string): boolean {
+  const clock = formatTime(instant, timezone);
+  return CLOCK_BACK_MINUTES.some((minutes) => {
+    const shifted = new Date(new Date(instant).getTime() + minutes * 60_000).toISOString();
+    return formatTime(shifted, timezone) === clock;
+  });
+}
+
+function utcOffset(instant: string, timezone: string): string {
+  const formatter = new Intl.DateTimeFormat(LOCALE, { timeZone: timezone, timeZoneName: "shortOffset" });
+  return formatter.formatToParts(new Date(instant)).find((part) => part.type === "timeZoneName")?.value ?? "";
+}
+
+// The night clocks go back, two different slots can read 1:00 am. The offset tells them apart.
 export function formatTimeRange(slot: { start: string; end: string }, timezone: string): string {
-  return `${formatTime(slot.start, timezone)} – ${formatTime(slot.end, timezone)}`;
+  const range = `${formatTime(slot.start, timezone)} – ${formatTime(slot.end, timezone)}`;
+  return isRepeatedTime(slot.start, timezone) ? `${range} (${utcOffset(slot.start, timezone)})` : range;
 }
 
 const LONG_DAY = { timeZone: "UTC", weekday: "long", day: "numeric", month: "long" } as const;
