@@ -63,17 +63,10 @@ it("lists a cancelled session only under cancelled, whether its time is ahead or
   expect(res.cancelled.items[0].status).toBe(SessionStatus.CANCELLED);
 });
 
-// A member's row also carries the professional's id, for the reschedule calendar.
-function cancelledRow(
-  id: string,
-  otherPersonName: string,
-  cancelledBy: CancelledBy,
-  professionalId?: string,
-) {
+function cancelledRow(id: string, otherPersonName: string, cancelledBy: CancelledBy) {
   return {
     id,
     otherPersonName,
-    ...(professionalId && { professionalId }),
     start: "2027-01-18T03:30:00.000Z",
     end: "2027-01-18T04:20:00.000Z",
     status: SessionStatus.CANCELLED,
@@ -81,7 +74,7 @@ function cancelledRow(
   };
 }
 
-it("shows exactly the cancelled row, with no id for the member, when the professional cancels", async () => {
+it("shows exactly the cancelled row, with no ids, when the professional cancels", async () => {
   const { professional, member } = await setUp();
   const id = await bookId(member, professional.id, KOLKATA_FIRST);
   await markCancelled(db, id, professional.id, CLOCK_START);
@@ -90,12 +83,10 @@ it("shows exactly the cancelled row, with no id for the member, when the profess
   const memberView = (await mySessions(member)).body.cancelled.items;
 
   expect(professionalView).toEqual([cancelledRow(id, testMember.name, CancelledBy.YOU)]);
-  expect(memberView).toEqual([
-    cancelledRow(id, testProfessional.name, CancelledBy.OTHER_PERSON, professional.id),
-  ]);
+  expect(memberView).toEqual([cancelledRow(id, testProfessional.name, CancelledBy.OTHER_PERSON)]);
 });
 
-it("shows exactly the cancelled row, with no id for the member, when the member cancels", async () => {
+it("shows exactly the cancelled row, with no ids, when the member cancels", async () => {
   const { professional, member } = await setUp();
   const id = await bookId(member, professional.id, KOLKATA_FIRST);
   await markCancelled(db, id, await userId(member), CLOCK_START);
@@ -104,7 +95,7 @@ it("shows exactly the cancelled row, with no id for the member, when the member 
   const memberView = (await mySessions(member)).body.cancelled.items;
 
   expect(professionalView).toEqual([cancelledRow(id, testMember.name, CancelledBy.OTHER_PERSON)]);
-  expect(memberView).toEqual([cancelledRow(id, testProfessional.name, CancelledBy.YOU, professional.id)]);
+  expect(memberView).toEqual([cancelledRow(id, testProfessional.name, CancelledBy.YOU)]);
 });
 
 it("doesn't guess when a cancelled session has no record of who cancelled it", async () => {

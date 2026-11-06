@@ -6,7 +6,14 @@ import { Role, type SignedInUser } from "../roles.js";
 import { SessionStatus } from "../session-status.js";
 import { SLOT_INPUT_COLUMNS, toSlotInputs, type SlotInputsRow } from "../slots/store.js";
 import type { SlotInputs } from "../slots/slots.js";
-import { rowsToPage, toMySession, type MySession, type MySessions, type SessionRow } from "./my-session.js";
+import {
+  rowsToPage,
+  toMySessionDetail,
+  type MySession,
+  type MySessionDetail,
+  type MySessions,
+  type SessionRow,
+} from "./my-session.js";
 import { SessionList } from "./session-list.js";
 
 type ListRow = SessionRow & { list: SessionList };
@@ -96,9 +103,9 @@ export async function findMySession(
   db: Db,
   viewer: SignedInUser,
   id: string,
-): Promise<MySession | undefined> {
+): Promise<MySessionDetail | undefined> {
   const row: SessionRow | undefined = await ownSessions(db, viewer).where("s.id", id).first();
-  return row && toMySession(row, viewer);
+  return row && toMySessionDetail(row, viewer);
 }
 
 type CancelTargetRow = SessionRow & {

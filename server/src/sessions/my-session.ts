@@ -16,12 +16,10 @@ export type SessionRow = {
 export const CancelledBy = { YOU: "YOU", OTHER_PERSON: "OTHER_PERSON" } as const;
 export type CancelledBy = (typeof CancelledBy)[keyof typeof CancelledBy];
 
-// Exactly what a person may see of their own session: never the other person's email. A member also gets
-// the professional's id, which the directory already shows them, so they can open the calendar to reschedule.
+// Exactly what a person may see of their own session: never the other person's id or email.
 export type MySession = {
   id: string;
   otherPersonName: string;
-  professionalId?: string;
   start: Date;
   end: Date;
   status: SessionStatus;
@@ -39,11 +37,21 @@ export function toMySession(row: SessionRow, viewer: SignedInUser): MySession {
   return {
     id: row.id,
     otherPersonName: row.other_person_name,
-    ...(viewer.role === Role.MEMBER && { professionalId: row.other_person_id }),
     start: row.starts_at,
     end: row.ends_at,
     status: row.status,
     cancelledBy: cancelledBy(row, viewer),
+  };
+}
+
+// What reading one session adds. A member also gets the professional's id, which the directory already shows
+// them, so the reschedule page can open that professional's calendar. A professional never gets the member's.
+export type MySessionDetail = MySession & { professionalId?: string };
+
+export function toMySessionDetail(row: SessionRow, viewer: SignedInUser): MySessionDetail {
+  return {
+    ...toMySession(row, viewer),
+    ...(viewer.role === Role.MEMBER && { professionalId: row.other_person_id }),
   };
 }
 

@@ -27,24 +27,28 @@ it("another person's session looks exactly like one that doesn't exist", async (
   expect(otherProfessionals.body).toEqual(missing.body);
 });
 
-it("sends the other person's name, never their email, and only a professional's id to a member", async () => {
+it("sends the other person's name, but never their id or email, in the lists", async () => {
   const { nora, theo, theoSessionId } = await twoMembersAndTwoProfessionals(app);
   const theoId = await userId(theo);
 
-  const theoView = JSON.stringify([
-    (await theo.get(SESSIONS_URL)).body,
-    (await theo.get(`${SESSIONS_URL}/${theoSessionId}`)).body,
-  ]);
-  const noraView = JSON.stringify([
-    (await nora.agent.get(SESSIONS_URL)).body,
-    (await nora.agent.get(`${SESSIONS_URL}/${theoSessionId}`)).body,
-  ]);
+  const theoLists = JSON.stringify((await theo.get(SESSIONS_URL)).body);
+  const noraLists = JSON.stringify((await nora.agent.get(SESSIONS_URL)).body);
+  const noraRead = JSON.stringify((await nora.agent.get(`${SESSIONS_URL}/${theoSessionId}`)).body);
 
-  expect(theoView).toContain(testProfessional.name);
-  // The directory already shows a member the professional's id; a professional never gets the member's.
-  expect(theoView).toContain(nora.id);
-  expect(theoView).not.toContain(testProfessional.email);
-  expect(noraView).toContain(testMember.name);
-  expect(noraView).not.toContain(theoId);
-  expect(noraView).not.toContain(testMember.email);
+  expect(theoLists).toContain(testProfessional.name);
+  expect(theoLists).not.toContain(nora.id);
+  expect(theoLists).not.toContain(testProfessional.email);
+  expect(noraLists).toContain(testMember.name);
+  expect(noraLists).not.toContain(theoId);
+  expect(noraRead).not.toContain(theoId);
+  expect(noraRead).not.toContain(testMember.email);
+});
+
+it("reading one session gives a member the professional's id, which the directory already shows, and no email", async () => {
+  const { nora, theo, theoSessionId } = await twoMembersAndTwoProfessionals(app);
+
+  const { session } = (await theo.get(`${SESSIONS_URL}/${theoSessionId}`)).body;
+
+  expect(session.professionalId).toBe(nora.id);
+  expect(JSON.stringify(session)).not.toContain(testProfessional.email);
 });
