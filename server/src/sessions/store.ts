@@ -147,6 +147,22 @@ export async function findToCancel(
   );
 }
 
+// The two CTEs a cancel and a move share: the session's pending reminders end, and the other person is told.
+// `source` is the CTE holding the changed session. The race tests find each statement by the name given here.
+function pendingRemindersCancelledCte(name: string, source: string): string {
+  return `${name} as (
+      update reminders set status = :reminderCancelled
+      where session_id in (select id from ${source}) and status = :pending
+    )`;
+}
+
+function noticeCte(source: string): string {
+  return `notice as (
+      insert into notifications (recipient_id, session_id, text, created_at)
+      select :recipientId, id, :text, cast(:now as timestamptz) from ${source}
+    )`;
+}
+
 type CancelInput = {
   id: string;
   // The version the checks were made on. If the session has changed since, the cancel is dropped.
@@ -169,14 +185,8 @@ export async function cancelSession(db: Db, input: CancelInput): Promise<boolean
       where id = :id and status = :booked and version = :version
       returning id
     ),
-    cancelled_reminders as (
-      update reminders set status = :reminderCancelled
-      where session_id in (select id from cancelled) and status = :pending
-    ),
-    notice as (
-      insert into notifications (recipient_id, session_id, text, created_at)
-      select :recipientId, id, :text, cast(:now as timestamptz) from cancelled
-    )
+    ${pendingRemindersCancelledCte("cancelled_reminders", "cancelled")},
+    ${noticeCte("cancelled")}
     select id from cancelled
     `,
     {
@@ -212,15 +222,9 @@ export async function moveSession(db: Db, input: MoveInput): Promise<boolean> {
       where id = :id and status = :booked and version = :version
       returning id, member_id, professional_id, starts_at
     ),
-    dropped_reminders as (
-      update reminders set status = :reminderCancelled
-      where session_id in (select id from moved) and status = :pending
-    ),
+    ${pendingRemindersCancelledCte("dropped_reminders", "moved")},
     ${newRemindersCte("moved")},
-    notice as (
-      insert into notifications (recipient_id, session_id, text, created_at)
-      select :recipientId, id, :text, cast(:now as timestamptz) from moved
-    )
+    ${noticeCte("moved")}
     select id from moved
     `,
     {
