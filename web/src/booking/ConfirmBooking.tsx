@@ -61,7 +61,7 @@ export function ConfirmBooking(props: ConfirmBookingProps) {
       <ErrorMessage message={error} />
       <div className="confirm-actions">
         <button type="button" disabled={booking} onClick={book}>
-          {rescheduleSessionId ? "Move session" : "Book session"}
+          {rescheduleSessionId ? "Reschedule session" : "Book session"}
         </button>
         <button type="button" className="secondary" disabled={booking} onClick={onBack}>
           Back
