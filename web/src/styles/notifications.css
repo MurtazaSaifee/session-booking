@@ -2,6 +2,14 @@
   position: relative;
   display: inline-flex;
   color: var(--navy);
+  padding: var(--space-1);
+  border-radius: 50%;
+  transition: all 0.15s ease;
+}
+
+.bell:hover {
+  background: var(--page);
+  color: var(--teal-dark);
 }
 
 .bell-icon {
@@ -26,6 +34,7 @@
   font-weight: var(--weight-bold);
   line-height: var(--bell-count-size);
   text-align: center;
+  box-shadow: 0 0 0 2px var(--white);
 }
 
 .notifications {
@@ -38,16 +47,28 @@
 
 .notification {
   background: var(--white);
+  border: 1px solid var(--line);
   border-radius: var(--radius-option);
-  padding: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.15s ease;
+}
+
+.notification:hover {
+  border-color: var(--teal);
+  box-shadow: var(--shadow-card);
 }
 
 .notification p {
   margin: 0;
+  color: var(--ink);
+  font-size: var(--text-small);
+  line-height: 1.4;
 }
 
 .notification .notification-time {
-  margin-top: var(--space-1);
+  margin-top: var(--space-2);
   color: var(--muted);
-  font-size: var(--text-small);
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-medium);
 }

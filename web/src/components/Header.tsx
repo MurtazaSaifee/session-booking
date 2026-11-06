@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link, NavLink } from "react-router";
 import { useAuth } from "../auth/AuthProvider";
 import { NotificationBell } from "../notifications/NotificationBell";
 import { Role } from "../roles";
@@ -8,28 +8,61 @@ export function Header() {
 
   return (
     <header className="header">
-      <Link to="/" className="app-name">
-        Session Booking
-      </Link>
+      <div className="brand-group">
+        <Link to="/" className="app-name">
+          <span className="brand-dot" aria-hidden="true" />
+          <span>Session Booking</span>
+        </Link>
+      </div>
+
       {!loading &&
         (user ? (
-          <div className="account">
-            <span>
-              {user.name} · {user.role === Role.PROFESSIONAL ? "Professional" : "Member"}
-            </span>
-            <Link to="/">My sessions</Link>
-            {user.role === Role.PROFESSIONAL && <Link to="/settings">My hours and profile</Link>}
-            {user.role === Role.MEMBER && <Link to="/professionals">Professionals</Link>}
+          <nav className="account" aria-label="Main Navigation">
+            <NavLink to="/" end className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
+              My sessions
+            </NavLink>
+            {user.role === Role.PROFESSIONAL && (
+              <NavLink
+                to="/settings"
+                className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+              >
+                My hours and profile
+              </NavLink>
+            )}
+            {user.role === Role.MEMBER && (
+              <NavLink
+                to="/professionals"
+                className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+              >
+                Professionals
+              </NavLink>
+            )}
+
             <NotificationBell />
-            <span>Times shown in {user.timezone}</span>
+
+            <div className="user-badge">
+              <span>{user.name}</span>
+              <span className="user-role-tag">
+                {user.role === Role.PROFESSIONAL ? "Professional" : "Member"}
+              </span>
+            </div>
+
+            <span className="timezone-pill" title={`All times displayed in ${user.timezone}`}>
+              🕒 {user.timezone}
+            </span>
+
             <button type="button" className="secondary" onClick={logOut}>
               Log out
             </button>
-          </div>
+          </nav>
         ) : (
           <nav className="account">
-            <Link to="/login">Log in</Link>
-            <Link to="/signup">Sign up</Link>
+            <NavLink to="/login" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
+              Log in
+            </NavLink>
+            <NavLink to="/signup" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
+              Sign up
+            </NavLink>
           </nav>
         ))}
     </header>

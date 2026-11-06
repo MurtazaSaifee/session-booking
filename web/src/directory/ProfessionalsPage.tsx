@@ -1,4 +1,5 @@
 import type { Page } from "../api";
+import { BackNav } from "../components/BackNav";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { PageControls } from "../components/PageControls";
 import { usePager } from "../usePager";
@@ -11,11 +12,12 @@ export function ProfessionalsPage() {
 
   return (
     <section className="card">
+      <BackNav to="/" label="My sessions" />
       <h1>Professionals</h1>
       {loadError ? (
         <ErrorMessage message={loadError} />
       ) : !first ? (
-        <p>Loading professionals…</p>
+        <p className="hint">Loading professionals…</p>
       ) : (
         <ProfessionalList first={first} />
       )}

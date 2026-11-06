@@ -10,8 +10,17 @@
 .professional {
   min-width: 0;
   background: var(--white);
+  border: 1px solid var(--line);
   border-radius: var(--radius-option);
-  padding: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.15s ease;
+}
+
+.professional:hover {
+  border-color: var(--teal);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-1px);
 }
 
 .professional p {
@@ -21,18 +30,22 @@
 .professional-name {
   color: var(--navy);
   font-weight: var(--weight-bold);
+  font-size: 1.05rem;
 }
 
 .professional-title {
-  color: var(--muted);
+  color: var(--teal-dark);
   font-size: var(--text-small);
+  font-weight: var(--weight-medium);
 }
 
 .professional-bio {
   color: var(--muted);
+  font-size: var(--text-small);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.4;
 }
 
 .back-link {
@@ -46,12 +59,16 @@
 }
 
 .profile-title {
-  color: var(--muted);
+  color: var(--teal-dark);
+  font-weight: var(--weight-semibold);
   margin: 0;
 }
 
 /* pre-line keeps the bio's own line breaks without splitting it into elements. */
 .profile-bio {
-  margin: var(--space-5) 0 0;
+  margin: var(--space-4) 0 0;
   white-space: pre-line;
+  color: var(--ink);
+  line-height: 1.5;
+  font-size: var(--text-small);
 }

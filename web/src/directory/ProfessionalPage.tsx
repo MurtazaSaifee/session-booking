@@ -1,7 +1,8 @@
 import { useCallback } from "react";
-import { Link, useParams } from "react-router";
+import { useParams } from "react-router";
 import type { User } from "../auth/AuthProvider";
 import { SlotCalendar } from "../booking/SlotCalendar";
+import { BackNav } from "../components/BackNav";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { useLoad } from "../useLoad";
 import { getProfessional } from "./api";
@@ -12,9 +13,7 @@ export function ProfessionalPage({ user }: { user: User }) {
 
   return (
     <section className="card profile">
-      <Link to="/professionals" className="back-link">
-        All professionals
-      </Link>
+      <BackNav to="/professionals" label="All professionals" />
       {id && <ProfessionalDetails id={id} user={user} />}
     </section>
   );
@@ -25,7 +24,7 @@ function ProfessionalDetails({ id, user }: { id: string; user: User }) {
   const { data: professional, error: loadError } = useLoad(load);
 
   if (loadError) return <ErrorMessage message={loadError} />;
-  if (!professional) return <p>Loading…</p>;
+  if (!professional) return <p className="hint">Loading…</p>;
   return (
     <>
       <h1>{professional.name}</h1>
