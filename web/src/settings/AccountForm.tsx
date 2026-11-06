@@ -4,9 +4,14 @@ import { useAuth, type User } from "../auth/AuthProvider";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { Field } from "../components/Field";
 import { TimeZoneSelect } from "../components/TimeZoneSelect";
+import { Role } from "../roles";
 import { accountChanges } from "./accountChanges";
 
 type FormState = { error: string | null; status: string | null };
+
+const TIMEZONE_HINT =
+  "Your sessions and new reminders will show in this time zone. Notifications you already have keep their original times.";
+const PROFESSIONAL_TIMEZONE_HINT = `${TIMEZONE_HINT} Your working hours keep the same clock times, so the times members can book will move. Sessions already booked won't move.`;
 
 export function AccountForm({ user }: { user: User }) {
   const { updateUser } = useAuth();
@@ -72,7 +77,7 @@ export function AccountForm({ user }: { user: User }) {
 
         <Field
           label="Time zone"
-          hint="All sessions, working hours, and notifications will be displayed in this time zone."
+          hint={user.role === Role.PROFESSIONAL ? PROFESSIONAL_TIMEZONE_HINT : TIMEZONE_HINT}
         >
           <TimeZoneSelect
             name="timezone"
