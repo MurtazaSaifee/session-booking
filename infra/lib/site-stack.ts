@@ -21,6 +21,7 @@ import { BlockPublicAccess, Bucket } from "aws-cdk-lib/aws-s3";
 import { BucketDeployment } from "aws-cdk-lib/aws-s3-deployment";
 import type { Construct } from "constructs";
 import { fileURLToPath } from "node:url";
+import { addDatabaseSetup, addReminderSchedule } from "./background-work.js";
 import { type ServerSecrets, serverFunction } from "./server-function.js";
 import { webBuild } from "./web-build.js";
 
@@ -60,6 +61,9 @@ export class SiteStack extends Stack {
     // CloudFront's signed access to a function URL needs each POST to carry a hash of its body, which browsers
     // don't send. So the URL is open, and the app's own sign-in checks protect it as they do behind CloudFront.
     const apiUrl = api.addFunctionUrl({ authType: FunctionUrlAuthType.NONE });
+
+    addDatabaseSetup(this, props.secrets, api);
+    addReminderSchedule(this, props.secrets);
 
     const web = new Bucket(this, "Web", {
       blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
