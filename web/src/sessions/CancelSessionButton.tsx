@@ -1,24 +1,17 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { errorMessage } from "../api";
 import { ErrorMessage } from "../components/ErrorMessage";
 import type { Role } from "../roles";
 import { cancelSession, type MySession } from "./api";
 import { CancelButtonState, cancelButtonState, TOO_LATE_MESSAGE } from "./cancelRule";
-
-const RECHECK_MS = 30_000;
+import { useNow } from "./useNow";
 
 type CancelSessionButtonProps = { session: MySession; role: Role; onCancelled: () => void };
 
 export function CancelSessionButton({ session, role, onCancelled }: CancelSessionButtonProps) {
-  // Rechecked so a page left open disables the button soon after the 24 hours pass.
-  const [now, setNow] = useState(() => new Date());
+  const now = useNow();
   const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), RECHECK_MS);
-    return () => clearInterval(timer);
-  }, []);
 
   async function cancel() {
     setCancelling(true);
