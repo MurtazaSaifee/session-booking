@@ -42,7 +42,7 @@ export function newRange(weekday: number, dayRanges: TimeRange[]): TimeRange {
   return { weekday, start, end };
 }
 
-// Finds overlapping or invalid ranges per day in real-time (Fixes Issue 6)
+// Finds overlapping or invalid ranges per day in real-time
 export function findDayOverlaps(ranges: EditableRange[]): Map<number, string> {
   const errors = new Map<number, string>();
 
@@ -78,7 +78,7 @@ export function findDayOverlaps(ranges: EditableRange[]): Map<number, string> {
   return errors;
 }
 
-// Bulk helpers for weekdays, weekends, or all days (Fixes Issue 4)
+// Bulk helpers for weekdays, weekends, or all days
 export function applyBulkHours(
   current: EditableRange[],
   weekdays: number[],

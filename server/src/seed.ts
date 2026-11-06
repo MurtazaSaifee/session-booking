@@ -93,6 +93,12 @@ export const DEMO_MEMBERS: MemberSeed[] = [
 ];
 
 // Seeds demo data only when the database has no users. Restarts find existing users and do nothing.
+// Demo accounts have a published password, so production gets them only when asked for by name.
+export function shouldSeedDemoData(env: { NODE_ENV?: string; SEED_DEMO_DATA?: string }): boolean {
+  if (env.SEED_DEMO_DATA === "true") return true;
+  return env.NODE_ENV !== "production" && env.SEED_DEMO_DATA !== "false";
+}
+
 export async function seedIfEmpty(db: Db, now: Date): Promise<boolean> {
   return db.transaction(async (trx) => {
     await trx.raw("select pg_advisory_xact_lock(?)", [SEED_LOCK_ID]);

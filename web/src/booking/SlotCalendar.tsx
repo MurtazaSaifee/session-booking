@@ -33,7 +33,7 @@ export function SlotCalendar({ professionalId, professionalName, timezone, resch
   );
   const { data: rawSlots, error: loadError, reload } = useLoad(loadSlots);
 
-  // When rescheduling, the member's current session time is not an available reschedule slot (Fixes Issue 10)
+  // When rescheduling, the member's current session time is not an available reschedule slot
   const slots = useMemo(() => {
     if (!rawSlots) return null;
     if (!currentStart) return rawSlots;

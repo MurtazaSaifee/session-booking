@@ -39,7 +39,7 @@ function HoursForm({ initial, timezone }: { initial: TimeRange[]; timezone: stri
   const [bulkStart, setBulkStart] = useState("09:00");
   const [bulkEnd, setBulkEnd] = useState("17:00");
 
-  // Real-time overlap & validation detection (Fixes Issue 6)
+  // Real-time overlap & validation detection
   const dayErrors = useMemo(() => findDayOverlaps(week), [week]);
   const hasErrors = dayErrors.size > 0;
 
@@ -78,7 +78,7 @@ function HoursForm({ initial, timezone }: { initial: TimeRange[]; timezone: stri
     setWeek([...week, ...toEditable([newRange(weekday, dayRanges)])]);
   }
 
-  // Bulk actions (Fixes Issue 4)
+  // Bulk actions
   function handlePresetStandardWeekdays() {
     setEdited(true);
     setWeek((curr) => applyBulkHours(curr, MON_TO_FRI, [{ start: "09:00", end: "17:00" }]));
@@ -129,7 +129,7 @@ function HoursForm({ initial, timezone }: { initial: TimeRange[]; timezone: stri
         <p className="hint">Times are on your own clock ({timezone}).</p>
       </div>
 
-      {/* Quick Bulk Presets Toolbar (Fixes Issue 4) */}
+      {/* Quick Bulk Presets Toolbar */}
       <div className="schedule-toolbar">
         <span className="toolbar-label">Quick apply:</span>
         <div className="toolbar-buttons">

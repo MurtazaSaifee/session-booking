@@ -2,9 +2,9 @@ import { afterAll, beforeEach, expect, it } from "vitest";
 import { ErrorCode } from "../../src/errors.js";
 import { API_V1 } from "../../src/paths.js";
 import { createTestApp, resetDb, signUpAgent, testClock } from "../app.js";
-import { CLOCK_START, book, otherMember } from "../booking/helpers.js";
+import { CLOCK_START, KOLKATA_SECOND, book, otherMember } from "../booking/helpers.js";
 import { createTestDb } from "../db.js";
-import { bookOneSession } from "../reminders/helpers.js";
+import { SESSION_START, bookOneSession } from "../reminders/helpers.js";
 
 const clock = testClock(CLOCK_START);
 
@@ -52,6 +52,15 @@ it("naming another member's session changes nothing, so it can't reveal that it 
 
   expect(naming).toEqual(plain);
   expect(naming).not.toContain(ACROSS_THE_SESSION);
+});
+
+it("doesn't offer the session's current time when moving it", async () => {
+  const { member, professionalId, sessionId } = await bookOneSession(app);
+
+  const starts = await slotStarts(member, professionalId, `?ignoreSessionId=${sessionId}`);
+
+  expect(starts).not.toContain(new Date(SESSION_START).toISOString());
+  expect(starts).toContain(new Date(KOLKATA_SECOND).toISOString());
 });
 
 it("refuses a session id that isn't one", async () => {

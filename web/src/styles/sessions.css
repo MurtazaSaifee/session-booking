@@ -32,7 +32,7 @@
   transform: translateY(-1px);
 }
 
-/* Inviting Hero Card for Members on Home Screen (Fixes Issue 8) */
+/* Inviting Hero Card for Members on Home Screen */
 .home-booking-hero {
   background: linear-gradient(135deg, var(--teal-tint) 0%, #e6f6f4 100%);
   border: 1px solid var(--teal-subtle);

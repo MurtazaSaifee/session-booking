@@ -28,7 +28,10 @@ export function Header() {
                   Professionals
                 </NavLink>
               )}
-              <NavLink to="/settings" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
+              <NavLink
+                to="/settings"
+                className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+              >
                 Settings
               </NavLink>
             </div>

@@ -350,7 +350,7 @@ legend {
   padding: 0;
 }
 
-/* Custom styled Role options (Fixes Issue 1) */
+/* Custom styled Role options */
 .roles {
   display: flex;
   flex-wrap: wrap;
@@ -480,7 +480,7 @@ legend {
   border-top: var(--stroke) solid var(--line);
 }
 
-/* Back navigation button (Fix Issue 9) */
+/* Back navigation button */
 .back-nav {
   display: inline-flex;
   align-items: center;
@@ -505,7 +505,7 @@ legend {
   box-shadow: var(--shadow-sm);
 }
 
-/* In-app Modal (Fix Issue 7) */
+/* In-app Modal */
 .modal-overlay {
   position: fixed;
   inset: 0;
