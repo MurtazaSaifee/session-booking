@@ -23,7 +23,11 @@ type SlotCalendarProps = {
 
 export function SlotCalendar({ professionalId, professionalName, timezone, reschedule }: SlotCalendarProps) {
   const [now] = useState(() => new Date());
-  const loadSlots = useCallback(() => getSlots(professionalId), [professionalId]);
+  const movedSessionId = reschedule?.sessionId;
+  const loadSlots = useCallback(
+    () => getSlots(professionalId, movedSessionId),
+    [professionalId, movedSessionId],
+  );
   const { data: slots, error: loadError, reload } = useLoad(loadSlots);
   const [pickedDay, setPickedDay] = useState<string | null>(null);
   const [chosenSlot, setChosenSlot] = useState<Slot | null>(null);

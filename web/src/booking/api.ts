@@ -2,9 +2,11 @@ import { api, ApiError } from "../api";
 
 export type Slot = { start: string; end: string };
 
-export async function getSlots(professionalId: string): Promise<Slot[]> {
+// `ignoreSessionId` is the session being moved, so its own time isn't hidden as busy.
+export async function getSlots(professionalId: string, ignoreSessionId?: string): Promise<Slot[]> {
+  const query = ignoreSessionId ? `?ignoreSessionId=${encodeURIComponent(ignoreSessionId)}` : "";
   const { slots } = await api<{ slots: Slot[] }>(
-    `/professionals/${encodeURIComponent(professionalId)}/slots`,
+    `/professionals/${encodeURIComponent(professionalId)}/slots${query}`,
   );
   return slots;
 }
