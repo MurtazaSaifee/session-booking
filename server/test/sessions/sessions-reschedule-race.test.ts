@@ -4,12 +4,11 @@ import { ErrorCode } from "../../src/errors.js";
 import { API_V1 } from "../../src/paths.js";
 import { deliverDueReminders } from "../../src/reminders/deliver.js";
 import { ReminderStatus } from "../../src/reminders/reminder-values.js";
-import { SessionStatus } from "../../src/session-status.js";
 import { createTestApp, resetDb, testClock, testMember, testProfessional } from "../app.js";
 import { CLOCK_START, KOLKATA_SECOND, SESSIONS_URL, logIn, type Agent } from "../booking/helpers.js";
 import { testDatabaseUrl } from "../db.js";
 import { DAY_BEFORE_DUE, HOUR_BEFORE_DUE, bookOneSession, textsFor } from "../reminders/helpers.js";
-import { holdSave, reschedule, waitUntilStuck } from "./helpers.js";
+import { CANCEL_ON_SESSION, holdSave, reschedule, startCancel, waitUntilStuck } from "./helpers.js";
 
 // One connection each for the hold, the two sides of a race, and watching them wait.
 const db = createDb(testDatabaseUrl, { max: 5 });
@@ -29,13 +28,6 @@ const MOVE_ON_SESSION = {
   when: "new.starts_at is distinct from old.starts_at",
   atRow: 1,
 };
-const CANCEL_ON_SESSION = {
-  table: "sessions",
-  event: "update",
-  when: `new.status = '${SessionStatus.CANCELLED}'`,
-  atRow: 1,
-};
-
 beforeEach(() => {
   clock.set(CLOCK_START);
   return resetDb(db);
@@ -50,10 +42,6 @@ function startMove(member: Agent, sessionId: string, start: string) {
 
 async function remindersFor(agent: Agent) {
   return (await textsFor(agent)).filter((text) => text.startsWith("Your session with"));
-}
-
-function startCancel(agent: Agent, sessionId: string) {
-  return Promise.resolve(agent.post(`${SESSIONS_URL}/${sessionId}/cancel`).send({}));
 }
 
 it("a checker that runs while a move holds the old reminders delivers none of them", async () => {
@@ -75,9 +63,13 @@ it("a checker that runs while a move holds the old reminders delivers none of th
   await deliverDueReminders(db, new Date(HOUR_BEFORE_DUE));
 
   expect(await textsFor(member)).toEqual([NEW_TIME]);
-  const professionalTexts = await textsFor(professional);
-  expect(professionalTexts.filter((text) => text.includes("9:00am"))).toHaveLength(1);
-  expect(professionalTexts.join()).not.toContain(OLD_TIME);
+  // The professional is reminded of the new 10:00am once, and the old 9:00am reminders never come.
+  expect(await remindersFor(professional)).toEqual([
+    "Your session with Theo Marsh is on Mon 18 Jan at 10:00am",
+  ]);
+  expect((await textsFor(professional)).filter((text) => text.includes("moved your session"))).toHaveLength(
+    1,
+  );
 });
 
 it("a move that waits for a checker holding the reminders leaves the delivered ones alone", async () => {

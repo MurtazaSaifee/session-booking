@@ -1,6 +1,7 @@
 import { setTimeout as sleep } from "node:timers/promises";
 import type { Express } from "express";
 import type { Db } from "../../src/db.js";
+import { SessionStatus } from "../../src/session-status.js";
 import { signUpAgent, testMember, testProfessional } from "../app.js";
 import {
   KOLKATA_FIRST,
@@ -89,4 +90,17 @@ export async function waitUntilStuck(db: Db, statementPart: string, statements =
     await sleep(10);
   }
   throw new Error(`Never saw ${statements} of "${statementPart}" waiting on a lock.`);
+}
+
+// The save of a cancel, for holding it in a race.
+export const CANCEL_ON_SESSION = {
+  table: "sessions",
+  event: "update",
+  when: `new.status = '${SessionStatus.CANCELLED}'`,
+  atRow: 1,
+};
+
+// A supertest request only starts when something waits on it, so this starts it now.
+export function startCancel(agent: Agent, sessionId: string) {
+  return Promise.resolve(agent.post(`${SESSIONS_URL}/${sessionId}/cancel`).send({}));
 }

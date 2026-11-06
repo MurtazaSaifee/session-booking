@@ -2,12 +2,11 @@ import { afterAll, beforeEach, expect, it } from "vitest";
 import { createDb } from "../../src/db.js";
 import { deliverDueReminders } from "../../src/reminders/deliver.js";
 import { ReminderStatus } from "../../src/reminders/reminder-values.js";
-import { SessionStatus } from "../../src/session-status.js";
 import { createTestApp, resetDb, testClock } from "../app.js";
 import { CLOCK_START, SESSIONS_URL, type Agent } from "../booking/helpers.js";
 import { testDatabaseUrl } from "../db.js";
 import { HOUR_BEFORE_DUE, bookOneSession, textsFor } from "../reminders/helpers.js";
-import { holdSave, waitUntilStuck } from "./helpers.js";
+import { CANCEL_ON_SESSION, holdSave, startCancel, waitUntilStuck } from "./helpers.js";
 
 // One connection each for the hold, the two sides of the race, and watching them wait.
 const db = createDb(testDatabaseUrl, { max: 4 });
@@ -15,21 +14,9 @@ const app = createTestApp(db, testClock(CLOCK_START).now);
 
 const CHECKER_SAVING = "delivered as";
 const CANCEL_SAVING = "cancelled_reminders";
-const CANCEL_ON_SESSION = {
-  table: "sessions",
-  event: "update",
-  when: `new.status = '${SessionStatus.CANCELLED}'`,
-  atRow: 1,
-};
-
 beforeEach(() => resetDb(db));
 
 afterAll(() => db.destroy());
-
-// A supertest request only starts when something waits on it, so this starts it now.
-function startCancel(professional: Agent, sessionId: string) {
-  return Promise.resolve(professional.post(`${SESSIONS_URL}/${sessionId}/cancel`).send({}));
-}
 
 async function remindersDelivered(agent: Agent) {
   return (await textsFor(agent)).filter((text) => text.startsWith("Your session with")).length;
