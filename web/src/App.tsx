@@ -10,6 +10,7 @@ import { NotificationsPage } from "./notifications/NotificationsPage";
 import { NOTIFICATIONS_ROUTE } from "./notifications/route";
 import { Role } from "./roles";
 import { MySessionsPage } from "./sessions/MySessionsPage";
+import { RescheduleSessionPage } from "./sessions/RescheduleSessionPage";
 import { SettingsPage } from "./settings/SettingsPage";
 
 export function App() {
@@ -48,6 +49,10 @@ function Shell() {
             <Route
               path="/professionals"
               element={<RoleOnly role={Role.MEMBER} page={() => <ProfessionalsPage />} />}
+            />
+            <Route
+              path="/sessions/:id/reschedule"
+              element={<RoleOnly role={Role.MEMBER} page={(user) => <RescheduleSessionPage user={user} />} />}
             />
             <Route
               path="/professionals/:id"

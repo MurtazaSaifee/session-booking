@@ -12,6 +12,8 @@ export type CancelledBy = (typeof CancelledBy)[keyof typeof CancelledBy];
 export type MySession = {
   id: string;
   otherPersonName: string;
+  // Only a member's sessions carry it: it opens the professional's calendar to reschedule.
+  professionalId?: string;
   start: string;
   end: string;
   status: SessionStatus;
@@ -30,4 +32,13 @@ export function getNextSessions(list: SessionList, cursor: string): Promise<Page
 
 export async function cancelSession(id: string): Promise<void> {
   await api(`/sessions/${encodeURIComponent(id)}/cancel`, { method: "POST" });
+}
+
+export async function getMySession(id: string): Promise<MySession> {
+  const { session } = await api<{ session: MySession }>(`/sessions/${encodeURIComponent(id)}`);
+  return session;
+}
+
+export async function rescheduleSession(id: string, start: string): Promise<void> {
+  await api(`/sessions/${encodeURIComponent(id)}/reschedule`, { method: "POST", body: { start } });
 }

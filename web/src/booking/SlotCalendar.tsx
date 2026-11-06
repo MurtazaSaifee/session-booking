@@ -13,9 +13,15 @@ import { DayTimes } from "./DayTimes";
 const BOOKING_WINDOW_DAYS = 28;
 const DAY_MS = 24 * 60 * 60_000;
 
-type SlotCalendarProps = { professionalId: string; professionalName: string; timezone: string };
+type SlotCalendarProps = {
+  professionalId: string;
+  professionalName: string;
+  timezone: string;
+  // Set to move an existing session; onMoved runs once the server has moved it.
+  reschedule?: { sessionId: string; onMoved: () => void };
+};
 
-export function SlotCalendar({ professionalId, professionalName, timezone }: SlotCalendarProps) {
+export function SlotCalendar({ professionalId, professionalName, timezone, reschedule }: SlotCalendarProps) {
   const [now] = useState(() => new Date());
   const loadSlots = useCallback(() => getSlots(professionalId), [professionalId]);
   const { data: slots, error: loadError, reload } = useLoad(loadSlots);
@@ -48,8 +54,13 @@ export function SlotCalendar({ professionalId, professionalName, timezone }: Slo
         professionalName={professionalName}
         slot={chosenSlot}
         timezone={timezone}
+        rescheduleSessionId={reschedule?.sessionId}
         onBack={() => setChosenSlot(null)}
         onBooked={() => {
+          if (reschedule) {
+            reschedule.onMoved();
+            return;
+          }
           setBooked(
             `Booked: ${formatDay(localDate(chosenSlot.start, timezone))}, ${formatTimeRange(chosenSlot, timezone)}`,
           );
