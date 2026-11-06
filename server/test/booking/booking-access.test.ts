@@ -60,3 +60,14 @@ it("books for the signed-in member and ignores a member id in the body", async (
   expect(theoClash.body.error).toBe(ErrorCode.MEMBER_OVERLAP);
   expect(irisBooks.status).toBe(201);
 });
+
+it("a time inside the notice gets the same 404 as any other when the professional doesn't exist", async () => {
+  const member = await signUpAgent(app, testMember);
+  const memberId = await userId(member);
+
+  const named = await book(member, memberId, CLOCK_START);
+  const missing = await book(member, "00000000-0000-4000-8000-000000000000", CLOCK_START);
+
+  expect(named.status).toBe(404);
+  expect(named.body).toEqual(missing.body);
+});

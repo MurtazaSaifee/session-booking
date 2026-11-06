@@ -9,6 +9,8 @@ import { createTestDb } from "../db.js";
 import { CLOCK_START, KOLKATA_SECOND, SESSIONS_URL, userId } from "../booking/helpers.js";
 import { reschedule, twoMembersAndTwoProfessionals } from "./helpers.js";
 
+const LONGEST_NOTICE = 28 * 24 * 60;
+
 const clock = testClock(CLOCK_START);
 
 const db = createTestDb();
@@ -159,4 +161,15 @@ it("rescheduling an id that isn't one is a 404", async () => {
 
   expect(res.status).toBe(404);
   expect(res.body.error).toBe(ErrorCode.NOT_FOUND);
+});
+
+it("another member's session gets the same 404 as a missing one when the new time is inside the notice", async () => {
+  const { nora, iris, theoSessionId } = await twoMembersAndTwoProfessionals(app);
+  await nora.agent.patch(`${API_V1}/settings/profile`).send({ minimumNoticeMinutes: LONGEST_NOTICE });
+
+  const theirs = await reschedule(iris, theoSessionId, KOLKATA_SECOND);
+  const missing = await reschedule(iris, "00000000-0000-4000-8000-000000000000", KOLKATA_SECOND);
+
+  expect(theirs.status).toBe(404);
+  expect(theirs.body).toEqual(missing.body);
 });

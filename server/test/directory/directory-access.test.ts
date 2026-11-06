@@ -39,3 +39,17 @@ it("a member's id gives the same 404 as a missing professional", async () => {
   expect(res.status).toBe(404);
   expect(res.body).toEqual({ error: ErrorCode.NOT_FOUND, message: "We couldn't find that professional." });
 });
+
+it("a member can't read a professional's minimum notice", async () => {
+  const professional = await signUpAgent(app, testProfessional);
+  const { id } = (await professional.get(`${API_V1}/auth/me`)).body.user;
+  await professional.patch(`${API_V1}/settings/profile`).send({ minimumNoticeMinutes: 45 });
+  const member = await signUpAgent(app, testMember);
+
+  const list = await member.get(`${API_V1}/professionals`);
+  const profile = await member.get(`${API_V1}/professionals/${id}`);
+
+  expect(list.status).toBe(200);
+  expect(profile.status).toBe(200);
+  expect(JSON.stringify([list.body, profile.body])).not.toMatch(/notice/i);
+});
