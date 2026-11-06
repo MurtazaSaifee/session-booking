@@ -1,7 +1,11 @@
 .calendar {
   display: grid;
   gap: var(--space-1);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-5);
+  background: var(--page);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-option);
+  padding: var(--space-3);
 }
 
 .calendar-row {
@@ -12,8 +16,12 @@
 
 .calendar-weekday {
   color: var(--muted);
-  font-size: var(--text-small);
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-bold);
   text-align: center;
+  padding: var(--space-1) 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .calendar-day {
@@ -25,37 +33,53 @@
   padding: var(--space-1);
   border-radius: var(--radius-field);
   background: var(--white);
+  border: 1px solid var(--line);
   color: var(--navy);
+  font-weight: var(--weight-semibold);
+  transition: all 0.12s ease;
+  cursor: pointer;
 }
 
 .calendar-day:hover:not(:disabled) {
   background: var(--teal-tint);
+  border-color: var(--teal);
+  transform: translateY(-1px);
 }
 
 .calendar-day:disabled {
-  color: var(--muted);
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted-light);
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .calendar-day[aria-pressed="true"],
 .calendar-day[aria-pressed="true"]:hover:not(:disabled) {
-  background: var(--teal-dark);
+  background: var(--navy);
+  border-color: var(--navy);
   color: var(--white);
+  box-shadow: var(--shadow-sm);
 }
 
 .calendar-month {
-  font-size: var(--text-tiny);
+  font-size: 0.65rem;
   font-weight: var(--weight-regular);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-top: 2px;
 }
 
 .day-heading {
   color: var(--navy);
   font-size: var(--text-small);
-  margin: 0 0 var(--space-2);
+  font-weight: var(--weight-bold);
+  margin: 0 0 var(--space-3);
 }
 
 .day-times {
   list-style: none;
-  margin: 0;
+  margin: 0 0 var(--space-5);
   padding: 0;
   display: flex;
   flex-wrap: wrap;
@@ -63,37 +87,54 @@
 }
 
 .day-time {
-  background: var(--teal-tint);
+  background: var(--white);
   color: var(--navy);
-  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-4);
   font-size: var(--text-small);
   font-weight: var(--weight-medium);
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-sm);
 }
 
 .day-time:hover:not(:disabled) {
-  background: var(--line);
+  background: var(--teal-tint);
+  border-color: var(--teal);
+  color: var(--teal-dark);
+  transform: translateY(-1px);
 }
 
+/* Booking confirmation card */
 .confirm-details {
-  margin: 0 0 var(--space-4);
+  background: var(--page);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-option);
+  padding: var(--space-5);
+  margin: 0 0 var(--space-5);
 }
 
 .confirm-name {
   color: var(--navy);
   font-weight: var(--weight-bold);
-  margin: 0;
+  font-size: 1.15rem;
+  margin: 0 0 var(--space-2);
 }
 
 .confirm-time {
   margin: var(--space-1) 0 0;
+  font-size: var(--text-small);
+  color: var(--ink);
+  font-weight: var(--weight-medium);
 }
 
 .confirm-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: var(--space-3);
 }
 
 .booking-notice {
-  margin-top: var(--space-5);
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-4);
 }

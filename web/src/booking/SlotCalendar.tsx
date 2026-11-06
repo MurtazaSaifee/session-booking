@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { formatDay, formatTimeRange, localDate } from "../time/format";
 import { useLoad } from "../useLoad";
@@ -19,17 +19,28 @@ type SlotCalendarProps = {
   professionalName: string;
   timezone: string;
   // Set to move an existing session; onMoved runs once the server has moved it.
-  reschedule?: { sessionId: string; onMoved: () => void };
+  reschedule?: { sessionId: string; currentStart?: string; onMoved: () => void };
 };
 
 export function SlotCalendar({ professionalId, professionalName, timezone, reschedule }: SlotCalendarProps) {
   const [now] = useState(() => new Date());
   const movedSessionId = reschedule?.sessionId;
+  const currentStart = reschedule?.currentStart;
+
   const loadSlots = useCallback(
     () => getSlots(professionalId, movedSessionId),
     [professionalId, movedSessionId],
   );
-  const { data: slots, error: loadError, reload } = useLoad(loadSlots);
+  const { data: rawSlots, error: loadError, reload } = useLoad(loadSlots);
+
+  // When rescheduling, the member's current session time is not an available reschedule slot (Fixes Issue 10)
+  const slots = useMemo(() => {
+    if (!rawSlots) return null;
+    if (!currentStart) return rawSlots;
+    const currentMs = new Date(currentStart).getTime();
+    return rawSlots.filter((slot) => new Date(slot.start).getTime() !== currentMs);
+  }, [rawSlots, currentStart]);
+
   const [pickedDay, setPickedDay] = useState<string | null>(null);
   const [chosenSlot, setChosenSlot] = useState<Slot | null>(null);
   const [booked, setBooked] = useState<string | null>(null);
@@ -92,7 +103,7 @@ export function SlotCalendar({ professionalId, professionalName, timezone, resch
       {loadError ? (
         <ErrorMessage message={loadError} />
       ) : !slots ? (
-        <p>Loading free times…</p>
+        <p className="hint">Loading free times…</p>
       ) : (
         <>
           <CalendarGrid

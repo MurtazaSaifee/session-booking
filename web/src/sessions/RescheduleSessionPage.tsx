@@ -1,7 +1,8 @@
 import { useCallback } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import type { User } from "../auth/AuthProvider";
 import { SlotCalendar } from "../booking/SlotCalendar";
+import { BackNav } from "../components/BackNav";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { formatFullDay, formatTimeRange, localDate } from "../time/format";
 import { useLoad } from "../useLoad";
@@ -12,9 +13,7 @@ export function RescheduleSessionPage({ user }: { user: User }) {
 
   return (
     <section className="card profile">
-      <Link to="/" className="back-link">
-        My sessions
-      </Link>
+      <BackNav to="/" label="My sessions" />
       {id && <RescheduleDetails id={id} user={user} />}
     </section>
   );
@@ -26,9 +25,9 @@ function RescheduleDetails({ id, user }: { id: string; user: User }) {
   const { data: session, error: loadError } = useLoad(load);
 
   if (loadError) return <ErrorMessage message={loadError} />;
-  if (!session) return <p>Loading…</p>;
+  if (!session) return <p className="hint">Loading…</p>;
   if (session.status !== SessionStatus.BOOKED || !session.professionalId) {
-    return <p>This session can't be rescheduled.</p>;
+    return <p className="hint">This session can't be rescheduled.</p>;
   }
   return (
     <>
@@ -42,7 +41,11 @@ function RescheduleDetails({ id, user }: { id: string; user: User }) {
         professionalId={session.professionalId}
         professionalName={session.otherPersonName}
         timezone={user.timezone}
-        reschedule={{ sessionId: session.id, onMoved: () => navigate("/") }}
+        reschedule={{
+          sessionId: session.id,
+          currentStart: session.start,
+          onMoved: () => navigate("/"),
+        }}
       />
     </>
   );
