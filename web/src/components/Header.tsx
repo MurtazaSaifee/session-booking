@@ -8,20 +8,10 @@ export function Header() {
 
   return (
     <header className="header">
-      <div className="brand-group">
-        <Link to="/" className="app-name">
-          <span className="brand-dot" aria-hidden="true" />
-          <span>Session Booking</span>
-        </Link>
-        {!loading && user && (
-          <div className="header-mobile-meta">
-            <NotificationBell />
-            <button type="button" className="secondary logout-btn" onClick={logOut}>
-              Log out
-            </button>
-          </div>
-        )}
-      </div>
+      <Link to="/" className="app-name">
+        <span className="brand-dot" aria-hidden="true" />
+        <span>Session Booking</span>
+      </Link>
 
       {!loading &&
         (user ? (
@@ -43,10 +33,6 @@ export function Header() {
               </NavLink>
             </div>
 
-            <div className="header-desktop-meta">
-              <NotificationBell />
-            </div>
-
             <div className="user-badge" aria-label={`Logged in as ${user.name}`}>
               <span>{user.name}</span>
               <span className="user-role-tag">
@@ -57,12 +43,6 @@ export function Header() {
             <span className="timezone-pill" title={`All times displayed in ${user.timezone}`}>
               🕒 {user.timezone}
             </span>
-
-            <div className="header-desktop-meta">
-              <button type="button" className="secondary logout-btn" onClick={logOut}>
-                Log out
-              </button>
-            </div>
           </nav>
         ) : (
           <nav className="account">
@@ -74,6 +54,15 @@ export function Header() {
             </NavLink>
           </nav>
         ))}
+
+      {!loading && user && (
+        <div className="header-actions">
+          <NotificationBell />
+          <button type="button" className="secondary logout-btn" onClick={logOut}>
+            Log out
+          </button>
+        </div>
+      )}
     </header>
   );
 }

@@ -53,12 +53,6 @@ a:hover {
   z-index: 100;
 }
 
-.brand-group {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
 .app-name {
   color: var(--navy);
   font-weight: var(--weight-bold);
@@ -82,13 +76,10 @@ a:hover {
   display: inline-block;
 }
 
-.header-mobile-meta {
-  display: none;
-}
-
-.header-desktop-meta {
+.header-actions {
   display: flex;
   align-items: center;
+  gap: var(--space-2);
 }
 
 .nav-links {
@@ -102,6 +93,7 @@ a:hover {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2) var(--space-4);
+  margin-left: auto;
   font-size: var(--text-small);
   color: var(--muted);
 }
@@ -112,22 +104,8 @@ a:hover {
     gap: var(--space-2);
   }
 
-  .brand-group {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .header-mobile-meta {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-  }
-
-  .header-desktop-meta {
-    display: none;
-  }
-
   .account {
+    order: 1;
     width: 100%;
     justify-content: space-between;
     gap: var(--space-2);
