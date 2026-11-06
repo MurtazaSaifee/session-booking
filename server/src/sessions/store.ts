@@ -171,8 +171,8 @@ export async function cancelSession(db: Db, input: CancelInput): Promise<void> {
 
 type MoveInput = {
   id: string;
-  // The start the checks were made on. If the session has changed since, the move is dropped.
-  currentStart: Date;
+  // The version the checks were made on. If the session has changed since, the move is dropped.
+  version: number;
   start: Date;
   end: Date;
   recipientId: string;
@@ -181,14 +181,14 @@ type MoveInput = {
 };
 
 // One statement, so the move, the old reminders going, the new ones and the notice all happen together or not
-// at all. Returns false when the session is no longer booked at currentStart, for instance after a cancel.
+// at all. Returns false when the session is no longer booked at that version, for instance after a cancel.
 export async function moveSession(db: Db, input: MoveInput): Promise<boolean> {
   const result = await db.raw<{ rows: unknown[] }>(
     `
     with moved as (
       update sessions
-      set starts_at = :start, ends_at = :end, updated_at = :now
-      where id = :id and status = :booked and starts_at = :currentStart
+      set starts_at = :start, ends_at = :end, updated_at = :now, version = version + 1
+      where id = :id and status = :booked and version = :version
       returning id, member_id, professional_id, starts_at
     ),
     dropped_reminders as (
@@ -215,6 +215,7 @@ export async function moveSession(db: Db, input: MoveInput): Promise<boolean> {
 type RescheduleRow = SlotInputsRow & {
   session_id: string;
   session_start: Date;
+  session_version: number;
   professional_id: string;
   member_name: string;
 };
@@ -222,6 +223,7 @@ type RescheduleRow = SlotInputsRow & {
 export type RescheduleTarget = {
   id: string;
   start: Date;
+  version: number;
   professionalId: string;
   memberName: string;
 };
@@ -235,7 +237,7 @@ export async function findToReschedule(
   const result = await db.raw<{ rows: RescheduleRow[] }>(
     `
     select ${SLOT_INPUT_COLUMNS},
-      cur.id as session_id, cur.starts_at as session_start,
+      cur.id as session_id, cur.starts_at as session_start, cur.version as session_version,
       u.id as professional_id, me.name as member_name
     from sessions cur
     join users u on u.id = cur.professional_id
@@ -256,6 +258,7 @@ export async function findToReschedule(
       session: {
         id: row.session_id,
         start: row.session_start,
+        version: row.session_version,
         professionalId: row.professional_id,
         memberName: row.member_name,
       },

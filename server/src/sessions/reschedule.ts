@@ -1,8 +1,8 @@
 import type { AppDeps } from "../app.js";
-import { ErrorCode, HttpError } from "../errors.js";
 import { checkStart, refuse } from "../booking/rules.js";
-import { retryOnDeadlock } from "../db.js";
 import { overlapRefusal } from "../booking/store.js";
+import { retryOnDeadlock } from "../db.js";
+import { ErrorCode, HttpError } from "../errors.js";
 import type { SignedInUser } from "../roles.js";
 import { formatSessionTime } from "../session-time.js";
 import { sessionEnd } from "../slots/slots.js";
@@ -10,14 +10,29 @@ import { refuseIfTooLateToChange } from "./change-notice.js";
 import { sessionIdOr404, sessionNotFound } from "./lookup.js";
 import { findToReschedule, moveSession } from "./store.js";
 
+// Another change to the session between the read and the save makes the move miss. The second try reads the
+// session as it is now and checks everything again, so a cancel gives a 404 and another move is built on.
 export async function rescheduleMySession(
   deps: AppDeps,
   member: SignedInUser,
   id: unknown,
   start: Date,
 ): Promise<void> {
+  const sessionId = sessionIdOr404(id);
+  if (await tryReschedule(deps, member, sessionId, start)) return;
+  if (await tryReschedule(deps, member, sessionId, start)) return;
+  throw sessionNotFound();
+}
+
+// Returns false when the session changed after it was read.
+async function tryReschedule(
+  deps: AppDeps,
+  member: SignedInUser,
+  sessionId: string,
+  start: Date,
+): Promise<boolean> {
   const now = deps.now();
-  const found = await findToReschedule(deps.db, { sessionId: sessionIdOr404(id), memberId: member.id, now });
+  const found = await findToReschedule(deps.db, { sessionId, memberId: member.id, now });
   if (!found) throw sessionNotFound();
   const { session, inputs } = found;
 
@@ -34,10 +49,10 @@ export async function rescheduleMySession(
 
   try {
     // A booking for the same time can leave the two waiting on each other. The retry gets the normal refusal.
-    const moved = await retryOnDeadlock(() =>
+    return await retryOnDeadlock(() =>
       moveSession(deps.db, {
         id: session.id,
-        currentStart: session.start,
+        version: session.version,
         start,
         end: sessionEnd(start),
         recipientId: session.professionalId,
@@ -45,7 +60,6 @@ export async function rescheduleMySession(
         now,
       }),
     );
-    if (!moved) throw sessionNotFound();
   } catch (err) {
     const lost = overlapRefusal(err);
     if (lost) throw refuse(lost);

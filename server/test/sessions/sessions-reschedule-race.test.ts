@@ -144,7 +144,7 @@ it("a cancel that saves just after a move leaves no reminder that would still be
   expect(await remindersFor(professional)).toEqual([]);
 });
 
-it("two moves at the same moment: one wins, the other is refused, and the member still has one session", async () => {
+it("two moves at the same moment: the second reads the session again and moves it on, so it ends up once, at the last time", async () => {
   const { member, professional, sessionId } = await bookOneSession(app);
 
   let statuses: number[] = [];
@@ -157,11 +157,18 @@ it("two moves at the same moment: one wins, the other is refused, and the member
     statuses = (await Promise.all([first, second])).map((res) => res.status);
   });
 
-  expect(statuses).toEqual([204, 404]);
-  expect((await member.get(SESSIONS_URL)).body.upcoming.items).toMatchObject([
-    { id: sessionId, start: "2027-01-18T04:30:00.000Z" },
-  ]);
-  await deliverDueReminders(db, new Date("2027-01-18T03:30:00Z"));
-  expect(await textsFor(member)).toEqual([NEW_TIME, NEW_TIME]);
-  expect(await textsFor(professional)).toHaveLength(3);
+  expect(statuses).toEqual([204, 204]);
+  const { upcoming, cancelled } = (await member.get(SESSIONS_URL)).body;
+  expect(upcoming.items).toMatchObject([{ id: sessionId, start: "2027-01-18T05:30:00.000Z" }]);
+  expect(cancelled.items).toEqual([]);
+  await deliverDueReminders(db, new Date("2027-01-18T04:30:00Z"));
+  // Only the last time's reminders went out: nothing for the original or the first new time.
+  expect(await remindersFor(member)).toEqual(
+    Array(2).fill("Your session with Nora Quill is on Mon 18 Jan at 1:30pm"),
+  );
+  expect(await remindersFor(professional)).toEqual(
+    Array(2).fill("Your session with Theo Marsh is on Mon 18 Jan at 11:00am"),
+  );
+  const notices = (await textsFor(professional)).filter((text) => text.includes("moved your session"));
+  expect(notices).toHaveLength(2);
 });
