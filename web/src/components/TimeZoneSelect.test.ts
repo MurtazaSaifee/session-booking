@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  getRuntimeOffset,
-  matchDefaultSlot,
-  TIME_ZONE_SLOTS,
-} from "./TimeZoneSelect";
+import { getRuntimeOffset, matchDefaultSlot, TIME_ZONE_SLOTS } from "./TimeZoneSelect";
 
 describe("TimeZoneSelect slots and default matching", () => {
   it("includes representative zones with valid IANA identifiers and dynamic offsets", () => {

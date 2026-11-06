@@ -98,12 +98,7 @@ export function CancelSessionButton({ session, role, onCancelled }: CancelSessio
             </p>
             <ErrorMessage message={error} />
             <div className="modal-actions">
-              <button
-                type="button"
-                className="secondary"
-                disabled={cancelling}
-                onClick={closeModal}
-              >
+              <button type="button" className="secondary" disabled={cancelling} onClick={closeModal}>
                 Keep session
               </button>
               <button

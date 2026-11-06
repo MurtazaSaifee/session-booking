@@ -17,8 +17,13 @@ const db = createDb(databaseUrl, { max: parsePoolMax(process.env.DB_POOL_MAX) })
 const applied = await migrate(db);
 if (applied.length) console.log(`Applied migrations: ${applied.join(", ")}`);
 const now = () => new Date();
-const seeded = await seedIfEmpty(db, now());
-if (seeded) console.log("Seeded demo data");
+const shouldSeed =
+  process.env.SEED_DEMO_DATA === "true" ||
+  (process.env.NODE_ENV !== "production" && process.env.SEED_DEMO_DATA !== "false");
+if (shouldSeed) {
+  const seeded = await seedIfEmpty(db, now());
+  if (seeded) console.log("Seeded demo data");
+}
 
 const defaultStaticDir = fileURLToPath(new URL("../../web/dist", import.meta.url));
 const staticDir = process.env.STATIC_DIR ?? (existsSync(defaultStaticDir) ? defaultStaticDir : undefined);

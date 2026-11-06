@@ -15,6 +15,11 @@ export type Pager<T> = {
 // `first` is the page already loaded. Pages seen so far are kept, so Previous needs nothing from the server.
 export function usePager<T>(first: Page<T>, loadNext: (cursor: string) => Promise<Page<T>>): Pager<T> {
   const [state, setState] = useState<PagerState<T>>({ later: [], atEnd: false });
+  const [prevFirst, setPrevFirst] = useState(first);
+  if (first !== prevFirst) {
+    setPrevFirst(first);
+    setState({ later: [], atEnd: false });
+  }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const page = currentPage(first, state);

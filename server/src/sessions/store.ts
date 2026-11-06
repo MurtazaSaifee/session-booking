@@ -5,7 +5,7 @@ import { ReminderStatus } from "../reminders/reminder-values.js";
 import { Role, type SignedInUser } from "../roles.js";
 import { SessionStatus } from "../session-status.js";
 import { SLOT_INPUT_COLUMNS, toSlotInputs, type SlotInputsRow } from "../slots/store.js";
-import type { SlotInputs } from "../slots/slots.js";
+import { bookingWindowEnd, type SlotInputs } from "../slots/slots.js";
 import {
   rowsToPage,
   toMySessionDetail,
@@ -276,6 +276,7 @@ export async function findToReschedule(
       ignoreSessionId: input.sessionId,
       memberId: input.memberId,
       now: input.now,
+      windowEnd: bookingWindowEnd(input.now),
       booked: SessionStatus.BOOKED,
     },
   );

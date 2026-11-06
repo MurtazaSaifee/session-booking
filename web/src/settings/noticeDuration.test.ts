@@ -34,4 +34,3 @@ describe("formatNoticeDuration", () => {
     expect(formatNoticeDuration(1500)).toBe("1 day 1 hour");
   });
 });
-

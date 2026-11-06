@@ -59,6 +59,7 @@ function Shell() {
               path="/professionals/:id"
               element={<RoleOnly role={Role.MEMBER} page={(user) => <ProfessionalPage user={user} />} />}
             />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         )}
       </main>

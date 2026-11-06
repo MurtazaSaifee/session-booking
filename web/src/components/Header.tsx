@@ -29,10 +29,7 @@ export function Header() {
                 Professionals
               </NavLink>
             )}
-            <NavLink
-              to="/settings"
-              className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
-            >
+            <NavLink to="/settings" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
               Settings
             </NavLink>
 
@@ -45,10 +42,7 @@ export function Header() {
               </span>
             </div>
 
-            <span
-              className="timezone-pill"
-              title={`All times displayed in ${user.timezone}`}
-            >
+            <span className="timezone-pill" title={`All times displayed in ${user.timezone}`}>
               🕒 {user.timezone}
             </span>
 

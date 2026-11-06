@@ -2,7 +2,7 @@ import type { Db } from "../db.js";
 import { Role } from "../roles.js";
 import { SessionStatus } from "../session-status.js";
 import { toTimeRange, type HoursColumns } from "../settings/hours.js";
-import { DEFAULT_MINIMUM_NOTICE_MINUTES, type Interval, type SlotInputs } from "./slots.js";
+import { bookingWindowEnd, DEFAULT_MINIMUM_NOTICE_MINUTES, type Interval, type SlotInputs } from "./slots.js";
 
 type BusyJson = { start: string; end: string }[];
 
@@ -34,11 +34,13 @@ export const SLOT_INPUT_COLUMNS = `
   coalesce((select json_agg(json_build_object('start', s.starts_at, 'end', s.ends_at))
             from sessions s
             where s.member_id = :memberId and s.status = :booked and s.ends_at > :now
+              and s.starts_at <= cast(:windowEnd as timestamptz)
               and (s.id is distinct from cast(:ignoreSessionId as uuid) or s.member_id <> :memberId)), '[]')
     as member_busy,
   coalesce((select json_agg(json_build_object('start', s.starts_at, 'end', s.ends_at))
             from sessions s
             where s.professional_id = u.id and s.status = :booked and s.ends_at > :now
+              and s.starts_at <= cast(:windowEnd as timestamptz)
               and (s.id is distinct from cast(:ignoreSessionId as uuid) or s.member_id <> :memberId)), '[]')
     as professional_busy,
   (select s.starts_at from sessions s
@@ -71,6 +73,7 @@ export async function findSlotInputs(
       memberId: input.memberId,
       professionalId: input.professionalId,
       now: input.now,
+      windowEnd: bookingWindowEnd(input.now),
       ignoreSessionId: input.ignoreSessionId ?? null,
       booked: SessionStatus.BOOKED,
       professional: Role.PROFESSIONAL,

@@ -101,7 +101,8 @@ function ProfileFields({ initial }: { initial: Profile }) {
             <h3>Minimum Booking Notice</h3>
           </div>
           <p className="hint">
-            How much advance notice you require before members can book or reschedule a session with you. Members are never offered slots starting sooner than this.
+            How much advance notice you require before members can book or reschedule a session with you.
+            Members are never offered slots starting sooner than this.
           </p>
 
           <div className="preset-toolbar-block">
@@ -128,6 +129,7 @@ function ProfileFields({ initial }: { initial: Profile }) {
               name="minimumNoticeMinutes"
               type="number"
               min={0}
+              max={40320}
               step={1}
               value={noticeMinutes}
               onChange={(e) => {
@@ -142,7 +144,9 @@ function ProfileFields({ initial }: { initial: Profile }) {
           <div className="notice-scenario-preview">
             <span className="preview-icon">💡</span>
             <span className="preview-text">
-              <strong>How it works:</strong> If you set notice to {formatNoticeDuration(noticeMinutes)}, a member looking for a session at 10:00 AM will only see slots starting at or after {formatScenarioTime(noticeMinutes)}.
+              <strong>How it works:</strong> If you set notice to {formatNoticeDuration(noticeMinutes)}, a
+              member looking for a session at 10:00 AM will only see slots starting at or after{" "}
+              {formatScenarioTime(noticeMinutes)}.
             </span>
           </div>
         </div>

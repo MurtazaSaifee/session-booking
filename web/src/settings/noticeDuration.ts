@@ -16,4 +16,3 @@ export function formatNoticeDuration(minutes: number): string {
 
   return parts.join(" ");
 }
-

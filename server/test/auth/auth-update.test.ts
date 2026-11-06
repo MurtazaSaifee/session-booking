@@ -86,4 +86,3 @@ it("refuses a blank name with 400", async () => {
   expect(res.body.error).toBe(ErrorCode.VALIDATION);
   expect(res.body.message).toBe("Please enter your name.");
 });
-

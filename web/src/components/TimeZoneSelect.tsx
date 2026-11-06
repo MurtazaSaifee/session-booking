@@ -15,7 +15,10 @@ export type ZoneDefinition = {
 };
 
 // Computes current runtime UTC offset dynamically using Intl so Daylight Saving Time (DST) is accurate.
-export function getRuntimeOffset(zone: string, date: Date = new Date()): { offset: string; offsetMinutes: number } {
+export function getRuntimeOffset(
+  zone: string,
+  date: Date = new Date(),
+): { offset: string; offsetMinutes: number } {
   try {
     const formatter = new Intl.DateTimeFormat("en-US", {
       timeZone: zone,
@@ -141,7 +144,8 @@ export const ZONE_DEFINITIONS: ZoneDefinition[] = [
   {
     zone: "Europe/Moscow",
     name: "Moscow, Istanbul, Riyadh, Nairobi, Baghdad, Doha",
-    searchTerms: "msk moscow saint petersburg istanbul turkey riyadh saudi arabia nairobi kenya baghdad iraq doha qatar",
+    searchTerms:
+      "msk moscow saint petersburg istanbul turkey riyadh saudi arabia nairobi kenya baghdad iraq doha qatar",
   },
   {
     zone: "Asia/Tehran",
@@ -151,7 +155,8 @@ export const ZONE_DEFINITIONS: ZoneDefinition[] = [
   {
     zone: "Asia/Dubai",
     name: "Dubai, Abu Dhabi, Baku, Tbilisi, Yerevan, Muscat",
-    searchTerms: "dubai abu dhabi uae united arab emirates gulf baku azerbaijan tbilisi georgia yerevan armenia muscat oman",
+    searchTerms:
+      "dubai abu dhabi uae united arab emirates gulf baku azerbaijan tbilisi georgia yerevan armenia muscat oman",
   },
   {
     zone: "Asia/Kabul",
@@ -166,7 +171,8 @@ export const ZONE_DEFINITIONS: ZoneDefinition[] = [
   {
     zone: "Asia/Kolkata",
     name: "Mumbai, New Delhi, Kolkata, Bengaluru, Colombo",
-    searchTerms: "plus five thirty india ist kolkata calcutta mumbai bombay delhi new delhi bangalore bengaluru madras chennai hyderabad colombo sri lanka",
+    searchTerms:
+      "plus five thirty india ist kolkata calcutta mumbai bombay delhi new delhi bangalore bengaluru madras chennai hyderabad colombo sri lanka",
   },
   {
     zone: "Asia/Kathmandu",
@@ -191,7 +197,8 @@ export const ZONE_DEFINITIONS: ZoneDefinition[] = [
   {
     zone: "Asia/Singapore",
     name: "Singapore, Hong Kong, Beijing, Perth, Kuala Lumpur, Taipei",
-    searchTerms: "singapore hong kong beijing shanghai perth kuala lumpur malaysia manila philippines taipei taiwan cst sgt wawt",
+    searchTerms:
+      "singapore hong kong beijing shanghai perth kuala lumpur malaysia manila philippines taipei taiwan cst sgt wawt",
   },
   {
     zone: "Australia/Eucla",

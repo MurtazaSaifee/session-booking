@@ -52,4 +52,3 @@ export const updateUserSchema = z
   })
   .partial()
   .refine((changes) => Object.keys(changes).length > 0, "Nothing to update.");
-

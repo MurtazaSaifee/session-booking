@@ -30,6 +30,7 @@ services:
       JWT_SECRET: dev-only-secret
       NODE_ENV: production
       SECURE_COOKIES: "false"
+      SEED_DEMO_DATA: "true"
 
   test:
     build:

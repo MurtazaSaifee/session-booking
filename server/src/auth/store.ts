@@ -98,10 +98,6 @@ export async function updateUser(
     return findUserById(db, id);
   }
 
-  const rows = await db<PublicUser>("users")
-    .where({ id })
-    .update(updateData)
-    .returning(publicColumns);
+  const rows = await db<PublicUser>("users").where({ id }).update(updateData).returning(publicColumns);
   return rows[0];
 }
-
