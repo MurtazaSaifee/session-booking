@@ -2,6 +2,11 @@
   box-sizing: border-box;
 }
 
+/* Keeps the page the same width whether or not it scrolls, so the header doesn't jump between pages. */
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   font-family: var(--font);
   background: var(--page);
@@ -79,14 +84,28 @@ a:hover {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-4);
   margin-left: auto;
+  flex-shrink: 0;
+}
+
+button.logout-btn {
+  padding: var(--space-1) var(--space-3);
 }
 
 .nav-links {
   display: flex;
   align-items: center;
   gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-left: auto;
+  min-width: 0;
 }
 
 .account {
@@ -100,54 +119,61 @@ a:hover {
   color: var(--muted);
 }
 
-/* Too narrow for one row: the brand and actions share the top row, and the nav takes the next. */
-@media (max-width: 1100px) {
+/* Wide: one row. The links follow the brand, and the name, timezone and actions sit on the right. */
+.account.signed-in {
+  flex: 1 1 0;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+/* Medium: the brand and actions on the first row, and the links, name and timezone on the second. */
+@media (max-width: 1200px) {
   .account.signed-in {
     order: 1;
-    width: 100%;
-    justify-content: flex-start;
+    flex-basis: 100%;
   }
 }
 
-@media (max-width: 640px) {
+/* Narrow: the same two rows, with the name and timezone on a third. */
+@media (max-width: 760px) {
   .header {
     padding: var(--space-2) var(--space-4);
     gap: var(--space-2);
   }
 
-  .account,
   .account.signed-in {
-    width: 100%;
-    justify-content: space-between;
-    gap: var(--space-2);
-  }
-
-  .nav-links {
     flex-wrap: wrap;
-    gap: var(--space-1);
   }
 
-  .nav-link {
+  /* The icon sits above its label here, so three links still fit a phone's width. */
+  .nav-links .nav-link {
+    flex-direction: column;
+    gap: 2px;
     padding: var(--space-1) var(--space-2);
-    font-size: var(--text-tiny);
   }
 
-  .user-badge {
-    font-size: 0.72rem;
-    padding: 2px var(--space-2);
-  }
-
-  .user-role-tag {
-    display: none;
-  }
-
-  .logout-btn {
-    padding: var(--space-1) var(--space-3) !important;
-    font-size: var(--text-tiny) !important;
+  .identity {
+    flex-basis: 100%;
+    margin-left: 0;
   }
 }
 
+.icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   color: var(--muted);
   text-decoration: none;
   font-weight: var(--weight-medium);
@@ -161,16 +187,17 @@ a:hover {
   background: var(--page);
 }
 
+/* No bold here: a wider active link would shift the row from one page to the next. */
 .nav-link.active {
   color: var(--navy);
   background: var(--teal-tint);
-  font-weight: var(--weight-semibold);
 }
 
 .user-badge {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
+  min-width: 0;
   background: var(--page);
   border: var(--stroke) solid var(--line);
   padding: var(--space-1) var(--space-3);
@@ -180,7 +207,15 @@ a:hover {
   color: var(--navy);
 }
 
+.user-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .user-role-tag {
+  flex-shrink: 0;
   color: var(--teal-dark);
   background: var(--teal-subtle);
   padding: 1px var(--space-2);
@@ -193,9 +228,10 @@ a:hover {
 .timezone-pill {
   font-size: var(--text-tiny);
   color: var(--muted);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 main {

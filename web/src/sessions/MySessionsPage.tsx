@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router";
 import type { User } from "../auth/AuthProvider";
 import { ErrorMessage } from "../components/ErrorMessage";
@@ -20,6 +21,7 @@ const sections = [
 export function MySessionsPage({ user }: { user: User }) {
   const { data: sessions, error: loadError, reload } = useLoad(getMySessions);
   const isMember = user.role === Role.MEMBER;
+  const [shown, setShown] = useState<(typeof sections)[number]>(sections[0]);
 
   return (
     <section className="card">
@@ -51,17 +53,30 @@ export function MySessionsPage({ user }: { user: User }) {
       ) : !sessions ? (
         <p className="hint">Loading your sessions…</p>
       ) : (
-        sections.map((section) => (
+        <>
+          <div className="session-tabs" role="group" aria-label="Session lists">
+            {sections.map((section) => (
+              <button
+                key={section.key}
+                type="button"
+                className={section === shown ? "session-tab active" : "session-tab"}
+                aria-pressed={section === shown}
+                onClick={() => setShown(section)}
+              >
+                {section.title}
+              </button>
+            ))}
+          </div>
           <SessionSection
-            key={section.list}
-            title={section.title}
-            emptyMessage={section.emptyMessage}
-            list={section.list}
-            first={sessions[section.key]}
+            key={shown.list}
+            title={shown.title}
+            emptyMessage={shown.emptyMessage}
+            list={shown.list}
+            first={sessions[shown.key]}
             user={user}
             onCancelled={reload}
           />
-        ))
+        </>
       )}
     </section>
   );

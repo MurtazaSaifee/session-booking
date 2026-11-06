@@ -11,6 +11,33 @@
   margin: 0;
 }
 
+.session-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-bottom: var(--space-4);
+}
+
+button.session-tab,
+button.session-tab:hover:not(:disabled) {
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  padding: var(--space-1) var(--space-3);
+  font-weight: var(--weight-medium);
+}
+
+button.session-tab:hover:not(:disabled) {
+  color: var(--navy);
+  background: var(--page);
+}
+
+button.session-tab.active,
+button.session-tab.active:hover:not(:disabled) {
+  color: var(--navy);
+  background: var(--teal-tint);
+}
+
 .book-session-cta-btn {
   display: inline-flex;
   align-items: center;
@@ -84,6 +111,9 @@
 }
 
 .session {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--space-3);
   background: var(--white);
   border: 1px solid var(--line);
   border-radius: var(--radius-option);
@@ -97,7 +127,7 @@
   box-shadow: var(--shadow-card);
 }
 
-.session > p {
+.session-details > p {
   margin: var(--space-1) 0 0;
   font-size: var(--text-small);
 }
@@ -133,27 +163,25 @@
 
 .session-actions {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-2);
-  margin-top: var(--space-3);
 }
 
-.session-actions:empty {
-  display: none;
+button.icon-button {
+  width: 40px;
+  height: 40px;
+  padding: 0;
 }
 
-@media (max-width: 480px) {
-  .session-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
+button.icon-button-danger:hover:not(:disabled) {
+  color: var(--danger);
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+}
 
-  .session-actions button,
-  .session-actions a {
-    width: 100%;
-    text-align: center;
-  }
+.session-too-late {
+  grid-column: 1 / -1;
+  margin: var(--space-2) 0 0;
 }
 
 /* Modal inside session card - prevent .session p cascade from flattening modal text spacing */

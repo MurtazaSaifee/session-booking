@@ -2,6 +2,7 @@ import { Link, NavLink } from "react-router";
 import { useAuth } from "../auth/AuthProvider";
 import { NotificationBell } from "../notifications/NotificationBell";
 import { Role } from "../roles";
+import { CalendarIcon, PeopleIcon, SlidersIcon } from "./icons";
 
 export function Header() {
   const { user, loading, logOut } = useAuth();
@@ -18,6 +19,7 @@ export function Header() {
           <nav className="account signed-in" aria-label="Main Navigation">
             <div className="nav-links">
               <NavLink to="/" end className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
+                <CalendarIcon />
                 My sessions
               </NavLink>
               {user.role === Role.MEMBER && (
@@ -25,6 +27,7 @@ export function Header() {
                   to="/professionals"
                   className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
                 >
+                  <PeopleIcon />
                   Professionals
                 </NavLink>
               )}
@@ -32,20 +35,23 @@ export function Header() {
                 to="/settings"
                 className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
               >
+                <SlidersIcon />
                 Settings
               </NavLink>
             </div>
 
-            <div className="user-badge" aria-label={`Logged in as ${user.name}`}>
-              <span>{user.name}</span>
-              <span className="user-role-tag">
-                {user.role === Role.PROFESSIONAL ? "Professional" : "Member"}
+            <div className="identity">
+              <div className="user-badge" aria-label={`Logged in as ${user.name}`}>
+                <span className="user-name">{user.name}</span>
+                <span className="user-role-tag">
+                  {user.role === Role.PROFESSIONAL ? "Professional" : "Member"}
+                </span>
+              </div>
+
+              <span className="timezone-pill" title={`All times displayed in ${user.timezone}`}>
+                🕒 {user.timezone}
               </span>
             </div>
-
-            <span className="timezone-pill" title={`All times displayed in ${user.timezone}`}>
-              🕒 {user.timezone}
-            </span>
           </nav>
         ) : (
           <nav className="account">

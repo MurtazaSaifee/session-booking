@@ -1,15 +1,13 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { errorMessage } from "../api";
 import { ErrorMessage } from "../components/ErrorMessage";
-import type { Role } from "../roles";
+import { CancelIcon } from "../components/icons";
 import { cancelSession, type MySession } from "./api";
-import { ChangeButtonState, changeButtonState, TOO_LATE_MESSAGE } from "./changeRule";
-import { useNow } from "./useNow";
+import { ChangeButtonState } from "./changeRule";
 
-type CancelSessionButtonProps = { session: MySession; role: Role; onCancelled: () => void };
+type CancelSessionButtonProps = { session: MySession; state: ChangeButtonState; onCancelled: () => void };
 
-export function CancelSessionButton({ session, role, onCancelled }: CancelSessionButtonProps) {
-  const now = useNow();
+export function CancelSessionButton({ session, state, onCancelled }: CancelSessionButtonProps) {
   const titleId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [showModal, setShowModal] = useState(false);
@@ -61,7 +59,6 @@ export function CancelSessionButton({ session, role, onCancelled }: CancelSessio
     }
   }
 
-  const state = changeButtonState(session, role, now);
   if (state === ChangeButtonState.HIDDEN) return null;
 
   return (
@@ -69,14 +66,14 @@ export function CancelSessionButton({ session, role, onCancelled }: CancelSessio
       <button
         ref={triggerRef}
         type="button"
-        className="secondary"
+        className="secondary icon-button icon-button-danger"
+        aria-label="Cancel session"
+        title="Cancel session"
         disabled={state === ChangeButtonState.DISABLED || cancelling}
         onClick={openModal}
       >
-        Cancel session
+        <CancelIcon />
       </button>
-      {state === ChangeButtonState.DISABLED && <p className="hint">{TOO_LATE_MESSAGE}</p>}
-      {!showModal && <ErrorMessage message={error} />}
 
       {showModal && (
         <div

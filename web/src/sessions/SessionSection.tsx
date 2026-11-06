@@ -18,8 +18,7 @@ export function SessionSection({ title, emptyMessage, list, first, user, onCance
   const pager = usePager(first, (cursor) => getNextSessions(list, cursor));
 
   return (
-    <section>
-      <h2>{title}</h2>
+    <section aria-label={title}>
       {pager.items.length === 0 ? (
         <p className="hint">{emptyMessage}</p>
       ) : (
