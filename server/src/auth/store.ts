@@ -90,12 +90,17 @@ export async function updateUser(
   id: string,
   changes: { name?: string; timezone?: string },
 ): Promise<PublicUser | undefined> {
+  const updateData: { name?: string; timezone?: string } = {};
+  if (changes.name !== undefined) updateData.name = changes.name;
+  if (changes.timezone !== undefined) updateData.timezone = changes.timezone;
+
+  if (Object.keys(updateData).length === 0) {
+    return findUserById(db, id);
+  }
+
   const rows = await db<PublicUser>("users")
     .where({ id })
-    .update({
-      name: changes.name,
-      timezone: changes.timezone,
-    })
+    .update(updateData)
     .returning(publicColumns);
   return rows[0];
 }
