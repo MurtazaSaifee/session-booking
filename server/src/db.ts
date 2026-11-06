@@ -23,6 +23,11 @@ export function createDb(connectionString: string, options: { max?: number } = {
   });
 }
 
+export function dbFromEnv(env: { DATABASE_URL?: string; DB_POOL_MAX?: string }): Db {
+  if (!env.DATABASE_URL) throw new Error("DATABASE_URL is not set");
+  return createDb(env.DATABASE_URL, { max: parsePoolMax(env.DB_POOL_MAX) });
+}
+
 const DEADLOCK_DETECTED = "40P01";
 
 // Saves that wait on each other's locks can end with Postgres cancelling one as a deadlock. Running it

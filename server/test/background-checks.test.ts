@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeEach, expect, it, vi } from "vitest";
-import { startBackgroundChecks } from "../src/background-checks.js";
+import { runBackgroundChecks, startBackgroundChecks } from "../src/background-checks.js";
 import { createTestApp, resetDb, testClock } from "./app.js";
 import { CLOCK_START } from "./booking/helpers.js";
 import { createTestDb } from "./db.js";
@@ -59,6 +59,29 @@ it("logs a failed check and keeps going", async () => {
     const reminderFailures = logged.mock.calls.filter(([message]) => message === "Reminder check failed");
     expect(reminderFailures.length).toBeGreaterThanOrEqual(2);
   });
+});
+
+it("one run delivers what's due and finishes, with no loop left behind", async () => {
+  const { member } = await bookOneSession(app);
+  await db("refresh_tokens").update({ revoked_at: new Date(CLOCK_START) });
+  checkerClock.set(DAY_BEFORE_DUE);
+
+  await runBackgroundChecks({ db, now: checkerClock.now });
+
+  expect(await textsFor(member)).toHaveLength(1);
+  expect(await db("refresh_tokens").select("id")).toEqual([]);
+});
+
+it("one run logs a failure rather than throwing", async () => {
+  const brokenDb = createTestDb();
+  await brokenDb.destroy();
+  const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+
+  await expect(runBackgroundChecks({ db: brokenDb, now: checkerClock.now })).resolves.toBeUndefined();
+
+  const messages = logged.mock.calls.map(([message]) => message);
+  expect(messages).toContain("Reminder check failed");
+  expect(messages).toContain("Refresh token clean-up failed");
 });
 
 it("the same loop cleans up dead refresh tokens", async () => {

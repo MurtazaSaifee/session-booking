@@ -2,25 +2,21 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createApp } from "./app.js";
 import { parseCheckIntervalMs, startBackgroundChecks } from "./background-checks.js";
-import { createDb, parsePoolMax } from "./db.js";
-import { migrate } from "./migrate.js";
-import { seedIfEmpty, shouldSeedDemoData } from "./seed.js";
+import { dbFromEnv } from "./db.js";
+import { prepareDatabase } from "./prepare-database.js";
 
-const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) throw new Error("DATABASE_URL is not set");
 const jwtSecret = process.env.JWT_SECRET;
 if (!jwtSecret) throw new Error("JWT_SECRET is not set");
 
+// On Lambda a new copy can start for any request and freezes between them, so copies only answer requests.
+// Migrations and the background checks run as their own functions there.
+const apiOnly = process.env.API_ONLY === "true";
+
 const port = Number(process.env.PORT ?? 3000);
 const checkIntervalMs = parseCheckIntervalMs(process.env.BACKGROUND_CHECK_SECONDS);
-const db = createDb(databaseUrl, { max: parsePoolMax(process.env.DB_POOL_MAX) });
-const applied = await migrate(db);
-if (applied.length) console.log(`Applied migrations: ${applied.join(", ")}`);
+const db = dbFromEnv(process.env);
 const now = () => new Date();
-if (shouldSeedDemoData(process.env)) {
-  const seeded = await seedIfEmpty(db, now());
-  if (seeded) console.log("Seeded demo data");
-}
+if (!apiOnly) await prepareDatabase(db, now(), process.env);
 
 const defaultStaticDir = fileURLToPath(new URL("../../web/dist", import.meta.url));
 const staticDir = process.env.STATIC_DIR ?? (existsSync(defaultStaticDir) ? defaultStaticDir : undefined);
@@ -39,5 +35,5 @@ const app = createApp({
 app.listen(port, (err) => {
   if (err) throw err;
   console.log(`API listening on http://localhost:${port}`);
-  startBackgroundChecks({ db, now }, checkIntervalMs);
+  if (!apiOnly) startBackgroundChecks({ db, now }, checkIntervalMs);
 });
