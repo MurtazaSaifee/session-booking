@@ -19,7 +19,7 @@ type SlotCalendarProps = {
   professionalName: string;
   timezone: string;
   // Set to move an existing session; onMoved runs once the server has moved it.
-  reschedule?: { sessionId: string; currentStart?: string; onMoved: () => void };
+  reschedule?: { sessionId: string; currentStart: string; onMoved: () => void };
 };
 
 export function SlotCalendar({ professionalId, professionalName, timezone, reschedule }: SlotCalendarProps) {

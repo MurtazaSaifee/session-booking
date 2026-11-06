@@ -20,10 +20,14 @@ export function slotRoutes(deps: AppDeps): express.Router {
       now,
       ignoreSessionId,
     });
-    const { memberBusy, professionalBusy, ...rules } = inputs;
+    const { memberBusy, professionalBusy, ignoredSessionStart, ...rules } = inputs;
     // Merged so the response can't reveal whether a slot is missing because of this member or someone else.
     const busy = [...memberBusy, ...professionalBusy];
-    res.json({ slots: buildSlots({ ...rules, now, windowEnd: bookingWindowEnd(now), busy }) });
+    let slots = buildSlots({ ...rules, now, windowEnd: bookingWindowEnd(now), busy });
+    if (ignoredSessionStart) {
+      slots = slots.filter((slot) => slot.start.getTime() !== ignoredSessionStart.getTime());
+    }
+    res.json({ slots });
   });
 
   return router;

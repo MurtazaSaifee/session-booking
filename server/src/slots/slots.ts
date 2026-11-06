@@ -24,6 +24,7 @@ export type SlotInputs = {
   minimumNoticeMinutes: number;
   memberBusy: Interval[];
   professionalBusy: Interval[];
+  ignoredSessionStart?: Date | null;
 };
 
 export function sessionEnd(start: Date): Date {

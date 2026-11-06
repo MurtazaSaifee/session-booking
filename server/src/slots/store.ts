@@ -12,6 +12,7 @@ export type SlotInputsRow = {
   minimum_notice_minutes: number | null;
   member_busy: BusyJson;
   professional_busy: BusyJson;
+  ignored_session_start?: string | null;
 };
 
 function toIntervals(busy: BusyJson): Interval[] {
@@ -39,7 +40,10 @@ export const SLOT_INPUT_COLUMNS = `
             from sessions s
             where s.professional_id = u.id and s.status = :booked and s.ends_at > :now
               and (s.id is distinct from cast(:ignoreSessionId as uuid) or s.member_id <> :memberId)), '[]')
-    as professional_busy`;
+    as professional_busy,
+  (select s.starts_at from sessions s
+   where s.id = cast(:ignoreSessionId as uuid) and s.member_id = :memberId and s.status = :booked limit 1)
+    as ignored_session_start`;
 
 export function toSlotInputs(row: SlotInputsRow): SlotInputs {
   return {
@@ -48,6 +52,7 @@ export function toSlotInputs(row: SlotInputsRow): SlotInputs {
     minimumNoticeMinutes: row.minimum_notice_minutes ?? DEFAULT_MINIMUM_NOTICE_MINUTES,
     memberBusy: toIntervals(row.member_busy),
     professionalBusy: toIntervals(row.professional_busy),
+    ignoredSessionStart: row.ignored_session_start ? new Date(row.ignored_session_start) : null,
   };
 }
 
