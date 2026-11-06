@@ -59,14 +59,14 @@
   box-shadow: var(--shadow-card);
 }
 
-.notification p {
+.notification > p {
   margin: 0;
   color: var(--ink);
   font-size: var(--text-small);
   line-height: 1.4;
 }
 
-.notification .notification-time {
+.notification > .notification-time {
   margin-top: var(--space-2);
   color: var(--muted);
   font-size: var(--text-tiny);

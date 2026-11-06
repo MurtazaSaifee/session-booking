@@ -23,7 +23,7 @@
   transform: translateY(-1px);
 }
 
-.professional p {
+.professional > p {
   margin: var(--space-1) 0 0;
 }
 

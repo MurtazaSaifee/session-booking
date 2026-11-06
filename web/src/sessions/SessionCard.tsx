@@ -16,8 +16,10 @@ export function SessionCard({ session, user, onCancelled }: SessionCardProps) {
       <p>{formatFullDay(localDate(session.start, user.timezone))}</p>
       <p>{formatTimeRange(session, user.timezone)}</p>
       {cancelled && <p className="session-cancelled-by">{cancelledLabel(session)}</p>}
-      <RescheduleSessionButton session={session} role={user.role} />
-      <CancelSessionButton session={session} role={user.role} onCancelled={onCancelled} />
+      <div className="session-actions">
+        <RescheduleSessionButton session={session} role={user.role} />
+        <CancelSessionButton session={session} role={user.role} onCancelled={onCancelled} />
+      </div>
     </li>
   );
 }

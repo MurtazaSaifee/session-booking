@@ -97,7 +97,7 @@
   box-shadow: var(--shadow-card);
 }
 
-.session p {
+.session > p {
   margin: var(--space-1) 0 0;
   font-size: var(--text-small);
 }
@@ -134,12 +134,23 @@
 .session-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-2);
   margin-top: var(--space-3);
 }
 
-.session button,
-.session .reschedule-link {
-  margin-top: var(--space-3);
-  margin-right: var(--space-2);
+.session-actions:empty {
+  display: none;
+}
+
+/* Modal inside session card - prevent .session p cascade from flattening modal text spacing */
+.session .modal-content p {
+  margin: 0 0 var(--space-5);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
 }
