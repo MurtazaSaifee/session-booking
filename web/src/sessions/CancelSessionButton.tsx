@@ -10,16 +10,16 @@ type CancelSessionButtonProps = { session: MySession; role: Role; onCancelled: (
 
 export function CancelSessionButton({ session, role, onCancelled }: CancelSessionButtonProps) {
   const now = useNow();
+  const [showModal, setShowModal] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function cancel() {
-    if (!window.confirm(`Cancel your session with ${session.otherPersonName}? They will be notified.`))
-      return;
+  async function handleConfirmCancel() {
     setCancelling(true);
     setError(null);
     try {
       await cancelSession(session.id);
+      setShowModal(false);
       onCancelled();
     } catch (err) {
       setError(errorMessage(err));
@@ -36,12 +36,43 @@ export function CancelSessionButton({ session, role, onCancelled }: CancelSessio
         type="button"
         className="secondary"
         disabled={state === ChangeButtonState.DISABLED || cancelling}
-        onClick={cancel}
+        onClick={() => setShowModal(true)}
       >
         Cancel session
       </button>
       {state === ChangeButtonState.DISABLED && <p className="hint">{TOO_LATE_MESSAGE}</p>}
       <ErrorMessage message={error} />
+
+      {showModal && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-content">
+            <h3>Cancel session?</h3>
+            <p>
+              Are you sure you want to cancel your session with <strong>{session.otherPersonName}</strong>?
+              They will be notified immediately.
+            </p>
+            <ErrorMessage message={error} />
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="secondary"
+                disabled={cancelling}
+                onClick={() => setShowModal(false)}
+              >
+                Keep session
+              </button>
+              <button
+                type="button"
+                className="destructive"
+                disabled={cancelling}
+                onClick={handleConfirmCancel}
+              >
+                {cancelling ? "Cancelling…" : "Yes, cancel session"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

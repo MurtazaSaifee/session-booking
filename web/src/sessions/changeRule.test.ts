@@ -41,9 +41,14 @@ describe("changeButtonState for a professional", () => {
   it.each([
     ["well ahead", "2027-01-01T00:00:00.000Z"],
     ["inside 24 hours", "2027-01-18T03:00:00.000Z"],
-    ["after the session ended", "2027-02-01T00:00:00.000Z"],
   ])("is enabled %s", (_name, now) => {
     expect(changeButtonState(session, Role.PROFESSIONAL, new Date(now))).toBe(ChangeButtonState.ENABLED);
+  });
+
+  it("is hidden after the session has ended", () => {
+    expect(changeButtonState(session, Role.PROFESSIONAL, new Date("2027-02-01T00:00:00.000Z"))).toBe(
+      ChangeButtonState.HIDDEN,
+    );
   });
 });
 
