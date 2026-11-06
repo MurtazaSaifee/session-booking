@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { createApp } from "./app.js";
 import { parseCheckIntervalMs, startBackgroundChecks } from "./background-checks.js";
 import { createDb, parsePoolMax } from "./db.js";
@@ -17,11 +19,19 @@ if (applied.length) console.log(`Applied migrations: ${applied.join(", ")}`);
 const now = () => new Date();
 const seeded = await seedIfEmpty(db, now());
 if (seeded) console.log("Seeded demo data");
+
+const defaultStaticDir = fileURLToPath(new URL("../../web/dist", import.meta.url));
+const staticDir = process.env.STATIC_DIR ?? (existsSync(defaultStaticDir) ? defaultStaticDir : undefined);
+const secureCookies =
+  process.env.SECURE_COOKIES === "true" ||
+  (process.env.NODE_ENV === "production" && process.env.SECURE_COOKIES !== "false");
+
 const app = createApp({
   db,
   now,
   jwtSecret,
-  secureCookies: process.env.NODE_ENV === "production",
+  secureCookies,
+  staticDir,
 });
 
 app.listen(port, (err) => {

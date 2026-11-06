@@ -15,6 +15,22 @@ services:
       timeout: 3s
       retries: 15
 
+  app:
+    build:
+      context: .
+      target: app
+    ports:
+      - "${PORT:-3000}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://booking:booking@db:5432/booking
+      JWT_SECRET: dev-only-secret
+      NODE_ENV: production
+      SECURE_COOKIES: "false"
+
   test:
     build:
       context: .

@@ -9,3 +9,14 @@ FROM deps AS test
 COPY server server
 COPY web web
 CMD ["npm", "test"]
+
+FROM deps AS builder
+COPY server server
+COPY web web
+RUN npm run build
+
+FROM deps AS app
+COPY --from=builder /app/web/dist /app/web/dist
+COPY --from=builder /app/server/dist /app/server/dist
+EXPOSE 3000
+CMD ["node", "server/dist/index.js"]

@@ -18,6 +18,7 @@ export type AppDeps = {
   now: () => Date;
   jwtSecret: string;
   secureCookies: boolean;
+  staticDir?: string;
 };
 
 export function createApp(deps: AppDeps) {
@@ -53,6 +54,16 @@ export function createApp(deps: AppDeps) {
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: ErrorCode.NOT_FOUND, message: "Not found." });
   });
+
+  if (deps.staticDir) {
+    app.use(express.static(deps.staticDir));
+    app.use((req, res, next) => {
+      if (req.method !== "GET" && req.method !== "HEAD") return next();
+      res.sendFile("index.html", { root: deps.staticDir }, (err) => {
+        if (err) next(err);
+      });
+    });
+  }
 
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     if (err instanceof HttpError) {

@@ -198,4 +198,3 @@ export async function seedIfEmpty(db: Db, now: Date): Promise<boolean> {
     return true;
   });
 }
-
