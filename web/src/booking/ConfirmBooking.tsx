@@ -1,43 +1,33 @@
 import { useState } from "react";
 import { errorMessage } from "../api";
 import { ErrorMessage } from "../components/ErrorMessage";
-import { rescheduleSession } from "../sessions/api";
 import { formatDay, formatTimeRange, localDate } from "../time/format";
-import { bookSession, isBookingRefusal, type Slot } from "./api";
+import { isBookingRefusal, type Slot } from "./api";
 
 type ConfirmBookingProps = {
-  professionalId: string;
   professionalName: string;
   slot: Slot;
   timezone: string;
-  // Set when moving this session instead of booking a new one.
-  rescheduleSessionId?: string;
+  title: string;
+  saveLabel: string;
+  save: () => Promise<void>;
   onBack: () => void;
-  onBooked: () => void;
+  onSaved: () => void;
   onRefused: (message: string) => void;
 };
 
+// Confirms one chosen time, for a new booking or for moving a session. The caller says what saving does.
 export function ConfirmBooking(props: ConfirmBookingProps) {
-  const {
-    professionalId,
-    professionalName,
-    slot,
-    timezone,
-    rescheduleSessionId,
-    onBack,
-    onBooked,
-    onRefused,
-  } = props;
-  const [booking, setBooking] = useState(false);
+  const { professionalName, slot, timezone, title, saveLabel, save, onBack, onSaved, onRefused } = props;
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function book() {
-    setBooking(true);
+  async function confirm() {
+    setSaving(true);
     setError(null);
     try {
-      if (rescheduleSessionId) await rescheduleSession(rescheduleSessionId, slot.start);
-      else await bookSession(professionalId, slot.start);
-      onBooked();
+      await save();
+      onSaved();
     } catch (err) {
       if (isBookingRefusal(err)) {
         onRefused(err.message);
@@ -45,13 +35,13 @@ export function ConfirmBooking(props: ConfirmBookingProps) {
       }
       // Says nothing about the slot, and a retry is safe: if this one landed, the server refuses a second.
       setError(errorMessage(err));
-      setBooking(false);
+      setSaving(false);
     }
   }
 
   return (
     <>
-      <h2>{rescheduleSessionId ? "Confirm the new time" : "Confirm your session"}</h2>
+      <h2>{title}</h2>
       <div className="confirm-details">
         <p className="confirm-name">{professionalName}</p>
         <p className="confirm-time">{formatDay(localDate(slot.start, timezone))}</p>
@@ -60,10 +50,10 @@ export function ConfirmBooking(props: ConfirmBookingProps) {
       </div>
       <ErrorMessage message={error} />
       <div className="confirm-actions">
-        <button type="button" disabled={booking} onClick={book}>
-          {rescheduleSessionId ? "Reschedule session" : "Book session"}
+        <button type="button" disabled={saving} onClick={confirm}>
+          {saveLabel}
         </button>
-        <button type="button" className="secondary" disabled={booking} onClick={onBack}>
+        <button type="button" className="secondary" disabled={saving} onClick={onBack}>
           Back
         </button>
       </div>

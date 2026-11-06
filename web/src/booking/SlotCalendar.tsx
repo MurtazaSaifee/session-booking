@@ -2,7 +2,8 @@ import { useCallback, useState } from "react";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { formatDay, formatTimeRange, localDate } from "../time/format";
 import { useLoad } from "../useLoad";
-import { getSlots, type Slot } from "./api";
+import { rescheduleSession } from "../sessions/api";
+import { bookSession, getSlots, type Slot } from "./api";
 import { BookingNotice } from "./BookingNotice";
 import { calendarWeeks, groupByLocalDay } from "./calendar";
 import { CalendarGrid } from "./CalendarGrid";
@@ -54,13 +55,18 @@ export function SlotCalendar({ professionalId, professionalName, timezone, resch
   if (chosenSlot) {
     return (
       <ConfirmBooking
-        professionalId={professionalId}
         professionalName={professionalName}
         slot={chosenSlot}
         timezone={timezone}
-        rescheduleSessionId={reschedule?.sessionId}
+        title={reschedule ? "Confirm the new time" : "Confirm your session"}
+        saveLabel={reschedule ? "Reschedule session" : "Book session"}
+        save={() =>
+          reschedule
+            ? rescheduleSession(reschedule.sessionId, chosenSlot.start)
+            : bookSession(professionalId, chosenSlot.start)
+        }
         onBack={() => setChosenSlot(null)}
-        onBooked={() => {
+        onSaved={() => {
           if (reschedule) {
             reschedule.onMoved();
             return;
