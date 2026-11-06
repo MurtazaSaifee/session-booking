@@ -14,6 +14,8 @@ export function CancelSessionButton({ session, role, onCancelled }: CancelSessio
   const [error, setError] = useState<string | null>(null);
 
   async function cancel() {
+    if (!window.confirm(`Cancel your session with ${session.otherPersonName}? They will be notified.`))
+      return;
     setCancelling(true);
     setError(null);
     try {
