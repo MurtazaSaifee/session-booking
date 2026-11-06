@@ -65,6 +65,10 @@ async function saveOutcomes(trx: Knex.Transaction, outcomes: ReminderOutcomes, n
     skipped as (
       update reminders set status = :skipped
       where id = any(cast(:skippedIds as uuid[]))
+    ),
+    cancelled as (
+      update reminders set status = :cancelled
+      where id = any(cast(:cancelledIds as uuid[]))
     )
     select count(*) as saved from delivered
     `,
@@ -74,6 +78,8 @@ async function saveOutcomes(trx: Knex.Transaction, outcomes: ReminderOutcomes, n
       sent: ReminderStatus.SENT,
       skipped: ReminderStatus.SKIPPED,
       skippedIds: outcomes.skippedIds,
+      cancelled: ReminderStatus.CANCELLED,
+      cancelledIds: outcomes.cancelledIds,
     },
   );
   return Number(result.rows[0].saved);

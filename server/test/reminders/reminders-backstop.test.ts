@@ -2,7 +2,7 @@ import { afterAll, beforeEach, expect, it, vi } from "vitest";
 import { deliverDueReminders } from "../../src/reminders/deliver.js";
 import { ReminderStatus } from "../../src/reminders/reminder-values.js";
 import { createTestApp, resetDb, testClock } from "../app.js";
-import { CLOCK_START } from "../booking/helpers.js";
+import { CLOCK_START, markCancelled } from "../booking/helpers.js";
 import { createTestDb } from "../db.js";
 import { DAY_BEFORE_DUE, HOUR_BEFORE_DUE, bookOneSession, textsFor } from "./helpers.js";
 
@@ -42,4 +42,17 @@ it("the database refuses a second notification for one reminder", async () => {
   await expect(db("notifications").insert(sameAgain)).rejects.toMatchObject({
     constraint: "notifications_reminder_id_key",
   });
+});
+
+it("a reminder left pending on a cancelled session is never delivered, and is marked cancelled", async () => {
+  const { member, professional, memberId, sessionId } = await bookOneSession(app);
+  // Writes the session as cancelled without touching its reminders, as a missed one would leave them.
+  await markCancelled(db, sessionId, memberId, CLOCK_START);
+
+  await deliverDueReminders(db, ALL_FOUR_DUE);
+
+  expect(await textsFor(member)).toEqual([]);
+  expect(await textsFor(professional)).toEqual([]);
+  const statuses: string[] = await db("reminders").where({ session_id: sessionId }).pluck("status");
+  expect(statuses).toEqual(Array(4).fill(ReminderStatus.CANCELLED));
 });

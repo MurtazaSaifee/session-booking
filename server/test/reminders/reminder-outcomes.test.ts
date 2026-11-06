@@ -24,6 +24,7 @@ it("delivers a reminder a moment before its session starts", () => {
       },
     ],
     skippedIds: [],
+    cancelledIds: [],
   });
 });
 
@@ -31,14 +32,19 @@ it.each([
   { case: "as its session starts", now: START },
   { case: "after its session starts", now: new Date(START.getTime() + 1) },
 ])("skips a reminder $case", ({ now }) => {
-  expect(decideOutcomes([reminder], now)).toEqual({ deliveries: [], skippedIds: ["reminder-1"] });
+  expect(decideOutcomes([reminder], now)).toEqual({
+    deliveries: [],
+    skippedIds: ["reminder-1"],
+    cancelledIds: [],
+  });
 });
 
-it("skips a reminder whose session was cancelled, even before it starts", () => {
+it("cancels a reminder whose session was cancelled, even before it starts", () => {
   const cancelled = { ...reminder, sessionCancelled: true };
 
   expect(decideOutcomes([cancelled], new Date(START.getTime() - 1))).toEqual({
     deliveries: [],
-    skippedIds: ["reminder-1"],
+    skippedIds: [],
+    cancelledIds: ["reminder-1"],
   });
 });
