@@ -18,6 +18,24 @@ const NOTICE_PRESETS = [
   { label: "2 days (2880m)", minutes: 2880 },
 ];
 
+function formatScenarioTime(noticeMinutes: number): string {
+  if (noticeMinutes <= 0) return "10:00 AM today (immediately)";
+  const base = new Date();
+  base.setHours(10, 0, 0, 0);
+  const target = new Date(base.getTime() + noticeMinutes * 60 * 1000);
+
+  const diffDays = Math.floor((target.getTime() - base.getTime()) / (24 * 60 * 60 * 1000));
+  const timeStr = target.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+
+  if (diffDays === 0) {
+    return `${timeStr} today`;
+  } else if (diffDays === 1) {
+    return `${timeStr} tomorrow`;
+  } else {
+    return `${timeStr} (${diffDays} days later)`;
+  }
+}
+
 export function ProfileForm() {
   const { data: profile, error: loadError } = useLoad(getProfile);
 
@@ -124,7 +142,7 @@ function ProfileFields({ initial }: { initial: Profile }) {
           <div className="notice-scenario-preview">
             <span className="preview-icon">💡</span>
             <span className="preview-text">
-              <strong>How it works:</strong> If you set notice to {formatNoticeDuration(noticeMinutes)}, a member looking for a session at 10:00 AM will only see slots starting at or after {noticeMinutes === 0 ? "10:00 AM" : `${Math.floor(noticeMinutes / 60)}h ${noticeMinutes % 60}m later`}.
+              <strong>How it works:</strong> If you set notice to {formatNoticeDuration(noticeMinutes)}, a member looking for a session at 10:00 AM will only see slots starting at or after {formatScenarioTime(noticeMinutes)}.
             </span>
           </div>
         </div>

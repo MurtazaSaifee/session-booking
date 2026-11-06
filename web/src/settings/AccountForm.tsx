@@ -13,6 +13,14 @@ export function AccountForm({ user }: { user: User }) {
   const [timezone, setTimezone] = useState(user.timezone);
   const [edited, setEdited] = useState(false);
 
+  // Sync state if user prop updates without cascading effect renders
+  const [prevUser, setPrevUser] = useState(user);
+  if (user !== prevUser) {
+    setPrevUser(user);
+    setName(user.name);
+    setTimezone(user.timezone);
+  }
+
   async function submit(_previous: FormState, formData: FormData): Promise<FormState> {
     const newName = String(formData.get("name") ?? "").trim();
     const newTimezone = String(formData.get("timezone") ?? "").trim();
@@ -27,8 +35,7 @@ export function AccountForm({ user }: { user: User }) {
 
     try {
       await updateUser(changes);
-      setName(newName || user.name);
-      setTimezone(newTimezone || user.timezone);
+      setEdited(false);
       return { error: null, status: "Account settings saved." };
     } catch (err) {
       return { error: errorMessage(err), status: null };
@@ -39,7 +46,6 @@ export function AccountForm({ user }: { user: User }) {
 
   function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    setEdited(false);
     startTransition(() => formAction(new FormData(event.currentTarget)));
   }
 
@@ -50,11 +56,15 @@ export function AccountForm({ user }: { user: User }) {
         <p className="hint">Manage your display name and time zone preferences.</p>
       </div>
 
-      <form onSubmit={handleSubmit} onChange={() => setEdited(true)}>
+      <form onSubmit={handleSubmit}>
         <Field label="Display name">
           <input
             name="name"
-            defaultValue={name}
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              setEdited(true);
+            }}
             required
             maxLength={100}
             placeholder="Your full name"
@@ -93,4 +103,3 @@ export function AccountForm({ user }: { user: User }) {
     </div>
   );
 }
-
