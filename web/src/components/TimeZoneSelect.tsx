@@ -540,7 +540,9 @@ export function TimeZoneSelect({
                   onClick={() => handleSelect(slot)}
                 >
                   <span className="tz-badge">{slot.offset}</span>
-                  <span className="tz-label">{slot.label}</span>
+                  <span className="tz-label">
+                    {slot.label.replace(/^\(UTC[+-]\d{2}:\d{2}\)\s*/, "")}
+                  </span>
                 </li>
               );
             })

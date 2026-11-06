@@ -142,6 +142,7 @@
 
 .day-header-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: var(--space-2);
@@ -197,7 +198,7 @@
   margin-bottom: var(--space-3);
 }
 
-/* Range Row Layout (Fixes Issue 5: No time picker overflow) */
+/* Range Row Layout */
 .range-row {
   display: flex;
   flex-wrap: wrap;
@@ -215,13 +216,17 @@
   align-items: center;
   gap: var(--space-2);
   flex-wrap: nowrap;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .range-inputs input[type="time"] {
-  width: 135px;
-  min-width: 125px;
+  width: 125px;
+  min-width: 0;
+  max-width: 100%;
+  flex: 1 1 0;
   margin-top: 0;
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-2);
   background: var(--white);
   font-size: var(--text-small);
 }
@@ -230,6 +235,7 @@
   color: var(--muted);
   font-size: var(--text-small);
   font-weight: var(--weight-medium);
+  flex-shrink: 0;
 }
 
 .remove-range-button {
@@ -240,6 +246,7 @@
   font-size: var(--text-tiny) !important;
   font-weight: var(--weight-medium) !important;
   box-shadow: none !important;
+  flex-shrink: 0;
 }
 
 .remove-range-button:hover {
@@ -339,4 +346,35 @@
 
 .preview-text {
   line-height: 1.4;
+}
+
+.notice-card input[name="minimumNoticeMinutes"] {
+  max-width: 200px;
+}
+
+@media (max-width: 480px) {
+  .day-card {
+    padding: var(--space-3);
+  }
+
+  .day-header-actions {
+    justify-content: flex-start;
+    margin-top: var(--space-1);
+    margin-bottom: var(--space-2);
+  }
+
+  .range-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+  }
+
+  .range-inputs {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .remove-range-button {
+    align-self: flex-end;
+  }
 }

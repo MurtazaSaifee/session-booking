@@ -13,27 +13,39 @@ export function Header() {
           <span className="brand-dot" aria-hidden="true" />
           <span>Session Booking</span>
         </Link>
+        {!loading && user && (
+          <div className="header-mobile-meta">
+            <NotificationBell />
+            <button type="button" className="secondary logout-btn" onClick={logOut}>
+              Log out
+            </button>
+          </div>
+        )}
       </div>
 
       {!loading &&
         (user ? (
           <nav className="account" aria-label="Main Navigation">
-            <NavLink to="/" end className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
-              My sessions
-            </NavLink>
-            {user.role === Role.MEMBER && (
-              <NavLink
-                to="/professionals"
-                className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
-              >
-                Professionals
+            <div className="nav-links">
+              <NavLink to="/" end className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
+                My sessions
               </NavLink>
-            )}
-            <NavLink to="/settings" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
-              Settings
-            </NavLink>
+              {user.role === Role.MEMBER && (
+                <NavLink
+                  to="/professionals"
+                  className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+                >
+                  Professionals
+                </NavLink>
+              )}
+              <NavLink to="/settings" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
+                Settings
+              </NavLink>
+            </div>
 
-            <NotificationBell />
+            <div className="header-desktop-meta">
+              <NotificationBell />
+            </div>
 
             <div className="user-badge" aria-label={`Logged in as ${user.name}`}>
               <span>{user.name}</span>
@@ -46,9 +58,11 @@ export function Header() {
               🕒 {user.timezone}
             </span>
 
-            <button type="button" className="secondary" onClick={logOut}>
-              Log out
-            </button>
+            <div className="header-desktop-meta">
+              <button type="button" className="secondary logout-btn" onClick={logOut}>
+                Log out
+              </button>
+            </div>
           </nav>
         ) : (
           <nav className="account">

@@ -143,6 +143,19 @@
   display: none;
 }
 
+@media (max-width: 480px) {
+  .session-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .session-actions button,
+  .session-actions a {
+    width: 100%;
+    text-align: center;
+  }
+}
+
 /* Modal inside session card - prevent .session p cascade from flattening modal text spacing */
 .session .modal-content p {
   margin: 0 0 var(--space-5);

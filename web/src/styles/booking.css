@@ -138,3 +138,32 @@
   margin-top: var(--space-4);
   margin-bottom: var(--space-4);
 }
+
+@media (max-width: 480px) {
+  .calendar {
+    padding: var(--space-2);
+  }
+
+  .day-times {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-2);
+  }
+
+  .day-time {
+    padding: var(--space-2) var(--space-2);
+    font-size: 0.8rem;
+    text-align: center;
+    justify-content: center;
+    white-space: nowrap;
+    width: 100%;
+  }
+
+  .confirm-actions {
+    flex-direction: column;
+  }
+
+  .confirm-actions button {
+    width: 100%;
+  }
+}
