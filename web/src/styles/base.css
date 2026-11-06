@@ -80,6 +80,7 @@ a:hover {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  margin-left: auto;
 }
 
 .nav-links {
@@ -93,9 +94,19 @@ a:hover {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2) var(--space-4);
-  margin-left: auto;
+  flex: 1 1 auto;
+  justify-content: flex-end;
   font-size: var(--text-small);
   color: var(--muted);
+}
+
+/* Too narrow for one row: the brand and actions share the top row, and the nav takes the next. */
+@media (max-width: 1100px) {
+  .account.signed-in {
+    order: 1;
+    width: 100%;
+    justify-content: flex-start;
+  }
 }
 
 @media (max-width: 640px) {
@@ -104,8 +115,8 @@ a:hover {
     gap: var(--space-2);
   }
 
-  .account {
-    order: 1;
+  .account,
+  .account.signed-in {
     width: 100%;
     justify-content: space-between;
     gap: var(--space-2);

@@ -15,7 +15,7 @@ export function Header() {
 
       {!loading &&
         (user ? (
-          <nav className="account" aria-label="Main Navigation">
+          <nav className="account signed-in" aria-label="Main Navigation">
             <div className="nav-links">
               <NavLink to="/" end className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
                 My sessions
