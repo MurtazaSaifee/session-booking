@@ -4,6 +4,7 @@ import { useAuth, type User } from "../auth/AuthProvider";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { Field } from "../components/Field";
 import { TimeZoneSelect } from "../components/TimeZoneSelect";
+import { accountChanges } from "./accountChanges";
 
 type FormState = { error: string | null; status: string | null };
 
@@ -21,21 +22,14 @@ export function AccountForm({ user }: { user: User }) {
     setTimezone(user.timezone);
   }
 
-  async function submit(_previous: FormState, formData: FormData): Promise<FormState> {
-    const newName = String(formData.get("name") ?? "").trim();
-    const newTimezone = String(formData.get("timezone") ?? "").trim();
-
-    const changes: { name?: string; timezone?: string } = {};
-    if (newName && newName !== user.name) changes.name = newName;
-    if (newTimezone && newTimezone !== user.timezone) changes.timezone = newTimezone;
-
+  async function submit(): Promise<FormState> {
+    const changes = accountChanges(user, name, timezone);
     if (Object.keys(changes).length === 0) {
       return { error: null, status: "No changes to save." };
     }
 
     try {
       await updateUser(changes);
-      setEdited(false);
       return { error: null, status: "Account settings saved." };
     } catch (err) {
       return { error: errorMessage(err), status: null };
@@ -46,7 +40,8 @@ export function AccountForm({ user }: { user: User }) {
 
   function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    startTransition(() => formAction(new FormData(event.currentTarget)));
+    setEdited(false);
+    startTransition(() => formAction());
   }
 
   return (
