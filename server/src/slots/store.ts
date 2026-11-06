@@ -18,7 +18,8 @@ function toIntervals(busy: BusyJson): Interval[] {
 }
 
 // The hours, timezone and both busy lists as columns of one row. `u` is the professional. `:ignoreSessionId`
-// leaves one session out of both busy lists (a move must not clash with itself); null leaves none out.
+// leaves one session out of both busy lists (a move must not clash with itself), but only if it is the member's
+// own, so naming someone else's session can't reveal that it is there. Null leaves none out.
 export const SLOT_INPUT_COLUMNS = `
   u.timezone,
   coalesce((select json_agg(json_build_object(
@@ -30,12 +31,12 @@ export const SLOT_INPUT_COLUMNS = `
   coalesce((select json_agg(json_build_object('start', s.starts_at, 'end', s.ends_at))
             from sessions s
             where s.member_id = :memberId and s.status = :booked and s.ends_at > :now
-              and s.id is distinct from cast(:ignoreSessionId as uuid)), '[]')
+              and (s.id is distinct from cast(:ignoreSessionId as uuid) or s.member_id <> :memberId)), '[]')
     as member_busy,
   coalesce((select json_agg(json_build_object('start', s.starts_at, 'end', s.ends_at))
             from sessions s
             where s.professional_id = u.id and s.status = :booked and s.ends_at > :now
-              and s.id is distinct from cast(:ignoreSessionId as uuid)), '[]')
+              and (s.id is distinct from cast(:ignoreSessionId as uuid) or s.member_id <> :memberId)), '[]')
     as professional_busy`;
 
 export function toSlotInputs(row: SlotInputsRow): SlotInputs {
@@ -50,7 +51,7 @@ export function toSlotInputs(row: SlotInputsRow): SlotInputs {
 // Raw SQL so the hours, timezone and both busy lists come back in one round trip, instead of one per table.
 export async function findSlotInputs(
   db: Db,
-  input: { professionalId: string; memberId: string; now: Date },
+  input: { professionalId: string; memberId: string; now: Date; ignoreSessionId?: string },
 ): Promise<SlotInputs | undefined> {
   const result = await db.raw<{ rows: SlotInputsRow[] }>(
     `
@@ -62,7 +63,7 @@ export async function findSlotInputs(
       memberId: input.memberId,
       professionalId: input.professionalId,
       now: input.now,
-      ignoreSessionId: null,
+      ignoreSessionId: input.ignoreSessionId ?? null,
       booked: SessionStatus.BOOKED,
       professional: Role.PROFESSIONAL,
     },
