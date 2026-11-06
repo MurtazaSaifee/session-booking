@@ -1,4 +1,4 @@
-import type { Db } from "../db.js";
+import { retryOnDeadlock, type Db } from "../db.js";
 import { ErrorCode } from "../errors.js";
 import { newRemindersCte, newRemindersParams } from "../reminders/new-reminders.js";
 import { SessionStatus } from "../session-status.js";
@@ -22,8 +22,6 @@ export type Session = {
 };
 
 type BookingInput = { memberId: string; professionalId: string; start: Date; end: Date; now: Date };
-
-const DEADLOCK_DETECTED = "40P01";
 
 // Two requests can both pass the check before either saves, so the database has the last word.
 export function overlapRefusal(err: unknown): BookingRefusal | undefined {
@@ -62,23 +60,12 @@ async function saveSession(db: Db, input: BookingInput): Promise<Session> {
   };
 }
 
-// Bookings for overlapping times can wait on each other until Postgres cancels one of them.
-// Saving again waits for whichever booking went through, so this one gets the normal refusal.
-async function saveSessionRetryingDeadlock(db: Db, input: BookingInput): Promise<Session> {
-  try {
-    return await saveSession(db, input);
-  } catch (err) {
-    if ((err as { code?: string }).code !== DEADLOCK_DETECTED) throw err;
-    return saveSession(db, input);
-  }
-}
-
 export async function insertSession(
   db: Db,
   input: BookingInput,
 ): Promise<{ session: Session } | { refusal: BookingRefusal }> {
   try {
-    return { session: await saveSessionRetryingDeadlock(db, input) };
+    return { session: await retryOnDeadlock(() => saveSession(db, input)) };
   } catch (err) {
     const refusal = overlapRefusal(err);
     if (refusal) return { refusal };

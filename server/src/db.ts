@@ -22,3 +22,16 @@ export function createDb(connectionString: string, options: { max?: number } = {
     acquireConnectionTimeout: 5000,
   });
 }
+
+const DEADLOCK_DETECTED = "40P01";
+
+// Saves that wait on each other's locks can end with Postgres cancelling one as a deadlock. Running it
+// once more waits for whichever went through, so the loser gets the normal refusal instead of an error.
+export async function retryOnDeadlock<T>(run: () => Promise<T>): Promise<T> {
+  try {
+    return await run();
+  } catch (err) {
+    if ((err as { code?: string }).code !== DEADLOCK_DETECTED) throw err;
+    return run();
+  }
+}
