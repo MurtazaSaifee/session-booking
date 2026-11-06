@@ -3,5 +3,7 @@ dist/
 .env
 .env.*
 !.env.example
+cdk.out/
+cdk.context.json
 *.log
 .DS_Store

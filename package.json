@@ -16,7 +16,7 @@
     "test": "npm test -w server && npm test -w web",
     "format": "prettier --write . --ignore-path .gitignore --ignore-path .git/info/exclude --ignore-path .prettierignore",
     "format:check": "prettier --check . --ignore-path .gitignore --ignore-path .git/info/exclude --ignore-path .prettierignore",
-    "lint": "oxlint server web --deny-warnings"
+    "lint": "oxlint server web infra --deny-warnings"
   },
   "devDependencies": {
     "oxlint": "^1.90.0",
