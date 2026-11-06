@@ -4,6 +4,8 @@ import { newRemindersCte, newRemindersParams } from "../reminders/new-reminders.
 import { ReminderStatus } from "../reminders/reminder-values.js";
 import { Role, type SignedInUser } from "../roles.js";
 import { SessionStatus } from "../session-status.js";
+import { SLOT_INPUT_COLUMNS, toSlotInputs, type SlotInputsRow } from "../slots/store.js";
+import type { SlotInputs } from "../slots/slots.js";
 import { rowsToPage, toMySession, type MySession, type MySessions, type SessionRow } from "./my-session.js";
 import { SessionList } from "./session-list.js";
 
@@ -14,7 +16,8 @@ const sides = {
   [Role.PROFESSIONAL]: { own: "s.professional_id", other: "s.member_id" },
 };
 
-// Every read starts here, so a person can only ever reach their own sessions.
+// Every read of a person's sessions starts here, so they can only ever reach their own. The one exception is
+// findToReschedule, which joins the slot inputs in the same query and checks the member itself.
 function ownSessions(db: Db, viewer: SignedInUser) {
   const { own, other } = sides[viewer.role];
   return db("sessions as s")
@@ -207,4 +210,56 @@ export async function moveSession(db: Db, input: MoveInput): Promise<boolean> {
     },
   );
   return result.rows.length > 0;
+}
+
+type RescheduleRow = SlotInputsRow & {
+  session_id: string;
+  session_start: Date;
+  professional_id: string;
+  member_name: string;
+};
+
+export type RescheduleTarget = {
+  id: string;
+  start: Date;
+  professionalId: string;
+  memberName: string;
+};
+
+// A member's own booked session and everything needed to check a new start for it, in one round trip. Another
+// person's session, or one already cancelled, looks the same as a missing one.
+export async function findToReschedule(
+  db: Db,
+  input: { sessionId: string; memberId: string; now: Date },
+): Promise<{ session: RescheduleTarget; inputs: SlotInputs } | undefined> {
+  const result = await db.raw<{ rows: RescheduleRow[] }>(
+    `
+    select ${SLOT_INPUT_COLUMNS},
+      cur.id as session_id, cur.starts_at as session_start,
+      u.id as professional_id, me.name as member_name
+    from sessions cur
+    join users u on u.id = cur.professional_id
+    join users me on me.id = cur.member_id
+    where cur.id = :sessionId and cur.member_id = :memberId and cur.status = :booked
+    `,
+    {
+      sessionId: input.sessionId,
+      ignoreSessionId: input.sessionId,
+      memberId: input.memberId,
+      now: input.now,
+      booked: SessionStatus.BOOKED,
+    },
+  );
+  const row = result.rows[0];
+  return (
+    row && {
+      session: {
+        id: row.session_id,
+        start: row.session_start,
+        professionalId: row.professional_id,
+        memberName: row.member_name,
+      },
+      inputs: toSlotInputs(row),
+    }
+  );
 }

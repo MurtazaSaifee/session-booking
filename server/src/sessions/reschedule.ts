@@ -4,13 +4,11 @@ import { checkStart, refuse } from "../booking/rules.js";
 import { retryOnDeadlock } from "../db.js";
 import { overlapRefusal } from "../booking/store.js";
 import type { SignedInUser } from "../roles.js";
-import { SessionStatus } from "../session-status.js";
 import { formatSessionTime } from "../session-time.js";
 import { sessionEnd } from "../slots/slots.js";
-import { findToReschedule } from "../slots/store.js";
 import { refuseIfTooLateToChange } from "./change-notice.js";
 import { sessionIdOr404, sessionNotFound } from "./lookup.js";
-import { moveSession } from "./store.js";
+import { findToReschedule, moveSession } from "./store.js";
 
 export async function rescheduleMySession(
   deps: AppDeps,
@@ -20,8 +18,7 @@ export async function rescheduleMySession(
 ): Promise<void> {
   const now = deps.now();
   const found = await findToReschedule(deps.db, { sessionId: sessionIdOr404(id), memberId: member.id, now });
-  // A cancelled session can't be moved, and to the member it looks like one that isn't there.
-  if (!found || found.session.status === SessionStatus.CANCELLED) throw sessionNotFound();
+  if (!found) throw sessionNotFound();
   const { session, inputs } = found;
 
   refuseIfTooLateToChange(session.start, now);
