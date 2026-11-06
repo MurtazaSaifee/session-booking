@@ -14,7 +14,7 @@ function slotStarts(ranges: readonly RangeTuple[], timezone: string, firstDay: s
   const asRanges = ranges.map(([weekday, start, end]) => ({ weekday, start, end }));
   const now = DateTime.fromISO(firstDay, { zone: timezone }).startOf("day").toJSDate();
   const windowEnd = DateTime.fromISO(lastDay, { zone: timezone }).endOf("day").toJSDate();
-  const slots = buildSlots({ ranges: asRanges, timezone, now, windowEnd, busy: [] });
+  const slots = buildSlots({ ranges: asRanges, timezone, now, minimumNoticeMinutes: 0, windowEnd, busy: [] });
   for (const slot of slots) {
     expect(slot.end.getTime() - slot.start.getTime()).toBe(SESSION_MINUTES * 60_000);
   }
@@ -126,12 +126,14 @@ function filteredStarts(
   now: string,
   windowEnd: string,
   busy: readonly (readonly [string, string])[] = [],
+  minimumNoticeMinutes = 0,
 ) {
   const [weekday, start, end] = range;
   const slots = buildSlots({
     ranges: [{ weekday, start, end }],
     timezone,
     now: new Date(now),
+    minimumNoticeMinutes,
     windowEnd: new Date(windowEnd),
     busy: busy.map(([from, to]) => ({ start: new Date(from), end: new Date(to) })),
   });
@@ -145,6 +147,34 @@ it.each([
   const starts = filteredStarts([MONDAY, "09:00", "17:00"], "Asia/Singapore", now, "2027-01-11T23:59:59Z");
   expect(starts).toHaveLength(count);
   expect(starts[0]).toBe(`2027-01-11T${first}:00.000Z`);
+});
+
+it.each([
+  { case: "1 ms outside the notice", now: "2027-01-11T01:59:59.999Z", first: "04:00" },
+  { case: "exactly at the notice", now: "2027-01-11T02:00:00.000Z", first: "04:00" },
+  { case: "1 ms inside the notice", now: "2027-01-11T02:00:00.001Z", first: "05:00" },
+])("drops slots inside a 120-minute notice, $case", ({ now, first }) => {
+  const starts = filteredStarts(
+    [MONDAY, "09:00", "17:00"],
+    "Asia/Singapore",
+    now,
+    "2027-01-11T23:59:59Z",
+    [],
+    120,
+  );
+  expect(starts[0]).toBe(`2027-01-11T${first}:00.000Z`);
+});
+
+it("a notice longer than the window leaves no slots", () => {
+  const starts = filteredStarts(
+    [MONDAY, "09:00", "17:00"],
+    "Asia/Singapore",
+    "2027-01-11T00:00:00Z",
+    "2027-01-11T23:59:59Z",
+    [],
+    24 * 60,
+  );
+  expect(starts).toEqual([]);
 });
 
 it("ends the booking window 28 days after now", () => {

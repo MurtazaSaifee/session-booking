@@ -47,7 +47,7 @@ async function nextMondayStarts(member: Agent, professionalId: string): Promise<
 }
 
 it("a member sees a professional's free slots for the next 28 days, as start and end only", async () => {
-  // 04:00Z is 09:30 in Kolkata, so today's 09:00 slot (03:30Z) has passed.
+  // 04:00Z is 09:30 in Kolkata, so today's 09:00 slot has passed and its 10:00 slot is inside the 2-hour notice.
   clock.set("2027-01-11T04:00:00Z");
   const professional = await signUpAgent(app, testProfessional);
   const { id } = (await professional.get(`${API_V1}/auth/me`)).body.user;
@@ -56,7 +56,6 @@ it("a member sees a professional's free slots for the next 28 days, as start and
     .send({ ranges: [{ weekday: MONDAY, start: "09:00", end: "11:00" }] });
   const member = await signUpAgent(app, testMember);
   const starts = [
-    "2027-01-11T04:30:00Z",
     "2027-01-18T03:30:00Z",
     "2027-01-18T04:30:00Z",
     "2027-01-25T03:30:00Z",

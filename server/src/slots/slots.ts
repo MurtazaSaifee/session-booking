@@ -21,6 +21,7 @@ export type Slot = Interval;
 export type SlotInputs = {
   timezone: string;
   ranges: TimeRange[];
+  minimumNoticeMinutes: number;
   memberBusy: Interval[];
   professionalBusy: Interval[];
 };
@@ -47,16 +48,19 @@ function atClock(day: DateTime, time: string): number {
 
 // Every slot on each local day from now's date to windowEnd's date, in the professional's timezone.
 // Slots start at the beginning of each range and repeat hourly.
-// Drops slots that start before now or after windowEnd, and slots that overlap a busy interval.
+// Drops slots that start before now + the minimum notice or after windowEnd, and slots that overlap a busy
+// interval.
 // An interval that only touches a slot (ends as it starts, or starts as it ends) does not hide it.
 export function buildSlots(input: {
   ranges: TimeRange[];
   timezone: string;
   now: Date;
+  minimumNoticeMinutes: number;
   windowEnd: Date;
   busy: Interval[];
 }): Slot[] {
-  const { ranges, timezone, now, windowEnd, busy } = input;
+  const { ranges, timezone, now, minimumNoticeMinutes, windowEnd, busy } = input;
+  const earliestStart = now.getTime() + minimumNoticeMinutes * MINUTE_MS;
   const lastDay = DateTime.fromJSDate(windowEnd, { zone: timezone }).startOf("day");
   const slots: Slot[] = [];
 
@@ -72,7 +76,7 @@ export function buildSlots(input: {
       // Step in real elapsed milliseconds: on a clock-change night a local range is longer or shorter
       // than its clock times suggest, and slots must stay a whole hour apart.
       for (let start = atClock(day, range.start); start + SESSION_MS <= end; start += SLOT_STEP_MS) {
-        if (start < now.getTime() || start > windowEnd.getTime()) continue;
+        if (start < earliestStart || start > windowEnd.getTime()) continue;
         const slot = { start: new Date(start), end: new Date(start + SESSION_MS) };
         if (busy.some((interval) => overlaps(slot, interval))) continue;
         slots.push(slot);

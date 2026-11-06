@@ -2,13 +2,14 @@ import type { Db } from "../db.js";
 import { Role } from "../roles.js";
 import { SessionStatus } from "../session-status.js";
 import { toTimeRange, type HoursColumns } from "../settings/hours.js";
-import type { Interval, SlotInputs } from "./slots.js";
+import { DEFAULT_MINIMUM_NOTICE_MINUTES, type Interval, type SlotInputs } from "./slots.js";
 
 type BusyJson = { start: string; end: string }[];
 
 export type SlotInputsRow = {
   timezone: string;
   ranges: HoursColumns[];
+  minimum_notice_minutes: number | null;
   member_busy: BusyJson;
   professional_busy: BusyJson;
 };
@@ -17,11 +18,12 @@ function toIntervals(busy: BusyJson): Interval[] {
   return busy.map((row) => ({ start: new Date(row.start), end: new Date(row.end) }));
 }
 
-// The hours, timezone and both busy lists as columns of one row. `u` is the professional. `:ignoreSessionId`
-// leaves one session out of both busy lists (a move must not clash with itself), but only if it is the member's
-// own, so naming someone else's session can't reveal that it is there. Null leaves none out.
+// The hours, timezone, minimum notice and both busy lists as columns of one row. `u` is the professional.
+// `:ignoreSessionId` leaves one session out of both busy lists (a move must not clash with itself), but only if
+// it is the member's own, so naming someone else's session can't reveal that it is there. Null leaves none out.
 export const SLOT_INPUT_COLUMNS = `
   u.timezone,
+  u.minimum_notice_minutes,
   coalesce((select json_agg(json_build_object(
               'weekday', h.weekday,
               'start_time', h.start_time,
@@ -43,12 +45,13 @@ export function toSlotInputs(row: SlotInputsRow): SlotInputs {
   return {
     timezone: row.timezone,
     ranges: row.ranges.map(toTimeRange),
+    minimumNoticeMinutes: row.minimum_notice_minutes ?? DEFAULT_MINIMUM_NOTICE_MINUTES,
     memberBusy: toIntervals(row.member_busy),
     professionalBusy: toIntervals(row.professional_busy),
   };
 }
 
-// Raw SQL so the hours, timezone and both busy lists come back in one round trip, instead of one per table.
+// Raw SQL so everything a slot is worked out from comes back in one round trip, instead of one per table.
 export async function findSlotInputs(
   db: Db,
   input: { professionalId: string; memberId: string; now: Date; ignoreSessionId?: string },

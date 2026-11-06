@@ -73,6 +73,14 @@ it.each<{
     expected: ErrorCode.SLOT_NOT_AVAILABLE,
   },
 ])("$case gives $expected", ({ start, memberBusy = [], professionalBusy = [], expected }) => {
-  const result = checkStart({ start: new Date(start), ranges, timezone, now, memberBusy, professionalBusy });
+  const result = checkStart({
+    start: new Date(start),
+    ranges,
+    timezone,
+    minimumNoticeMinutes: 0,
+    now,
+    memberBusy,
+    professionalBusy,
+  });
   expect(result).toBe(expected);
 });

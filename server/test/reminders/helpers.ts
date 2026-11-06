@@ -13,8 +13,11 @@ export const HOUR_BEFORE_DUE = "2027-01-18T02:30:00Z";
 export const MEMBER_READS = `Your session with ${testProfessional.name} is on Mon 18 Jan at 11:30am`;
 export const PROFESSIONAL_READS = `Your session with ${testMember.name} is on Mon 18 Jan at 9:00am`;
 
-export async function bookOneSession(app: Express) {
+export async function bookOneSession(app: Express, minimumNoticeMinutes?: number) {
   const professional = await signUpProfessional(app, testProfessional, "09:00", "12:00");
+  if (minimumNoticeMinutes !== undefined) {
+    await professional.agent.patch(`${API_V1}/settings/profile`).send({ minimumNoticeMinutes });
+  }
   const member = await signUpAgent(app, testMember);
   const res = await book(member, professional.id, SESSION_START);
   if (res.status !== 201) throw new Error(`Booking failed with ${res.status}`);

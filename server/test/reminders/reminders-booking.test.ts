@@ -48,7 +48,8 @@ it.each([
   { case: "inside 1 hour", now: "2027-01-18T03:00:00Z", each: 0 },
 ])("booked $case, each person only gets reminders still in the future", async ({ now, each }) => {
   clock.set(now);
-  const { member, professional } = await bookOneSession(app);
+  // No notice, so a booking can land inside the last hour.
+  const { member, professional } = await bookOneSession(app, 0);
 
   await checkAt(JUST_BEFORE_START);
 

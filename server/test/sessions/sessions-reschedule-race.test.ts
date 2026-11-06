@@ -161,7 +161,7 @@ it("a member's cancel that waits for a move into the last 24 hours is refused", 
 
   let cancelled: { status: number; body: { error: string } } | undefined;
   await holdSave(db, MOVE_ON_SESSION, async (release) => {
-    const move = startMove(member, sessionId, "2027-01-17T04:30:00Z");
+    const move = startMove(member, sessionId, "2027-01-17T05:30:00Z");
     await waitUntilStuck(db, MOVE_SAVING);
     const cancel = startCancel(member, sessionId);
     await waitUntilStuck(db, CANCEL_SAVING);
@@ -173,7 +173,7 @@ it("a member's cancel that waits for a move into the last 24 hours is refused", 
   expect(cancelled?.status).toBe(409);
   expect(cancelled?.body.error).toBe(ErrorCode.TOO_LATE_TO_CHANGE);
   expect((await member.get(SESSIONS_URL)).body.upcoming.items).toMatchObject([
-    { id: sessionId, start: "2027-01-17T04:30:00.000Z" },
+    { id: sessionId, start: "2027-01-17T05:30:00.000Z" },
   ]);
 });
 
