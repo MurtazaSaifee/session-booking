@@ -3,7 +3,7 @@ import { errorMessage } from "../api";
 import { ErrorMessage } from "../components/ErrorMessage";
 import type { Role } from "../roles";
 import { cancelSession, type MySession } from "./api";
-import { CancelButtonState, cancelButtonState, TOO_LATE_MESSAGE } from "./cancelRule";
+import { ChangeButtonState, changeButtonState, TOO_LATE_MESSAGE } from "./changeRule";
 import { useNow } from "./useNow";
 
 type CancelSessionButtonProps = { session: MySession; role: Role; onCancelled: () => void };
@@ -25,20 +25,20 @@ export function CancelSessionButton({ session, role, onCancelled }: CancelSessio
     }
   }
 
-  const state = cancelButtonState(session, role, now);
-  if (state === CancelButtonState.HIDDEN) return null;
+  const state = changeButtonState(session, role, now);
+  if (state === ChangeButtonState.HIDDEN) return null;
 
   return (
     <>
       <button
         type="button"
         className="secondary"
-        disabled={state === CancelButtonState.DISABLED || cancelling}
+        disabled={state === ChangeButtonState.DISABLED || cancelling}
         onClick={cancel}
       >
         Cancel session
       </button>
-      {state === CancelButtonState.DISABLED && <p className="hint">{TOO_LATE_MESSAGE}</p>}
+      {state === ChangeButtonState.DISABLED && <p className="hint">{TOO_LATE_MESSAGE}</p>}
       <ErrorMessage message={error} />
     </>
   );

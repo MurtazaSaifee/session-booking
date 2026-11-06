@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Role } from "../roles";
 import { CancelledBy, SessionStatus, type MySession } from "./api";
-import { CancelButtonState, cancelButtonState } from "./cancelRule";
+import { ChangeButtonState, changeButtonState } from "./changeRule";
 
 const START = "2027-01-18T03:30:00.000Z";
 const session: MySession = {
@@ -14,42 +14,42 @@ const session: MySession = {
 };
 const exactly24HoursBefore = new Date("2027-01-17T03:30:00.000Z");
 
-describe("cancelButtonState for a member", () => {
+describe("changeButtonState for a member", () => {
   it("is enabled at exactly 24 hours before the start", () => {
-    expect(cancelButtonState(session, Role.MEMBER, exactly24HoursBefore)).toBe(CancelButtonState.ENABLED);
+    expect(changeButtonState(session, Role.MEMBER, exactly24HoursBefore)).toBe(ChangeButtonState.ENABLED);
   });
 
   it("is disabled one millisecond later", () => {
     const later = new Date(exactly24HoursBefore.getTime() + 1);
-    expect(cancelButtonState(session, Role.MEMBER, later)).toBe(CancelButtonState.DISABLED);
+    expect(changeButtonState(session, Role.MEMBER, later)).toBe(ChangeButtonState.DISABLED);
   });
 
   it("is disabled while the session is in progress", () => {
-    expect(cancelButtonState(session, Role.MEMBER, new Date("2027-01-18T03:40:00.000Z"))).toBe(
-      CancelButtonState.DISABLED,
+    expect(changeButtonState(session, Role.MEMBER, new Date("2027-01-18T03:40:00.000Z"))).toBe(
+      ChangeButtonState.DISABLED,
     );
   });
 
   it("is hidden once the session has ended", () => {
-    expect(cancelButtonState(session, Role.MEMBER, new Date("2027-01-18T04:20:00.000Z"))).toBe(
-      CancelButtonState.HIDDEN,
+    expect(changeButtonState(session, Role.MEMBER, new Date("2027-01-18T04:20:00.000Z"))).toBe(
+      ChangeButtonState.HIDDEN,
     );
   });
 });
 
-describe("cancelButtonState for a professional", () => {
+describe("changeButtonState for a professional", () => {
   it.each([
     ["well ahead", "2027-01-01T00:00:00.000Z"],
     ["inside 24 hours", "2027-01-18T03:00:00.000Z"],
     ["after the session ended", "2027-02-01T00:00:00.000Z"],
   ])("is enabled %s", (_name, now) => {
-    expect(cancelButtonState(session, Role.PROFESSIONAL, new Date(now))).toBe(CancelButtonState.ENABLED);
+    expect(changeButtonState(session, Role.PROFESSIONAL, new Date(now))).toBe(ChangeButtonState.ENABLED);
   });
 });
 
 it("is hidden for a session that is already cancelled", () => {
   const cancelled = { ...session, status: SessionStatus.CANCELLED, cancelledBy: CancelledBy.YOU };
-  expect(cancelButtonState(cancelled, Role.PROFESSIONAL, exactly24HoursBefore)).toBe(
-    CancelButtonState.HIDDEN,
+  expect(changeButtonState(cancelled, Role.PROFESSIONAL, exactly24HoursBefore)).toBe(
+    ChangeButtonState.HIDDEN,
   );
 });
