@@ -1,6 +1,6 @@
 import type { Db } from "../db.js";
 import { ErrorCode } from "../errors.js";
-import { REMINDER_LEAD_TIME, ReminderKind, ReminderStatus } from "../reminders/reminder-values.js";
+import { newRemindersCte, newRemindersParams } from "../reminders/new-reminders.js";
 import { SessionStatus } from "../session-status.js";
 import type { BookingRefusal } from "./rules.js";
 
@@ -43,28 +43,13 @@ async function saveSession(db: Db, input: BookingInput): Promise<Session> {
       values (:memberId, :professionalId, :start, :end, :booked)
       returning *
     ),
-    new_reminders as (
-      insert into reminders (session_id, recipient_id, kind, due_at, status)
-      select s.id, recipient.id, reminder.kind, s.starts_at - reminder.lead_time, :pending
-      from new_session s
-      cross join lateral (values (s.member_id), (s.professional_id)) as recipient (id)
-      cross join (
-        values
-          (:dayBefore, cast(:dayBeforeLeadTime as interval)),
-          (:hourBefore, cast(:hourBeforeLeadTime as interval))
-      ) as reminder (kind, lead_time)
-      where s.starts_at - reminder.lead_time > :now
-    )
+    ${newRemindersCte("new_session")}
     select * from new_session
     `,
     {
       ...input,
+      ...newRemindersParams,
       booked: SessionStatus.BOOKED,
-      pending: ReminderStatus.PENDING,
-      dayBefore: ReminderKind.DAY_BEFORE,
-      hourBefore: ReminderKind.HOUR_BEFORE,
-      dayBeforeLeadTime: REMINDER_LEAD_TIME[ReminderKind.DAY_BEFORE],
-      hourBeforeLeadTime: REMINDER_LEAD_TIME[ReminderKind.HOUR_BEFORE],
     },
   );
   const row = result.rows[0];
