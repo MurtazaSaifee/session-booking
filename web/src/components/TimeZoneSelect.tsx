@@ -1,4 +1,4 @@
-import { useId, useMemo, useRef, useState, useEffect } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 export type TimeZoneSlot = {
   zone: string;
@@ -8,309 +8,297 @@ export type TimeZoneSlot = {
   searchTerms: string;
 };
 
-// Deduplicated list: exactly one primary timezone per UTC offset slot.
-export const TIME_ZONE_SLOTS: TimeZoneSlot[] = [
+export type ZoneDefinition = {
+  zone: string;
+  name: string;
+  searchTerms: string;
+};
+
+// Computes current runtime UTC offset dynamically using Intl so Daylight Saving Time (DST) is accurate.
+export function getRuntimeOffset(zone: string, date: Date = new Date()): { offset: string; offsetMinutes: number } {
+  try {
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: zone,
+      timeZoneName: "longOffset",
+    });
+    const parts = formatter.formatToParts(date);
+    const tzPart = parts.find((p) => p.type === "timeZoneName")?.value;
+    if (tzPart) {
+      if (tzPart === "GMT" || tzPart === "UTC") {
+        return { offset: "+00:00", offsetMinutes: 0 };
+      }
+      const match = tzPart.match(/GMT([+-])(\d{1,2}):?(\d{2})?/);
+      if (match) {
+        const sign = match[1] === "-" ? -1 : 1;
+        const hours = parseInt(match[2], 10);
+        const minutes = match[3] ? parseInt(match[3], 10) : 0;
+        const totalMinutes = sign * (hours * 60 + minutes);
+        const formattedHours = String(hours).padStart(2, "0");
+        const formattedMinutes = String(minutes).padStart(2, "0");
+        return {
+          offset: `${match[1]}${formattedHours}:${formattedMinutes}`,
+          offsetMinutes: totalMinutes,
+        };
+      }
+    }
+  } catch {
+    // fallback if timezone is not recognized
+  }
+  return { offset: "+00:00", offsetMinutes: 0 };
+}
+
+export const ZONE_DEFINITIONS: ZoneDefinition[] = [
   {
     zone: "Etc/GMT+12",
-    offset: "-12:00",
-    offsetMinutes: -720,
-    label: "(UTC-12:00) International Date Line West (Baker Island)",
-    searchTerms: "-12 -12:00 minus twelve baker island",
+    name: "International Date Line West (Baker Island)",
+    searchTerms: "baker island howland idlw",
   },
   {
     zone: "Pacific/Pago_Pago",
-    offset: "-11:00",
-    offsetMinutes: -660,
-    label: "(UTC-11:00) Midway, Samoa, Pago Pago",
-    searchTerms: "-11 -11:00 minus eleven samoa midway pago pago",
+    name: "Midway, Samoa, Pago Pago",
+    searchTerms: "samoa midway pago pago american samoa",
   },
   {
     zone: "Pacific/Honolulu",
-    offset: "-10:00",
-    offsetMinutes: -600,
-    label: "(UTC-10:00) Hawaii (Honolulu)",
-    searchTerms: "-10 -10:00 minus ten hawaii honolulu hst",
+    name: "Hawaii (Honolulu)",
+    searchTerms: "hawaii honolulu hst aloha",
   },
   {
     zone: "Pacific/Marquesas",
-    offset: "-09:30",
-    offsetMinutes: -570,
-    label: "(UTC-09:30) Marquesas Islands",
-    searchTerms: "-9:30 -09:30 minus nine thirty marquesas",
+    name: "Marquesas Islands",
+    searchTerms: "marquesas french polynesia taiohae",
   },
   {
     zone: "America/Anchorage",
-    offset: "-09:00",
-    offsetMinutes: -540,
-    label: "(UTC-09:00) Alaska (Anchorage)",
-    searchTerms: "-9 -9:00 -09:00 minus nine alaska anchorage akst",
+    name: "Alaska (Anchorage)",
+    searchTerms: "alaska anchorage juneau fairbanks akst akdt",
   },
   {
     zone: "America/Los_Angeles",
-    offset: "-08:00",
-    offsetMinutes: -480,
-    label: "(UTC-08:00) Pacific Time (US & Canada, Los Angeles, Vancouver)",
-    searchTerms: "-8 -8:00 -08:00 minus eight pst pt pacific los angeles vancouver seattle san francisco",
+    name: "Pacific Time (US & Canada, Los Angeles, Vancouver)",
+    searchTerms: "pst pdt pt pacific los angeles vancouver seattle san francisco california",
+  },
+  {
+    zone: "America/Phoenix",
+    name: "Mountain Standard Time - Arizona (Phoenix, no DST)",
+    searchTerms: "mst arizona phoenix scottsdale tucson no daylight saving",
   },
   {
     zone: "America/Denver",
-    offset: "-07:00",
-    offsetMinutes: -420,
-    label: "(UTC-07:00) Mountain Time (US & Canada, Denver, Phoenix)",
-    searchTerms: "-7 -7:00 -07:00 minus seven mst mt mountain denver phoenix salt lake",
+    name: "Mountain Time (US & Canada, Denver, Salt Lake City)",
+    searchTerms: "mst mdt mt mountain denver salt lake city calgary edmonton colorado",
   },
   {
     zone: "America/Chicago",
-    offset: "-06:00",
-    offsetMinutes: -360,
-    label: "(UTC-06:00) Central Time (US & Canada, Chicago, Mexico City)",
-    searchTerms: "-6 -6:00 -06:00 minus six cst ct central chicago dallas houston mexico city",
+    name: "Central Time (US & Canada, Chicago, Mexico City)",
+    searchTerms: "cst cdt ct central chicago dallas houston austin mexico city minneapolis",
   },
   {
     zone: "America/New_York",
-    offset: "-05:00",
-    offsetMinutes: -300,
-    label: "(UTC-05:00) Eastern Time (US & Canada, New York, Toronto, Miami)",
-    searchTerms: "-5 -5:00 -05:00 minus five est et eastern new york toronto miami boston atlanta",
+    name: "Eastern Time (US & Canada, New York, Toronto, Miami)",
+    searchTerms: "est edt et eastern new york toronto miami boston atlanta washington dc montreal",
   },
   {
     zone: "America/Halifax",
-    offset: "-04:00",
-    offsetMinutes: -240,
-    label: "(UTC-04:00) Atlantic Time (Halifax, Santiago, Caracas)",
-    searchTerms: "-4 -4:00 -04:00 minus four ast atlantic halifax santiago caracas",
+    name: "Atlantic Time (Halifax, Caracas, Santiago)",
+    searchTerms: "ast adt atlantic halifax nova scotia caracas santiago",
   },
   {
     zone: "America/St_Johns",
-    offset: "-03:30",
-    offsetMinutes: -210,
-    label: "(UTC-03:30) Newfoundland (St. John's)",
-    searchTerms: "-3:30 -03:30 minus three thirty newfoundland st johns",
+    name: "Newfoundland (St. John's)",
+    searchTerms: "newfoundland st johns nst ndt",
   },
   {
     zone: "America/Sao_Paulo",
-    offset: "-03:00",
-    offsetMinutes: -180,
-    label: "(UTC-03:00) Sao Paulo, Buenos Aires, Montevideo",
-    searchTerms: "-3 -3:00 -03:00 minus three sao paulo brazil buenos aires montevideo",
+    name: "Brasilia, Sao Paulo, Buenos Aires, Montevideo",
+    searchTerms: "sao paulo rio de janeiro brazil buenos aires argentina montevideo uruguay",
   },
   {
     zone: "America/Noronha",
-    offset: "-02:00",
-    offsetMinutes: -120,
-    label: "(UTC-02:00) Mid-Atlantic, South Georgia",
-    searchTerms: "-2 -2:00 -02:00 minus two mid atlantic south georgia",
+    name: "Mid-Atlantic, Fernando de Noronha, South Georgia",
+    searchTerms: "noronha fernando de noronha south georgia grytviken",
   },
   {
     zone: "Atlantic/Cape_Verde",
-    offset: "-01:00",
-    offsetMinutes: -60,
-    label: "(UTC-01:00) Cape Verde, Azores",
-    searchTerms: "-1 -1:00 -01:00 minus one cape verde azores",
+    name: "Cape Verde, Azores",
+    searchTerms: "cape verde praia azores ponta delgada",
   },
   {
     zone: "Europe/London",
-    offset: "+00:00",
-    offsetMinutes: 0,
-    label: "(UTC+00:00) London, Dublin, Lisbon, UTC, GMT",
-    searchTerms: "+0 +0:00 0 0:00 00:00 utc gmt plus zero london dublin lisbon edinburgh belfast reykjavik",
+    name: "London, Dublin, Lisbon, Edinburgh, UTC, GMT",
+    searchTerms: "utc gmt bst we wet western european london dublin lisbon edinburgh belfast reykjavik",
   },
   {
     zone: "Europe/Paris",
-    offset: "+01:00",
-    offsetMinutes: 60,
-    label: "(UTC+01:00) Central European Time (Paris, Berlin, Rome, Madrid, Amsterdam)",
-    searchTerms: "+1 +1:00 1 1:00 plus one cet central european paris berlin rome madrid amsterdam brussels",
+    name: "Central European Time (Paris, Berlin, Rome, Madrid, Amsterdam)",
+    searchTerms: "cet cest central european paris berlin rome madrid amsterdam brussels vienna warsaw",
   },
   {
     zone: "Europe/Athens",
-    offset: "+02:00",
-    offsetMinutes: 120,
-    label: "(UTC+02:00) Eastern European Time (Athens, Cairo, Helsinki, Johannesburg)",
-    searchTerms: "+2 +2:00 2 2:00 plus two eet eastern european athens cairo helsinki johannesburg jerusalem",
+    name: "Eastern European Time (Athens, Cairo, Helsinki, Bucharest)",
+    searchTerms: "eet eest eastern european athens cairo helsinki bucharest kyiv riga tallinn vilnius sofia",
   },
   {
     zone: "Europe/Moscow",
-    offset: "+03:00",
-    offsetMinutes: 180,
-    label: "(UTC+03:00) Moscow, Istanbul, Riyadh, Nairobi, Baghdad",
-    searchTerms: "+3 +3:00 3 3:00 plus three moscow istanbul riyadh nairobi baghdad qatar doha",
+    name: "Moscow, Istanbul, Riyadh, Nairobi, Baghdad, Doha",
+    searchTerms: "msk moscow saint petersburg istanbul turkey riyadh saudi arabia nairobi kenya baghdad iraq doha qatar",
   },
   {
     zone: "Asia/Tehran",
-    offset: "+03:30",
-    offsetMinutes: 210,
-    label: "(UTC+03:30) Tehran (Iran)",
-    searchTerms: "+3:30 3:30 plus three thirty tehran iran irst",
+    name: "Tehran (Iran)",
+    searchTerms: "tehran iran irst irdt",
   },
   {
     zone: "Asia/Dubai",
-    offset: "+04:00",
-    offsetMinutes: 240,
-    label: "(UTC+04:00) Dubai, Abu Dhabi, Baku, Tbilisi, Yerevan",
-    searchTerms: "+4 +4:00 4 4:00 plus four dubai abu dhabi uae gulf baku tbilisi yerevan",
+    name: "Dubai, Abu Dhabi, Baku, Tbilisi, Yerevan, Muscat",
+    searchTerms: "dubai abu dhabi uae united arab emirates gulf baku azerbaijan tbilisi georgia yerevan armenia muscat oman",
   },
   {
     zone: "Asia/Kabul",
-    offset: "+04:30",
-    offsetMinutes: 270,
-    label: "(UTC+04:30) Kabul (Afghanistan)",
-    searchTerms: "+4:30 4:30 plus four thirty kabul afghanistan",
+    name: "Kabul (Afghanistan)",
+    searchTerms: "kabul afghanistan aft",
   },
   {
     zone: "Asia/Karachi",
-    offset: "+05:00",
-    offsetMinutes: 300,
-    label: "(UTC+05:00) Karachi, Islamabad, Tashkent",
-    searchTerms: "+5 +5:00 5 5:00 plus five karachi islamabad pakistan tashkent",
+    name: "Karachi, Islamabad, Tashkent, Lahore",
+    searchTerms: "karachi islamabad lahore pakistan tashkent uzbekistan pkt",
   },
   {
     zone: "Asia/Kolkata",
-    offset: "+05:30",
-    offsetMinutes: 330,
-    label: "(UTC+05:30) Mumbai, New Delhi, Kolkata, Bengaluru, Colombo",
-    searchTerms: "+5:30 5:30 530 +530 plus five thirty india ist kolkata calcutta mumbai delhi bangalore bengaluru madras chennai colombo",
+    name: "Mumbai, New Delhi, Kolkata, Bengaluru, Colombo",
+    searchTerms: "plus five thirty india ist kolkata calcutta mumbai bombay delhi new delhi bangalore bengaluru madras chennai hyderabad colombo sri lanka",
   },
   {
     zone: "Asia/Kathmandu",
-    offset: "+05:45",
-    offsetMinutes: 345,
-    label: "(UTC+05:45) Kathmandu (Nepal)",
-    searchTerms: "+5:45 5:45 plus five fortyfive kathmandu nepal",
+    name: "Kathmandu (Nepal)",
+    searchTerms: "kathmandu nepal npt",
   },
   {
     zone: "Asia/Dhaka",
-    offset: "+06:00",
-    offsetMinutes: 360,
-    label: "(UTC+06:00) Dhaka, Almaty",
-    searchTerms: "+6 +6:00 6 6:00 plus six dhaka bangladesh almaty",
+    name: "Dhaka, Almaty, Astana",
+    searchTerms: "dhaka bangladesh bst almaty astana kazakhstan",
   },
   {
     zone: "Asia/Yangon",
-    offset: "+06:30",
-    offsetMinutes: 390,
-    label: "(UTC+06:30) Yangon, Cocos",
-    searchTerms: "+6:30 6:30 plus six thirty yangon rangoon myanmar burma cocos",
+    name: "Yangon, Cocos",
+    searchTerms: "yangon rangoon myanmar burma cocos islands mmt",
   },
   {
     zone: "Asia/Bangkok",
-    offset: "+07:00",
-    offsetMinutes: 420,
-    label: "(UTC+07:00) Bangkok, Jakarta, Hanoi",
-    searchTerms: "+7 +7:00 7 7:00 plus seven bangkok thailand jakarta indonesia hanoi vietnam",
+    name: "Bangkok, Jakarta, Hanoi",
+    searchTerms: "bangkok thailand jakarta indonesia hanoi vietnam saigon ho chi minh ict",
   },
   {
     zone: "Asia/Singapore",
-    offset: "+08:00",
-    offsetMinutes: 480,
-    label: "(UTC+08:00) Singapore, Hong Kong, Beijing, Perth, Kuala Lumpur",
-    searchTerms: "+8 +8:00 8 8:00 plus eight singapore hong kong beijing shanghai perth kuala lumpur malaysia manila taipei cst sgt",
+    name: "Singapore, Hong Kong, Beijing, Perth, Kuala Lumpur, Taipei",
+    searchTerms: "singapore hong kong beijing shanghai perth kuala lumpur malaysia manila philippines taipei taiwan cst sgt wawt",
   },
   {
     zone: "Australia/Eucla",
-    offset: "+08:45",
-    offsetMinutes: 525,
-    label: "(UTC+08:45) Eucla",
-    searchTerms: "+8:45 8:45 plus eight fortyfive eucla western australia",
+    name: "Eucla (Western Australia)",
+    searchTerms: "eucla western australia acwst",
   },
   {
     zone: "Asia/Tokyo",
-    offset: "+09:00",
-    offsetMinutes: 540,
-    label: "(UTC+09:00) Tokyo, Seoul, Osaka",
-    searchTerms: "+9 +9:00 9 9:00 plus nine tokyo seoul osaka japan korea jst kst",
+    name: "Tokyo, Seoul, Osaka",
+    searchTerms: "tokyo kyoto osaka japan korea seoul jst kst",
   },
   {
     zone: "Australia/Adelaide",
-    offset: "+09:30",
-    offsetMinutes: 570,
-    label: "(UTC+09:30) Adelaide, Darwin",
-    searchTerms: "+9:30 9:30 plus nine thirty adelaide darwin acst",
+    name: "Adelaide, Darwin",
+    searchTerms: "adelaide darwin south australia northern territory acst acdt",
+  },
+  {
+    zone: "Australia/Brisbane",
+    name: "Brisbane, Gold Coast (Queensland, no DST)",
+    searchTerms: "brisbane gold coast cairns queensland aest no daylight saving east australia",
   },
   {
     zone: "Australia/Sydney",
-    offset: "+10:00",
-    offsetMinutes: 600,
-    label: "(UTC+10:00) Sydney, Melbourne, Brisbane, Canberra",
-    searchTerms: "+10 +10:00 10 10:00 plus ten sydney melbourne brisbane canberra aest east australia",
+    name: "Sydney, Melbourne, Canberra, Hobart (AEST / AEDT)",
+    searchTerms: "sydney melbourne canberra hobart new south wales victoria nsw aest aedt",
   },
   {
     zone: "Australia/Lord_Howe",
-    offset: "+10:30",
-    offsetMinutes: 630,
-    label: "(UTC+10:30) Lord Howe Island",
-    searchTerms: "+10:30 10:30 plus ten thirty lord howe",
+    name: "Lord Howe Island",
+    searchTerms: "lord howe lhst lhdt",
   },
   {
     zone: "Pacific/Guadalcanal",
-    offset: "+11:00",
-    offsetMinutes: 660,
-    label: "(UTC+11:00) Solomon Islands, New Caledonia",
-    searchTerms: "+11 +11:00 11 11:00 plus eleven solomon islands new caledonia noumea",
+    name: "Solomon Islands, New Caledonia, Vanuatu",
+    searchTerms: "solomon islands guadalcanal honiara new caledonia noumea vanuatu sbt nct",
   },
   {
     zone: "Pacific/Auckland",
-    offset: "+12:00",
-    offsetMinutes: 720,
-    label: "(UTC+12:00) Auckland, Wellington, Fiji",
-    searchTerms: "+12 +12:00 12 12:00 plus twelve new zealand auckland wellington fiji nzst",
+    name: "Auckland, Wellington, Fiji",
+    searchTerms: "new zealand auckland wellington christchurch fiji suva nzst nzdt",
   },
   {
     zone: "Pacific/Chatham",
-    offset: "+12:45",
-    offsetMinutes: 765,
-    label: "(UTC+12:45) Chatham Islands",
-    searchTerms: "+12:45 12:45 plus twelve fortyfive chatham islands",
+    name: "Chatham Islands",
+    searchTerms: "chatham islands waitangi chast chadt",
   },
   {
     zone: "Pacific/Tongatapu",
-    offset: "+13:00",
-    offsetMinutes: 780,
-    label: "(UTC+13:00) Tonga, Apia, Phoenix Islands",
-    searchTerms: "+13 +13:00 13 13:00 plus thirteen tonga apia samoa",
+    name: "Tonga, Apia, Samoa",
+    searchTerms: "tonga nukualofa apia samoa tot",
   },
   {
     zone: "Pacific/Kiritimati",
-    offset: "+14:00",
-    offsetMinutes: 840,
-    label: "(UTC+14:00) Line Islands (Kiritimati)",
-    searchTerms: "+14 +14:00 14 14:00 plus fourteen kiritimati line islands",
+    name: "Line Islands (Kiritimati)",
+    searchTerms: "kiritimati line islands christmas island lint",
   },
 ];
 
+export function buildTimeZoneSlots(now: Date = new Date()): TimeZoneSlot[] {
+  return ZONE_DEFINITIONS.map((def) => {
+    const { offset, offsetMinutes } = getRuntimeOffset(def.zone, now);
+    const label = `(UTC${offset}) ${def.name}`;
+    const searchTerms = `${offset} ${offset.replace(":", "")} ${def.searchTerms}`.toLowerCase();
+    return {
+      zone: def.zone,
+      offset,
+      offsetMinutes,
+      label,
+      searchTerms,
+    };
+  });
+}
+
+export const TIME_ZONE_SLOTS: TimeZoneSlot[] = buildTimeZoneSlots();
+
 export const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-// Resolves a browser IANA timezone to the closest matching representative slot.
-export function matchDefaultSlot(zoneName: string): TimeZoneSlot {
+// Resolves a browser IANA timezone or alias to the closest matching representative slot.
+export function matchDefaultSlot(zoneName?: string): TimeZoneSlot {
+  if (!zoneName) {
+    return matchDefaultSlot(browserTimeZone);
+  }
+
   const direct = TIME_ZONE_SLOTS.find((s) => s.zone === zoneName);
   if (direct) return direct;
 
   // Aliases (e.g. Asia/Calcutta -> Asia/Kolkata)
   if (zoneName === "Asia/Calcutta") {
-    return TIME_ZONE_SLOTS.find((s) => s.zone === "Asia/Kolkata")!;
+    const kolkata = TIME_ZONE_SLOTS.find((s) => s.zone === "Asia/Kolkata");
+    if (kolkata) return kolkata;
   }
 
-  // Fallback by current UTC offset in minutes
+  // Fallback by current runtime UTC offset in minutes
   try {
-    const now = new Date();
-    const formatter = new Intl.DateTimeFormat("en-US", { timeZone: zoneName, timeZoneName: "shortOffset" });
-    const parts = formatter.formatToParts(now);
-    const offsetPart = parts.find((p) => p.type === "timeZoneName")?.value || "";
-    // e.g. "GMT+5:30" or "GMT-8"
-    const match = offsetPart.match(/GMT([+-])(\d+)(?::(\d+))?/);
-    if (match) {
-      const sign = match[1] === "-" ? -1 : 1;
-      const hours = parseInt(match[2], 10);
-      const minutes = match[3] ? parseInt(match[3], 10) : 0;
-      const totalMinutes = sign * (hours * 60 + minutes);
-      const slot = TIME_ZONE_SLOTS.find((s) => s.offsetMinutes === totalMinutes);
-      if (slot) return slot;
-    }
+    const target = getRuntimeOffset(zoneName);
+    const slot = TIME_ZONE_SLOTS.find((s) => s.offsetMinutes === target.offsetMinutes);
+    if (slot) return slot;
   } catch {
     // ignore
   }
 
-  return TIME_ZONE_SLOTS.find((s) => s.zone === "Asia/Kolkata") || TIME_ZONE_SLOTS[0];
+  // Sensible default fallback: London / UTC or first slot
+  return (
+    TIME_ZONE_SLOTS.find((s) => s.zone === "Europe/London") ||
+    TIME_ZONE_SLOTS.find((s) => s.zone === "Etc/UTC") ||
+    TIME_ZONE_SLOTS[0]
+  );
 }
 
 // Normalizes numbers written as words to support natural queries like "plus five thirty"
@@ -384,16 +372,6 @@ export function TimeZoneSelect({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Scroll selected option into view when opening
-  useEffect(() => {
-    if (isOpen && !isTyping && listRef.current) {
-      const selectedEl = listRef.current.querySelector(".tz-option.selected");
-      if (selectedEl) {
-        selectedEl.scrollIntoView({ block: "nearest" });
-      }
-    }
-  }, [isOpen, isTyping]);
-
   const filteredSlots = useMemo(() => {
     if (!isTyping || !query.trim()) return TIME_ZONE_SLOTS;
 
@@ -412,6 +390,26 @@ export function TimeZoneSelect({
       return false;
     });
   }, [isTyping, query]);
+
+  // Scroll active/highlighted option into view when navigating with keyboard
+  useEffect(() => {
+    if (isOpen && listRef.current) {
+      const el = listRef.current.querySelector<HTMLElement>(`.tz-option[data-index="${highlightedIndex}"]`);
+      if (el) {
+        el.scrollIntoView({ block: "nearest" });
+      }
+    }
+  }, [highlightedIndex, isOpen]);
+
+  // Scroll selected option into view when opening
+  useEffect(() => {
+    if (isOpen && !isTyping && listRef.current) {
+      const selectedEl = listRef.current.querySelector<HTMLElement>(".tz-option.selected");
+      if (selectedEl) {
+        selectedEl.scrollIntoView({ block: "nearest" });
+      }
+    }
+  }, [isOpen, isTyping]);
 
   function handleSelect(slot: TimeZoneSlot) {
     setSelectedSlot(slot);
@@ -449,8 +447,10 @@ export function TimeZoneSelect({
     }
   }
 
-  // The displayed text in the input: always shows the selectedSlot's label unless the user is actively searching
   const displayedValue = isTyping ? query : selectedSlot.label;
+  const listboxId = `${id}-listbox`;
+  const activeDescendantId =
+    isOpen && filteredSlots[highlightedIndex] ? `${id}-opt-${highlightedIndex}` : undefined;
 
   return (
     <div className="tz-combobox" ref={containerRef}>
@@ -461,6 +461,11 @@ export function TimeZoneSelect({
           ref={inputRef}
           type="text"
           className="tz-input"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={isOpen}
+          aria-controls={listboxId}
+          aria-activedescendant={activeDescendantId}
           placeholder="Search timezone (e.g. +5:30, plus five thirty, Kolkata, Singapore)"
           value={displayedValue}
           onChange={(e) => {
@@ -474,6 +479,13 @@ export function TimeZoneSelect({
             setIsTyping(false);
             e.currentTarget.select();
           }}
+          onBlur={(e) => {
+            if (!containerRef.current?.contains(e.relatedTarget as Node)) {
+              setIsOpen(false);
+              setIsTyping(false);
+              setQuery("");
+            }
+          }}
           onKeyDown={handleKeyDown}
           autoComplete="off"
         />
@@ -481,6 +493,7 @@ export function TimeZoneSelect({
           type="button"
           className="tz-toggle"
           aria-label="Toggle timezone list"
+          tabIndex={-1}
           onClick={() => {
             setIsOpen((prev) => {
               const next = !prev;
@@ -497,7 +510,7 @@ export function TimeZoneSelect({
       </div>
 
       {isOpen && (
-        <ul className="tz-dropdown" role="listbox" ref={listRef}>
+        <ul id={listboxId} className="tz-dropdown" role="listbox" ref={listRef} aria-label="Time zones">
           {filteredSlots.length === 0 ? (
             <li className="tz-empty">No matching time zone found</li>
           ) : (
@@ -506,13 +519,14 @@ export function TimeZoneSelect({
               const isHighlighted = index === highlightedIndex;
               return (
                 <li
+                  id={`${id}-opt-${index}`}
                   key={slot.zone}
+                  data-index={index}
                   role="option"
                   aria-selected={isSelected}
                   className={`tz-option ${isSelected ? "selected" : ""} ${isHighlighted ? "highlighted" : ""}`}
                   onMouseEnter={() => setHighlightedIndex(index)}
                   onMouseDown={(e) => {
-                    // Prevent input blur before click handler processes
                     e.preventDefault();
                     handleSelect(slot);
                   }}
