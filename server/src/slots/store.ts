@@ -17,6 +17,33 @@ function toIntervals(busy: BusyJson): Interval[] {
   return busy.map((row) => ({ start: new Date(row.start), end: new Date(row.end) }));
 }
 
+// The hours, timezone and both busy lists as columns of one row. `u` is the professional.
+const SLOT_INPUT_COLUMNS = `
+  u.timezone,
+  coalesce((select json_agg(json_build_object(
+              'weekday', h.weekday,
+              'start_time', h.start_time,
+              'end_time', h.end_time))
+            from working_hours h
+            where h.professional_id = u.id and h.deleted_at is null), '[]') as ranges,
+  coalesce((select json_agg(json_build_object('start', s.starts_at, 'end', s.ends_at))
+            from sessions s
+            where s.member_id = :memberId and s.status = :booked and s.ends_at > :now), '[]')
+    as member_busy,
+  coalesce((select json_agg(json_build_object('start', s.starts_at, 'end', s.ends_at))
+            from sessions s
+            where s.professional_id = u.id and s.status = :booked and s.ends_at > :now), '[]')
+    as professional_busy`;
+
+function toSlotInputs(row: SlotInputsRow): SlotInputs {
+  return {
+    timezone: row.timezone,
+    ranges: row.ranges.map(toTimeRange),
+    memberBusy: toIntervals(row.member_busy),
+    professionalBusy: toIntervals(row.professional_busy),
+  };
+}
+
 // Raw SQL so the hours, timezone and both busy lists come back in one round trip, instead of one per table.
 export async function findSlotInputs(
   db: Db,
@@ -24,21 +51,7 @@ export async function findSlotInputs(
 ): Promise<SlotInputs | undefined> {
   const result = await db.raw<{ rows: SlotInputsRow[] }>(
     `
-    select u.timezone,
-      coalesce((select json_agg(json_build_object(
-                  'weekday', h.weekday,
-                  'start_time', h.start_time,
-                  'end_time', h.end_time))
-                from working_hours h
-                where h.professional_id = u.id and h.deleted_at is null), '[]') as ranges,
-      coalesce((select json_agg(json_build_object('start', s.starts_at, 'end', s.ends_at))
-                from sessions s
-                where s.member_id = :memberId and s.status = :booked and s.ends_at > :now), '[]')
-        as member_busy,
-      coalesce((select json_agg(json_build_object('start', s.starts_at, 'end', s.ends_at))
-                from sessions s
-                where s.professional_id = u.id and s.status = :booked and s.ends_at > :now), '[]')
-        as professional_busy
+    select ${SLOT_INPUT_COLUMNS}
     from users u
     where u.id = :professionalId and u.role = :professional
     `,
@@ -51,11 +64,5 @@ export async function findSlotInputs(
     },
   );
   const row = result.rows[0];
-  if (!row) return undefined;
-  return {
-    timezone: row.timezone,
-    ranges: row.ranges.map(toTimeRange),
-    memberBusy: toIntervals(row.member_busy),
-    professionalBusy: toIntervals(row.professional_busy),
-  };
+  return row && toSlotInputs(row);
 }
