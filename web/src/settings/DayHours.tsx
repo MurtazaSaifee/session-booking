@@ -27,30 +27,28 @@ export function DayHours({
 
   return (
     <fieldset className={`day-card ${error ? "has-error" : ""}`}>
-      <div className="day-header">
-        <legend className="day-title">{dayName}</legend>
-        <div className="day-actions">
-          {ranges.length > 0 && isWeekday && onCopyToWeekdays && (
-            <button
-              type="button"
-              className="ghost-action"
-              onClick={onCopyToWeekdays}
-              title="Copy these hours to Monday through Friday"
-            >
-              Copy to weekdays
-            </button>
-          )}
-          {ranges.length > 0 && onClearDay && (
-            <button
-              type="button"
-              className="ghost-action text-danger"
-              onClick={onClearDay}
-              title="Clear all hours for this day"
-            >
-              Clear
-            </button>
-          )}
-        </div>
+      <legend className="day-title">{dayName}</legend>
+      <div className="day-header-actions">
+        {ranges.length > 0 && isWeekday && onCopyToWeekdays && (
+          <button
+            type="button"
+            className="ghost-action"
+            onClick={onCopyToWeekdays}
+            title="Copy these hours to Monday through Friday"
+          >
+            Copy to weekdays
+          </button>
+        )}
+        {ranges.length > 0 && onClearDay && (
+          <button
+            type="button"
+            className="ghost-action text-danger"
+            onClick={onClearDay}
+            title="Clear all hours for this day"
+          >
+            Clear
+          </button>
+        )}
       </div>
 
       {error && (

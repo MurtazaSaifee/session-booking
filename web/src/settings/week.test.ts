@@ -48,6 +48,14 @@ describe("newRange", () => {
     });
   });
 
+  it("safely resets to morning hours when day already ends at 23:59", () => {
+    expect(newRange(1, [{ weekday: 1, start: "17:00", end: "23:59" }])).toEqual({
+      weekday: 1,
+      start: "08:00",
+      end: "09:00",
+    });
+  });
+
   it("uses the latest end even when the ranges are out of order", () => {
     const outOfOrder = [
       { weekday: 1, start: "13:00", end: "17:00" },
@@ -88,6 +96,14 @@ describe("findDayOverlaps", () => {
       { weekday: 1, start: "12:00", end: "15:00" },
     ]);
     expect(findDayOverlaps(touching).size).toBe(0);
+  });
+
+  it("does not falsely trigger overlap warnings when typing an incomplete range", () => {
+    const incomplete = toEditable([
+      { weekday: 1, start: "09:00", end: "12:00" },
+      { weekday: 1, start: "", end: "" },
+    ]);
+    expect(findDayOverlaps(incomplete).size).toBe(0);
   });
 });
 

@@ -34,6 +34,9 @@ export function newRange(weekday: number, dayRanges: TimeRange[]): TimeRange {
   if (ends.length === 0) return { weekday, start: "09:00", end: "17:00" };
   // "HH:MM" strings sort the same as the times they stand for.
   const start = ends.reduce((latest, end) => (end > latest ? end : latest));
+  if (start >= "23:59") {
+    return { weekday, start: "08:00", end: "09:00" };
+  }
   const nextHour = Number(start.slice(0, 2)) + 1;
   const end = nextHour > 23 ? "23:59" : `${String(nextHour).padStart(2, "0")}${start.slice(2)}`;
   return { weekday, start, end };
@@ -57,14 +60,17 @@ export function findDayOverlaps(ranges: EditableRange[]): Map<number, string> {
 
     if (errors.has(weekday)) continue;
 
-    // Check if any ranges overlap
-    const sorted = [...dayRanges].sort((a, b) => a.start.localeCompare(b.start));
-    for (let i = 1; i < sorted.length; i++) {
-      const prev = sorted[i - 1];
-      const curr = sorted[i];
-      if (curr.start < prev.end) {
-        errors.set(weekday, "Time ranges overlap on this day. Please adjust the hours.");
-        break;
+    // Check if any ranges overlap (ignore incomplete ranges while typing)
+    const completeRanges = dayRanges.filter((r) => r.start && r.end);
+    if (completeRanges.length >= 2) {
+      const sorted = [...completeRanges].sort((a, b) => a.start.localeCompare(b.start));
+      for (let i = 1; i < sorted.length; i++) {
+        const prev = sorted[i - 1];
+        const curr = sorted[i];
+        if (curr.start < prev.end) {
+          errors.set(weekday, "Time ranges overlap on this day. Please adjust the hours.");
+          break;
+        }
       }
     }
   }
