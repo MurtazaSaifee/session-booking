@@ -1,7 +1,8 @@
-import { useNavigate } from "react-router";
+import { generatePath, useNavigate } from "react-router";
 import { Role } from "../roles";
 import type { MySession } from "./api";
 import { CancelButtonState, cancelButtonState } from "./cancelRule";
+import { RESCHEDULE_ROUTE } from "./route";
 import { useNow } from "./useNow";
 
 type RescheduleSessionButtonProps = { session: MySession; role: Role };
@@ -20,7 +21,7 @@ export function RescheduleSessionButton({ session, role }: RescheduleSessionButt
       type="button"
       className="secondary"
       disabled={state === CancelButtonState.DISABLED}
-      onClick={() => navigate(`/sessions/${session.id}/reschedule`)}
+      onClick={() => navigate(generatePath(RESCHEDULE_ROUTE, { id: session.id }))}
     >
       Reschedule session
     </button>
