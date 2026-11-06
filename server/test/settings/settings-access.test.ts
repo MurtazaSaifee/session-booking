@@ -53,6 +53,32 @@ it("a signed-in member cannot update a profile", async () => {
   expect(res.body.error).toBe(ErrorCode.WRONG_ROLE);
 });
 
+it("minimum notice can't be saved when signed out or by a member", async () => {
+  const member = await signUpAgent(app, testMember);
+  const change = { minimumNoticeMinutes: 0 };
+
+  const signedOut = await request(app).patch(`${API_V1}/settings/profile`).send(change);
+  const asMember = await member.patch(`${API_V1}/settings/profile`).send(change);
+
+  expect(signedOut.status).toBe(401);
+  expect(signedOut.body.error).toBe(ErrorCode.UNAUTHENTICATED);
+  expect(asMember.status).toBe(403);
+  expect(asMember.body.error).toBe(ErrorCode.WRONG_ROLE);
+});
+
+it("a professional's minimum notice changes only their own, whatever id the request names", async () => {
+  const nora = await signUpAgent(app, testProfessional);
+  const ivo = await signUpAgent(app, otherProfessional);
+  const ivoId = (await ivo.get(`${API_V1}/auth/me`)).body.user.id as string;
+
+  await nora
+    .patch(`${API_V1}/settings/profile`)
+    .send({ minimumNoticeMinutes: 30, id: ivoId, professionalId: ivoId });
+
+  expect((await nora.get(`${API_V1}/settings/profile`)).body.profile.minimumNoticeMinutes).toBe(30);
+  expect((await ivo.get(`${API_V1}/settings/profile`)).body.profile.minimumNoticeMinutes).toBe(120);
+});
+
 it("a signed-in member cannot read or save working hours", async () => {
   const member = await signUpAgent(app, testMember);
 

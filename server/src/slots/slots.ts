@@ -3,7 +3,9 @@ import type { TimeRange } from "../settings/hours.js";
 
 // Members can book up to this many days ahead.
 const BOOKING_WINDOW_DAYS = 28;
+export const BOOKING_WINDOW_MINUTES = BOOKING_WINDOW_DAYS * 24 * 60;
 export const SESSION_MINUTES = 50;
+export const DEFAULT_MINIMUM_NOTICE_MINUTES = 120;
 
 const MINUTE_MS = 60_000;
 const SESSION_MS = SESSION_MINUTES * MINUTE_MS;

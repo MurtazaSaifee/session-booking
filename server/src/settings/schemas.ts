@@ -1,9 +1,18 @@
 import { z } from "zod";
 import { professionalFields } from "../auth/schemas.js";
+import { BOOKING_WINDOW_MINUTES } from "../slots/slots.js";
+
+const MINIMUM_NOTICE_MESSAGE = `Minimum notice must be a whole number of minutes from 0 to ${BOOKING_WINDOW_MINUTES}.`;
 
 // Only the fields that changed are sent, so two tabs editing different fields don't undo each other.
 export const profileChangesSchema = z
-  .object(professionalFields)
+  .object({
+    ...professionalFields,
+    minimumNoticeMinutes: z
+      .int(MINIMUM_NOTICE_MESSAGE)
+      .min(0, MINIMUM_NOTICE_MESSAGE)
+      .max(BOOKING_WINDOW_MINUTES, MINIMUM_NOTICE_MESSAGE),
+  })
   .partial()
   .refine((changes) => Object.keys(changes).length > 0, "Nothing to update.");
 

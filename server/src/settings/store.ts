@@ -1,12 +1,24 @@
 import type { Db } from "../db.js";
+import { DEFAULT_MINIMUM_NOTICE_MINUTES } from "../slots/slots.js";
 import { toTimeRange, type HoursColumns, type TimeRange } from "./hours.js";
 
-export type Profile = { title: string | null; bio: string | null };
+export type Profile = { title: string | null; bio: string | null; minimumNoticeMinutes: number };
 
-type UserRow = Profile & { id: string };
+type ProfileRow = { title: string | null; bio: string | null; minimum_notice_minutes: number | null };
+
+const PROFILE_COLUMNS = ["title", "bio", "minimum_notice_minutes"];
+
+function toProfile(row: ProfileRow): Profile {
+  return {
+    title: row.title,
+    bio: row.bio,
+    minimumNoticeMinutes: row.minimum_notice_minutes ?? DEFAULT_MINIMUM_NOTICE_MINUTES,
+  };
+}
 
 export async function findProfile(db: Db, userId: string): Promise<Profile | undefined> {
-  return db<UserRow>("users").select(["title", "bio"]).where({ id: userId }).first();
+  const row: ProfileRow | undefined = await db("users").select(PROFILE_COLUMNS).where({ id: userId }).first();
+  return row && toProfile(row);
 }
 
 // Knex leaves undefined fields out of the update, so only the changed columns are written.
@@ -15,11 +27,15 @@ export async function updateProfile(
   userId: string,
   changes: Partial<Profile>,
 ): Promise<Profile | undefined> {
-  const rows: Profile[] = await db<UserRow>("users")
+  const rows: ProfileRow[] = await db("users")
     .where({ id: userId })
-    .update({ title: changes.title, bio: changes.bio })
-    .returning(["title", "bio"]);
-  return rows[0];
+    .update({
+      title: changes.title,
+      bio: changes.bio,
+      minimum_notice_minutes: changes.minimumNoticeMinutes,
+    })
+    .returning(PROFILE_COLUMNS);
+  return rows[0] && toProfile(rows[0]);
 }
 
 type WorkingHoursRow = {
@@ -51,7 +67,7 @@ export async function replaceHours(
     // The lock is its own statement: a statement's snapshot is fixed when it starts, before any
     // lock wait, so a waiting save in the same statement would soft-delete only the rows it saw
     // before the wait.
-    await trx<UserRow>("users").select("id").where({ id: professionalId }).forUpdate().first();
+    await trx("users").select("id").where({ id: professionalId }).forUpdate().first();
     const result = await trx.raw<{ rows: HoursColumns[] }>(
       `
       with removed as (

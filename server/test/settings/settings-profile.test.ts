@@ -4,6 +4,14 @@ import { API_V1 } from "../../src/paths.js";
 import { createTestApp, resetDb, signUpAgent, testClock, testProfessional } from "../app.js";
 import { createTestDb } from "../db.js";
 
+const DEFAULT_NOTICE = 120;
+const LONGEST_NOTICE = 28 * 24 * 60;
+const defaultProfile = {
+  title: testProfessional.title,
+  bio: testProfessional.bio,
+  minimumNoticeMinutes: DEFAULT_NOTICE,
+};
+
 const clock = testClock("2027-01-15T09:00:00Z");
 
 const db = createTestDb();
@@ -19,7 +27,7 @@ it("a professional reads their own title and bio", async () => {
   const res = await professional.get(`${API_V1}/settings/profile`);
 
   expect(res.status).toBe(200);
-  expect(res.body).toEqual({ profile: { title: testProfessional.title, bio: testProfessional.bio } });
+  expect(res.body).toEqual({ profile: defaultProfile });
 });
 
 it("a professional updates their title and bio", async () => {
@@ -29,9 +37,9 @@ it("a professional updates their title and bio", async () => {
   const res = await professional.patch(`${API_V1}/settings/profile`).send(update);
 
   expect(res.status).toBe(200);
-  expect(res.body).toEqual({ profile: update });
+  expect(res.body).toEqual({ profile: { ...update, minimumNoticeMinutes: DEFAULT_NOTICE } });
   const after = await professional.get(`${API_V1}/settings/profile`);
-  expect(after.body).toEqual({ profile: update });
+  expect(after.body).toEqual(res.body);
 });
 
 it("changing only the bio keeps the title", async () => {
@@ -43,7 +51,7 @@ it("changing only the bio keeps the title", async () => {
 
   expect(res.status).toBe(200);
   expect(res.body).toEqual({
-    profile: { title: testProfessional.title, bio: "I help people change direction." },
+    profile: { ...defaultProfile, bio: "I help people change direction." },
   });
 });
 
@@ -76,7 +84,11 @@ it("trims whitespace around the title and bio", async () => {
 
   expect(res.status).toBe(200);
   expect(res.body).toEqual({
-    profile: { title: "Career coach", bio: "I help people change direction." },
+    profile: {
+      title: "Career coach",
+      bio: "I help people change direction.",
+      minimumNoticeMinutes: DEFAULT_NOTICE,
+    },
   });
 });
 
@@ -91,7 +103,7 @@ it("refuses an empty title and keeps the saved profile", async () => {
     message: "Please enter your role, e.g. Counsellor.",
   });
   const after = await professional.get(`${API_V1}/settings/profile`);
-  expect(after.body).toEqual({ profile: { title: testProfessional.title, bio: testProfessional.bio } });
+  expect(after.body).toEqual({ profile: defaultProfile });
 });
 
 it("ignores fields other than title and bio", async () => {
@@ -107,3 +119,38 @@ it("ignores fields other than title and bio", async () => {
   const me = await professional.get(`${API_V1}/auth/me`);
   expect(me.body.user.email).toBe(testProfessional.email);
 });
+
+it.each([0, 45, LONGEST_NOTICE])(
+  "saves a minimum notice of %i minutes and keeps the rest",
+  async (minutes) => {
+    const professional = await signUpAgent(app, testProfessional);
+
+    const res = await professional
+      .patch(`${API_V1}/settings/profile`)
+      .send({ minimumNoticeMinutes: minutes });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ profile: { ...defaultProfile, minimumNoticeMinutes: minutes } });
+    const after = await professional.get(`${API_V1}/settings/profile`);
+    expect(after.body).toEqual(res.body);
+  },
+);
+
+it.each([-1, LONGEST_NOTICE + 1, 1.5, "120", null])(
+  "refuses a minimum notice of %j and keeps the saved one",
+  async (minutes) => {
+    const professional = await signUpAgent(app, testProfessional);
+
+    const res = await professional
+      .patch(`${API_V1}/settings/profile`)
+      .send({ minimumNoticeMinutes: minutes });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({
+      error: ErrorCode.VALIDATION,
+      message: `Minimum notice must be a whole number of minutes from 0 to ${LONGEST_NOTICE}.`,
+    });
+    const after = await professional.get(`${API_V1}/settings/profile`);
+    expect(after.body).toEqual({ profile: defaultProfile });
+  },
+);
