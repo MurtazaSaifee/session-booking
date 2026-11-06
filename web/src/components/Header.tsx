@@ -38,20 +38,19 @@ export function Header() {
 
             <NotificationBell />
 
-            <Link to="/settings" className="user-badge" title="Account settings">
+            <div className="user-badge" aria-label={`Logged in as ${user.name}`}>
               <span>{user.name}</span>
               <span className="user-role-tag">
                 {user.role === Role.PROFESSIONAL ? "Professional" : "Member"}
               </span>
-            </Link>
+            </div>
 
-            <Link
-              to="/settings"
+            <span
               className="timezone-pill"
-              title={`All times displayed in ${user.timezone}. Click to change.`}
+              title={`All times displayed in ${user.timezone}`}
             >
               🕒 {user.timezone}
-            </Link>
+            </span>
 
             <button type="button" className="secondary" onClick={logOut}>
               Log out
