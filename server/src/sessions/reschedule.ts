@@ -1,6 +1,7 @@
 import type { AppDeps } from "../app.js";
 import { ErrorCode, HttpError } from "../errors.js";
 import { checkStart, refuse } from "../booking/rules.js";
+import { retryOnDeadlock } from "../db.js";
 import { overlapRefusal } from "../booking/store.js";
 import type { SignedInUser } from "../roles.js";
 import { SessionStatus } from "../session-status.js";
@@ -35,15 +36,18 @@ export async function rescheduleMySession(
   if (refusal) throw refuse(refusal);
 
   try {
-    const moved = await moveSession(deps.db, {
-      id: session.id,
-      currentStart: session.start,
-      start,
-      end: sessionEnd(start),
-      recipientId: session.professionalId,
-      text: `${session.memberName} moved your session from ${formatSessionTime(session.start, inputs.timezone)} to ${formatSessionTime(start, inputs.timezone)}`,
-      now,
-    });
+    // A booking for the same time can leave the two waiting on each other. The retry gets the normal refusal.
+    const moved = await retryOnDeadlock(() =>
+      moveSession(deps.db, {
+        id: session.id,
+        currentStart: session.start,
+        start,
+        end: sessionEnd(start),
+        recipientId: session.professionalId,
+        text: `${session.memberName} moved your session from ${formatSessionTime(session.start, inputs.timezone)} to ${formatSessionTime(start, inputs.timezone)}`,
+        now,
+      }),
+    );
     if (!moved) throw sessionNotFound();
   } catch (err) {
     const lost = overlapRefusal(err);
