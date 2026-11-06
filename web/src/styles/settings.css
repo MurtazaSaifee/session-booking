@@ -267,3 +267,79 @@
   border-color: var(--teal) !important;
   color: var(--teal-dark) !important;
 }
+
+/* User Settings & Account Section */
+.settings-section {
+  padding-bottom: var(--space-6);
+  margin-bottom: var(--space-6);
+  border-bottom: 1px solid var(--line);
+}
+
+.settings-section:last-of-type {
+  border-bottom: 0;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.input-disabled {
+  background: var(--page) !important;
+  color: var(--muted) !important;
+  cursor: not-allowed;
+  border-color: var(--line) !important;
+}
+
+/* Notice Card (Ticket 12 Minimum Notice) */
+.notice-card {
+  background: var(--white);
+  border: 1px solid var(--teal-subtle);
+  border-left: 4px solid var(--teal);
+  border-radius: var(--radius-option);
+  padding: var(--space-4);
+  margin: var(--space-4) 0 var(--space-5);
+  box-shadow: var(--shadow-sm);
+}
+
+.notice-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
+.notice-card-header h3 {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  color: var(--navy);
+}
+
+.preset-toolbar-block {
+  margin: var(--space-3) 0 var(--space-4);
+}
+
+.preset-toolbar-block .toolbar-label {
+  display: block;
+  margin-bottom: var(--space-2);
+}
+
+.notice-scenario-preview {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  background: var(--teal-tint);
+  border-radius: var(--radius-field);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: var(--text-small);
+  color: var(--teal-dark);
+}
+
+.preview-icon {
+  font-size: 1.1em;
+  flex-shrink: 0;
+}
+
+.preview-text {
+  line-height: 1.4;
+}
+

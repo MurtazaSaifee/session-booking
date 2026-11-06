@@ -50,28 +50,28 @@ export const TIME_ZONE_SLOTS: TimeZoneSlot[] = [
     offset: "-08:00",
     offsetMinutes: -480,
     label: "(UTC-08:00) Pacific Time (US & Canada, Los Angeles, Vancouver)",
-    searchTerms: "-8 -8:00 -08:00 minus eight pst pacific los angeles san francisco seattle vancouver",
+    searchTerms: "-8 -8:00 -08:00 minus eight pst pt pacific los angeles vancouver seattle san francisco",
   },
   {
     zone: "America/Denver",
     offset: "-07:00",
     offsetMinutes: -420,
     label: "(UTC-07:00) Mountain Time (US & Canada, Denver, Phoenix)",
-    searchTerms: "-7 -7:00 -07:00 minus seven mst mountain denver phoenix salt lake",
+    searchTerms: "-7 -7:00 -07:00 minus seven mst mt mountain denver phoenix salt lake",
   },
   {
     zone: "America/Chicago",
     offset: "-06:00",
     offsetMinutes: -360,
     label: "(UTC-06:00) Central Time (US & Canada, Chicago, Mexico City)",
-    searchTerms: "-6 -6:00 -06:00 minus six cst central chicago dallas mexico city",
+    searchTerms: "-6 -6:00 -06:00 minus six cst ct central chicago dallas houston mexico city",
   },
   {
     zone: "America/New_York",
     offset: "-05:00",
     offsetMinutes: -300,
     label: "(UTC-05:00) Eastern Time (US & Canada, New York, Toronto, Miami)",
-    searchTerms: "-5 -5:00 -05:00 minus five est eastern new york toronto miami boston bogota lima",
+    searchTerms: "-5 -5:00 -05:00 minus five est et eastern new york toronto miami boston atlanta",
   },
   {
     zone: "America/Halifax",
@@ -92,147 +92,147 @@ export const TIME_ZONE_SLOTS: TimeZoneSlot[] = [
     offset: "-03:00",
     offsetMinutes: -180,
     label: "(UTC-03:00) Sao Paulo, Buenos Aires, Montevideo",
-    searchTerms: "-3 -3:00 -03:00 minus three sao paulo buenos aires rio montevideo",
+    searchTerms: "-3 -3:00 -03:00 minus three sao paulo brazil buenos aires montevideo",
   },
   {
-    zone: "Atlantic/South_Georgia",
+    zone: "America/Noronha",
     offset: "-02:00",
     offsetMinutes: -120,
     label: "(UTC-02:00) Mid-Atlantic, South Georgia",
     searchTerms: "-2 -2:00 -02:00 minus two mid atlantic south georgia",
   },
   {
-    zone: "Atlantic/Azores",
+    zone: "Atlantic/Cape_Verde",
     offset: "-01:00",
     offsetMinutes: -60,
-    label: "(UTC-01:00) Azores, Cape Verde",
-    searchTerms: "-1 -1:00 -01:00 minus one azores cape verde",
+    label: "(UTC-01:00) Cape Verde, Azores",
+    searchTerms: "-1 -1:00 -01:00 minus one cape verde azores",
   },
   {
     zone: "Europe/London",
     offset: "+00:00",
     offsetMinutes: 0,
     label: "(UTC+00:00) London, Dublin, Lisbon, UTC, GMT",
-    searchTerms: "+0 +0:00 +00:00 0 0:00 utc gmt plus zero london dublin lisbon united kingdom uk",
+    searchTerms: "+0 +0:00 0 0:00 00:00 utc gmt plus zero london dublin lisbon edinburgh belfast reykjavik",
   },
   {
     zone: "Europe/Paris",
     offset: "+01:00",
     offsetMinutes: 60,
-    label: "(UTC+01:00) Paris, Berlin, Rome, Madrid, Amsterdam, Lagos",
-    searchTerms: "+1 +1:00 +01:00 1 1:00 plus one cet paris berlin rome madrid amsterdam lagos",
+    label: "(UTC+01:00) Central European Time (Paris, Berlin, Rome, Madrid, Amsterdam)",
+    searchTerms: "+1 +1:00 1 1:00 plus one cet central european paris berlin rome madrid amsterdam brussels",
   },
   {
     zone: "Europe/Athens",
     offset: "+02:00",
     offsetMinutes: 120,
-    label: "(UTC+02:00) Athens, Cairo, Johannesburg, Helsinki, Jerusalem",
-    searchTerms: "+2 +2:00 +02:00 2 2:00 plus two eet athens cairo johannesburg helsinki jerusalem",
+    label: "(UTC+02:00) Eastern European Time (Athens, Cairo, Helsinki, Johannesburg)",
+    searchTerms: "+2 +2:00 2 2:00 plus two eet eastern european athens cairo helsinki johannesburg jerusalem",
   },
   {
     zone: "Europe/Moscow",
     offset: "+03:00",
     offsetMinutes: 180,
     label: "(UTC+03:00) Moscow, Istanbul, Riyadh, Nairobi, Baghdad",
-    searchTerms: "+3 +3:00 +03:00 3 3:00 plus three msk moscow istanbul riyadh nairobi baghdad",
+    searchTerms: "+3 +3:00 3 3:00 plus three moscow istanbul riyadh nairobi baghdad qatar doha",
   },
   {
     zone: "Asia/Tehran",
     offset: "+03:30",
     offsetMinutes: 210,
     label: "(UTC+03:30) Tehran (Iran)",
-    searchTerms: "+3:30 +03:30 3:30 plus three thirty tehran iran irst",
+    searchTerms: "+3:30 3:30 plus three thirty tehran iran irst",
   },
   {
     zone: "Asia/Dubai",
     offset: "+04:00",
     offsetMinutes: 240,
-    label: "(UTC+04:00) Dubai, Abu Dhabi, Baku, Tbilisi",
-    searchTerms: "+4 +4:00 +04:00 4 4:00 plus four gst dubai abu dhabi uae baku tbilisi",
+    label: "(UTC+04:00) Dubai, Abu Dhabi, Baku, Tbilisi, Yerevan",
+    searchTerms: "+4 +4:00 4 4:00 plus four dubai abu dhabi uae gulf baku tbilisi yerevan",
   },
   {
     zone: "Asia/Kabul",
     offset: "+04:30",
     offsetMinutes: 270,
     label: "(UTC+04:30) Kabul (Afghanistan)",
-    searchTerms: "+4:30 +04:30 4:30 plus four thirty kabul afghanistan",
+    searchTerms: "+4:30 4:30 plus four thirty kabul afghanistan",
   },
   {
     zone: "Asia/Karachi",
     offset: "+05:00",
     offsetMinutes: 300,
-    label: "(UTC+05:00) Karachi, Tashkent, Islamabad",
-    searchTerms: "+5 +5:00 +05:00 5 5:00 plus five pkt karachi islamabad tashkent pakistan",
+    label: "(UTC+05:00) Karachi, Islamabad, Tashkent",
+    searchTerms: "+5 +5:00 5 5:00 plus five karachi islamabad pakistan tashkent",
   },
   {
     zone: "Asia/Kolkata",
     offset: "+05:30",
     offsetMinutes: 330,
     label: "(UTC+05:30) Mumbai, New Delhi, Kolkata, Bengaluru, Colombo",
-    searchTerms: "+5:30 +05:30 5:30 530 +530 plus five thirty plus five 30 ist india kolkata calcutta delhi mumbai bangalore colombo",
+    searchTerms: "+5:30 5:30 530 +530 plus five thirty india ist kolkata calcutta mumbai delhi bangalore bengaluru madras chennai colombo",
   },
   {
     zone: "Asia/Kathmandu",
     offset: "+05:45",
     offsetMinutes: 345,
     label: "(UTC+05:45) Kathmandu (Nepal)",
-    searchTerms: "+5:45 +05:45 5:45 plus five forty five kathmandu nepal npt",
+    searchTerms: "+5:45 5:45 plus five fortyfive kathmandu nepal",
   },
   {
     zone: "Asia/Dhaka",
     offset: "+06:00",
     offsetMinutes: 360,
     label: "(UTC+06:00) Dhaka, Almaty",
-    searchTerms: "+6 +6:00 +06:00 6 6:00 plus six bst dhaka bangladesh almaty",
+    searchTerms: "+6 +6:00 6 6:00 plus six dhaka bangladesh almaty",
   },
   {
     zone: "Asia/Yangon",
     offset: "+06:30",
     offsetMinutes: 390,
     label: "(UTC+06:30) Yangon, Cocos",
-    searchTerms: "+6:30 +06:30 6:30 plus six thirty yangon rangoon myanmar",
+    searchTerms: "+6:30 6:30 plus six thirty yangon rangoon myanmar burma cocos",
   },
   {
     zone: "Asia/Bangkok",
     offset: "+07:00",
     offsetMinutes: 420,
     label: "(UTC+07:00) Bangkok, Jakarta, Hanoi",
-    searchTerms: "+7 +7:00 +07:00 7 7:00 plus seven ict bangkok jakarta hanoi thailand vietnam indonesia",
+    searchTerms: "+7 +7:00 7 7:00 plus seven bangkok thailand jakarta indonesia hanoi vietnam",
   },
   {
     zone: "Asia/Singapore",
     offset: "+08:00",
     offsetMinutes: 480,
     label: "(UTC+08:00) Singapore, Hong Kong, Beijing, Perth, Kuala Lumpur",
-    searchTerms: "+8 +8:00 +08:00 8 8:00 plus eight sgt cst singapore hong kong beijing shanghai perth kuala lumpur taipei manila",
+    searchTerms: "+8 +8:00 8 8:00 plus eight singapore hong kong beijing shanghai perth kuala lumpur malaysia manila taipei cst sgt",
   },
   {
     zone: "Australia/Eucla",
     offset: "+08:45",
     offsetMinutes: 525,
     label: "(UTC+08:45) Eucla",
-    searchTerms: "+8:45 +08:45 8:45 plus eight forty five eucla",
+    searchTerms: "+8:45 8:45 plus eight fortyfive eucla western australia",
   },
   {
     zone: "Asia/Tokyo",
     offset: "+09:00",
     offsetMinutes: 540,
     label: "(UTC+09:00) Tokyo, Seoul, Osaka",
-    searchTerms: "+9 +9:00 +09:00 9 9:00 plus nine jst kst tokyo seoul osaka japan korea",
+    searchTerms: "+9 +9:00 9 9:00 plus nine tokyo seoul osaka japan korea jst kst",
   },
   {
     zone: "Australia/Adelaide",
     offset: "+09:30",
     offsetMinutes: 570,
     label: "(UTC+09:30) Adelaide, Darwin",
-    searchTerms: "+9:30 +09:30 9:30 plus nine thirty acst adelaide darwin",
+    searchTerms: "+9:30 9:30 plus nine thirty adelaide darwin acst",
   },
   {
     zone: "Australia/Sydney",
     offset: "+10:00",
     offsetMinutes: 600,
     label: "(UTC+10:00) Sydney, Melbourne, Brisbane, Canberra",
-    searchTerms: "+10 +10:00 10 10:00 plus ten aest sydney melbourne brisbane canberra",
+    searchTerms: "+10 +10:00 10 10:00 plus ten sydney melbourne brisbane canberra aest east australia",
   },
   {
     zone: "Australia/Lord_Howe",
@@ -242,25 +242,25 @@ export const TIME_ZONE_SLOTS: TimeZoneSlot[] = [
     searchTerms: "+10:30 10:30 plus ten thirty lord howe",
   },
   {
-    zone: "Pacific/Noumea",
+    zone: "Pacific/Guadalcanal",
     offset: "+11:00",
     offsetMinutes: 660,
     label: "(UTC+11:00) Solomon Islands, New Caledonia",
-    searchTerms: "+11 +11:00 11 11:00 plus eleven noumea solomon",
+    searchTerms: "+11 +11:00 11 11:00 plus eleven solomon islands new caledonia noumea",
   },
   {
     zone: "Pacific/Auckland",
     offset: "+12:00",
     offsetMinutes: 720,
     label: "(UTC+12:00) Auckland, Wellington, Fiji",
-    searchTerms: "+12 +12:00 12 12:00 plus twelve nzst auckland wellington fiji new zealand",
+    searchTerms: "+12 +12:00 12 12:00 plus twelve new zealand auckland wellington fiji nzst",
   },
   {
     zone: "Pacific/Chatham",
     offset: "+12:45",
     offsetMinutes: 765,
     label: "(UTC+12:45) Chatham Islands",
-    searchTerms: "+12:45 12:45 plus twelve forty five chatham",
+    searchTerms: "+12:45 12:45 plus twelve fortyfive chatham islands",
   },
   {
     zone: "Pacific/Tongatapu",
@@ -345,31 +345,59 @@ function normalizeQuery(input: string): string {
   return q;
 }
 
-export function TimeZoneSelect({ name, defaultValue }: { name: string; defaultValue: string }) {
+export function TimeZoneSelect({
+  name,
+  defaultValue,
+  onChange,
+}: {
+  name: string;
+  defaultValue: string;
+  onChange?: (zone: string) => void;
+}) {
   const id = useId();
   const initialSlot = useMemo(() => matchDefaultSlot(defaultValue), [defaultValue]);
   const [selectedSlot, setSelectedSlot] = useState<TimeZoneSlot>(initialSlot);
+  const [isTyping, setIsTyping] = useState(false);
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
 
-  // Close dropdown on outside click
+  const [prevDefaultValue, setPrevDefaultValue] = useState(defaultValue);
+  if (defaultValue !== prevDefaultValue) {
+    setPrevDefaultValue(defaultValue);
+    setSelectedSlot(matchDefaultSlot(defaultValue));
+  }
+
+  // Close dropdown on outside click, reverting any unselected search query
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        setIsTyping(false);
+        setQuery("");
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const filteredSlots = useMemo(() => {
-    const raw = query.toLowerCase().trim();
-    if (!raw) return TIME_ZONE_SLOTS;
+  // Scroll selected option into view when opening
+  useEffect(() => {
+    if (isOpen && !isTyping && listRef.current) {
+      const selectedEl = listRef.current.querySelector(".tz-option.selected");
+      if (selectedEl) {
+        selectedEl.scrollIntoView({ block: "nearest" });
+      }
+    }
+  }, [isOpen, isTyping]);
 
+  const filteredSlots = useMemo(() => {
+    if (!isTyping || !query.trim()) return TIME_ZONE_SLOTS;
+
+    const raw = query.toLowerCase().trim();
     const normalized = normalizeQuery(raw);
     const strippedRaw = raw.replace(/[^a-z0-9]/g, "");
     const strippedNorm = normalized.replace(/[^a-z0-9+-]/g, "");
@@ -383,13 +411,15 @@ export function TimeZoneSelect({ name, defaultValue }: { name: string; defaultVa
       if (strippedFull.includes(strippedRaw) || strippedFull.includes(strippedNorm)) return true;
       return false;
     });
-  }, [query]);
+  }, [isTyping, query]);
 
   function handleSelect(slot: TimeZoneSlot) {
     setSelectedSlot(slot);
+    setIsTyping(false);
     setQuery("");
     setIsOpen(false);
     inputRef.current?.blur();
+    onChange?.(slot.zone);
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -414,8 +444,13 @@ export function TimeZoneSelect({ name, defaultValue }: { name: string; defaultVa
       }
     } else if (e.key === "Escape") {
       setIsOpen(false);
+      setIsTyping(false);
+      setQuery("");
     }
   }
+
+  // The displayed text in the input: always shows the selectedSlot's label unless the user is actively searching
+  const displayedValue = isTyping ? query : selectedSlot.label;
 
   return (
     <div className="tz-combobox" ref={containerRef}>
@@ -427,15 +462,17 @@ export function TimeZoneSelect({ name, defaultValue }: { name: string; defaultVa
           type="text"
           className="tz-input"
           placeholder="Search timezone (e.g. +5:30, plus five thirty, Kolkata, Singapore)"
-          value={isOpen ? query : selectedSlot.label}
+          value={displayedValue}
           onChange={(e) => {
             setQuery(e.target.value);
+            setIsTyping(true);
             setHighlightedIndex(0);
             if (!isOpen) setIsOpen(true);
           }}
-          onFocus={() => {
+          onFocus={(e) => {
             setIsOpen(true);
-            setQuery("");
+            setIsTyping(false);
+            e.currentTarget.select();
           }}
           onKeyDown={handleKeyDown}
           autoComplete="off"
@@ -445,11 +482,14 @@ export function TimeZoneSelect({ name, defaultValue }: { name: string; defaultVa
           className="tz-toggle"
           aria-label="Toggle timezone list"
           onClick={() => {
-            setIsOpen((prev) => !prev);
-            if (!isOpen) {
-              setQuery("");
-              inputRef.current?.focus();
-            }
+            setIsOpen((prev) => {
+              const next = !prev;
+              if (next) {
+                setIsTyping(false);
+                inputRef.current?.focus();
+              }
+              return next;
+            });
           }}
         >
           {isOpen ? "▲" : "▼"}
@@ -457,7 +497,7 @@ export function TimeZoneSelect({ name, defaultValue }: { name: string; defaultVa
       </div>
 
       {isOpen && (
-        <ul className="tz-dropdown" role="listbox">
+        <ul className="tz-dropdown" role="listbox" ref={listRef}>
           {filteredSlots.length === 0 ? (
             <li className="tz-empty">No matching time zone found</li>
           ) : (
@@ -471,6 +511,11 @@ export function TimeZoneSelect({ name, defaultValue }: { name: string; defaultVa
                   aria-selected={isSelected}
                   className={`tz-option ${isSelected ? "selected" : ""} ${isHighlighted ? "highlighted" : ""}`}
                   onMouseEnter={() => setHighlightedIndex(index)}
+                  onMouseDown={(e) => {
+                    // Prevent input blur before click handler processes
+                    e.preventDefault();
+                    handleSelect(slot);
+                  }}
                   onClick={() => handleSelect(slot)}
                 >
                   <span className="tz-badge">{slot.offset}</span>

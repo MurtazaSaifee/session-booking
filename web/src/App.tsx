@@ -45,7 +45,7 @@ function Shell() {
             <Route path="/signup" element={user ? <Navigate to="/" replace /> : <SignUpPage />} />
             <Route
               path="/settings"
-              element={<RoleOnly role={Role.PROFESSIONAL} page={(user) => <SettingsPage user={user} />} />}
+              element={user ? <SettingsPage user={user} /> : <Navigate to="/login" replace />}
             />
             <Route
               path="/professionals"

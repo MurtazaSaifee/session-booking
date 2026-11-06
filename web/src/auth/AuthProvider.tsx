@@ -28,6 +28,7 @@ type AuthState = {
   signUp: (input: SignUpInput) => Promise<void>;
   logIn: (email: string, password: string) => Promise<void>;
   logOut: () => Promise<void>;
+  updateUser: (changes: { name?: string; timezone?: string }) => Promise<User>;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -74,9 +75,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  const updateUser = useCallback(async (changes: { name?: string; timezone?: string }): Promise<User> => {
+    const data = await api<{ user: User }>("/auth/me", { method: "PATCH", body: changes });
+    setUser(data.user);
+    return data.user;
+  }, []);
+
   const value = useMemo(
-    () => ({ user, loading, signUp, logIn, logOut }),
-    [user, loading, signUp, logIn, logOut],
+    () => ({ user, loading, signUp, logIn, logOut, updateUser }),
+    [user, loading, signUp, logIn, logOut, updateUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

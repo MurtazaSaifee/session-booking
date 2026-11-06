@@ -21,14 +21,6 @@ export function Header() {
             <NavLink to="/" end className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
               My sessions
             </NavLink>
-            {user.role === Role.PROFESSIONAL && (
-              <NavLink
-                to="/settings"
-                className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
-              >
-                My hours and profile
-              </NavLink>
-            )}
             {user.role === Role.MEMBER && (
               <NavLink
                 to="/professionals"
@@ -37,19 +29,29 @@ export function Header() {
                 Professionals
               </NavLink>
             )}
+            <NavLink
+              to="/settings"
+              className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+            >
+              Settings
+            </NavLink>
 
             <NotificationBell />
 
-            <div className="user-badge">
+            <Link to="/settings" className="user-badge" title="Account settings">
               <span>{user.name}</span>
               <span className="user-role-tag">
                 {user.role === Role.PROFESSIONAL ? "Professional" : "Member"}
               </span>
-            </div>
+            </Link>
 
-            <span className="timezone-pill" title={`All times displayed in ${user.timezone}`}>
+            <Link
+              to="/settings"
+              className="timezone-pill"
+              title={`All times displayed in ${user.timezone}. Click to change.`}
+            >
               🕒 {user.timezone}
-            </span>
+            </Link>
 
             <button type="button" className="secondary" onClick={logOut}>
               Log out
