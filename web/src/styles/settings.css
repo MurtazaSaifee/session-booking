@@ -1,35 +1,269 @@
-.day {
+.section-header-block {
   margin-bottom: var(--space-4);
 }
 
-.day legend {
-  margin-bottom: var(--space-2);
+.section-header-block h2 {
+  margin-bottom: var(--space-1);
 }
 
-.day .hint {
-  margin: 0 0 var(--space-2);
-}
-
-.range {
+/* Schedule Toolbar (Presets) */
+.schedule-toolbar {
+  background: var(--page);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-option);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-5);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.toolbar-label {
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.toolbar-buttons {
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
+}
+
+.preset-pill {
+  background: var(--white) !important;
+  color: var(--navy) !important;
+  border: 1px solid var(--line-strong) !important;
+  padding: var(--space-1) var(--space-3) !important;
+  font-size: var(--text-tiny) !important;
+  font-weight: var(--weight-medium) !important;
+  border-radius: var(--radius-pill);
+  box-shadow: none !important;
+  cursor: pointer;
+}
+
+.preset-pill:hover {
+  background: var(--teal-tint) !important;
+  border-color: var(--teal) !important;
+  color: var(--teal-dark) !important;
+}
+
+.preset-pill.active {
+  background: var(--teal) !important;
+  color: var(--white) !important;
+  border-color: var(--teal) !important;
+}
+
+.preset-pill.text-danger:hover {
+  background: var(--danger-bg) !important;
+  border-color: var(--danger) !important;
+  color: var(--danger) !important;
+}
+
+/* Custom Bulk Panel */
+.custom-bulk-panel {
+  background: var(--teal-tint);
+  border: 1px solid var(--teal-subtle);
+  border-radius: var(--radius-option);
+  padding: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.bulk-instruction {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--teal-dark);
+}
+
+.bulk-time-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.bulk-time-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+}
+
+.bulk-time-label input {
+  width: 140px;
+  margin-top: 0;
+}
+
+.bulk-apply-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.bulk-apply-actions button {
+  font-size: var(--text-tiny);
+  padding: var(--space-2) var(--space-3);
+}
+
+/* Day Cards Stack */
+.days-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.day-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-option);
+  padding: var(--space-4);
+  transition: border-color 0.15s ease;
+}
+
+.day-card.has-error {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+}
+
+.day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: var(--space-2);
 }
 
-.range input {
-  flex: 1 1 var(--time-input-width);
-  min-width: 0;
-  margin-top: 0;
-  padding: var(--space-2);
+.day-title {
+  font-weight: var(--weight-bold);
+  font-size: var(--text-base);
+  color: var(--navy);
+  margin: 0;
 }
 
-.range button {
-  flex: none;
+.day-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
-.day button {
-  padding: var(--space-1) var(--space-4);
+.ghost-action {
+  background: transparent !important;
+  color: var(--teal-dark) !important;
+  border: 0 !important;
+  padding: var(--space-1) var(--space-2) !important;
+  font-size: var(--text-tiny) !important;
+  font-weight: var(--weight-medium) !important;
+  box-shadow: none !important;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ghost-action:hover {
+  color: var(--teal) !important;
+}
+
+.ghost-action.text-danger {
+  color: var(--danger) !important;
+}
+
+.inline-day-error {
+  background: var(--white);
+  border: 1px solid var(--danger-border);
+  color: var(--danger);
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-medium);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-field);
+  margin-bottom: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.not-working-hint {
+  color: var(--muted);
   font-size: var(--text-small);
+  margin: var(--space-2) 0;
+  font-style: italic;
+}
+
+.day-ranges-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+/* Range Row Layout (Fixes Issue 5: No time picker overflow) */
+.range-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  background: var(--page);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-field);
+  border: 1px solid var(--line);
+}
+
+.range-inputs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: nowrap;
+}
+
+.range-inputs input[type="time"] {
+  width: 135px;
+  min-width: 125px;
+  margin-top: 0;
+  padding: var(--space-2) var(--space-3);
+  background: var(--white);
+  font-size: var(--text-small);
+}
+
+.range-to {
+  color: var(--muted);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+}
+
+.remove-range-button {
+  background: transparent !important;
+  color: var(--muted) !important;
+  border: 1px solid var(--line-strong) !important;
+  padding: var(--space-1) var(--space-3) !important;
+  font-size: var(--text-tiny) !important;
+  font-weight: var(--weight-medium) !important;
+  box-shadow: none !important;
+}
+
+.remove-range-button:hover {
+  background: var(--danger-bg) !important;
+  border-color: var(--danger) !important;
+  color: var(--danger) !important;
+}
+
+.add-hours-btn {
+  background: transparent !important;
+  color: var(--navy) !important;
+  border: 1px dashed var(--line-strong) !important;
+  padding: var(--space-2) var(--space-4) !important;
+  font-size: var(--text-tiny) !important;
+  font-weight: var(--weight-semibold) !important;
+  border-radius: var(--radius-field) !important;
+  box-shadow: none !important;
+  width: auto;
+}
+
+.add-hours-btn:hover {
+  background: var(--teal-tint) !important;
+  border-color: var(--teal) !important;
+  color: var(--teal-dark) !important;
 }
