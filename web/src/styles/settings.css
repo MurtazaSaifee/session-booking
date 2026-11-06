@@ -293,7 +293,7 @@
   border-color: var(--line) !important;
 }
 
-/* Notice Card (Ticket 12 Minimum Notice) */
+/* Minimum notice card */
 .notice-card {
   background: var(--white);
   border: 1px solid var(--teal-subtle);
