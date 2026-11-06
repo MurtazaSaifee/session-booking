@@ -1,9 +1,9 @@
 import { api } from "../api";
 
-export type Profile = { title: string | null; bio: string | null };
+export type Profile = { title: string | null; bio: string | null; minimumNoticeMinutes: number };
 
 // Only the fields that changed, so another tab's edits to the other field survive.
-export type ProfileChanges = { title?: string; bio?: string };
+export type ProfileChanges = { title?: string; bio?: string; minimumNoticeMinutes?: number };
 
 // A working-hours range on the professional's own clock; weekday 1 is Monday.
 export type TimeRange = { weekday: number; start: string; end: string };

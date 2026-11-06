@@ -26,6 +26,7 @@ function ProfileFields({ initial }: { initial: Profile }) {
       saved,
       String(formData.get("title") ?? ""),
       String(formData.get("bio") ?? ""),
+      Number(formData.get("minimumNoticeMinutes")),
     );
     if (Object.keys(changes).length === 0) return { error: null, status: "No changes to save." };
     try {
@@ -54,6 +55,19 @@ function ProfileFields({ initial }: { initial: Profile }) {
         </Field>
         <Field label="Short bio">
           <textarea name="bio" rows={4} defaultValue={saved.bio ?? ""} required />
+        </Field>
+        <Field
+          label="Minimum booking notice (minutes)"
+          hint="Members can't book sooner than this. 120 is 2 hours."
+        >
+          <input
+            name="minimumNoticeMinutes"
+            type="number"
+            min={0}
+            step={1}
+            defaultValue={saved.minimumNoticeMinutes}
+            required
+          />
         </Field>
         <ErrorMessage message={error} />
         {status && !edited && (
