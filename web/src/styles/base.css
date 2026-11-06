@@ -152,10 +152,6 @@ a:hover {
     display: none;
   }
 
-  .timezone-pill {
-    display: none !important;
-  }
-
   .logout-btn {
     padding: var(--space-1) var(--space-3) !important;
     font-size: var(--text-tiny) !important;
