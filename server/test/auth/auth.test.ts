@@ -298,6 +298,20 @@ it("a refresh token expires after 7 days", async () => {
   expect(expired.status).toBe(401);
 });
 
+it("refreshing doesn't stretch a sign-in past its 7 days", async () => {
+  await request(app).post("/api/v1/auth/signup").send(member);
+
+  const agent = request.agent(app);
+  await agent.post("/api/v1/auth/login").send({ email: member.email, password: member.password });
+  clock.advanceMinutes(6 * 24 * 60);
+  const refreshed = await agent.post("/api/v1/auth/refresh").send({});
+  expect(refreshed.status).toBe(200);
+  expect(refreshed.body.user).not.toHaveProperty("expires_at");
+
+  clock.advanceMinutes(24 * 60 + 1);
+  expect((await agent.post("/api/v1/auth/refresh").send({})).status).toBe(401);
+});
+
 it("log out revokes the refresh token and clears both cookies", async () => {
   await request(app).post("/api/v1/auth/signup").send(member);
 

@@ -81,7 +81,7 @@ export function authRoutes(deps: AppDeps): express.Router {
     const refresh = newRefreshTokenRecord(now);
     const user =
       typeof token === "string"
-        ? await rotateRefreshToken(deps.db, hashRefreshToken(token), refresh, now)
+        ? await rotateRefreshToken(deps.db, hashRefreshToken(token), refresh.tokenHash, now)
         : null;
     if (!user) {
       clearSignIn(res, deps);

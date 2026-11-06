@@ -11,12 +11,13 @@ export async function saveRefreshToken(db: Db, token: NewRefreshToken & { userId
 }
 
 // The refresh token is single-use, so a stolen copy stops working once the real user refreshes.
+// The new token keeps the old one's expiry, so nobody can stretch a sign-in past its 7 days.
 // One statement revokes the old token, reads its user and saves the new token. Two racing refreshes
 // can't both win: the second waits on the row, then finds it already revoked and matches nothing.
 export async function rotateRefreshToken(
   db: Db,
   oldTokenHash: string,
-  newToken: NewRefreshToken,
+  newTokenHash: string,
   now: Date,
 ): Promise<PublicUser | null> {
   const result = await db.raw<{ rows: PublicUser[] }>(
@@ -26,15 +27,15 @@ export async function rotateRefreshToken(
       from users u
       where u.id = t.user_id and t.token_hash = :oldTokenHash
         and t.revoked_at is null and t.expires_at > :now
-      returning ${publicColumns.map((column) => `u.${column}`).join(", ")}
+      returning t.expires_at, ${publicColumns.map((column) => `u.${column}`).join(", ")}
     ),
     saved_token as (
       insert into refresh_tokens (user_id, token_hash, expires_at)
-      select id, :newTokenHash, :expiresAt from redeemed
+      select id, :newTokenHash, expires_at from redeemed
     )
-    select * from redeemed
+    select ${publicColumns.join(", ")} from redeemed
     `,
-    { now, oldTokenHash, newTokenHash: newToken.tokenHash, expiresAt: newToken.expiresAt },
+    { now, oldTokenHash, newTokenHash },
   );
   return result.rows[0] ?? null;
 }
