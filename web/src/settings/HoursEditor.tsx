@@ -1,6 +1,7 @@
 import { startTransition, useActionState, useMemo, useState, type SubmitEvent } from "react";
 import { errorMessage } from "../api";
 import { ErrorMessage } from "../components/ErrorMessage";
+import { Loading } from "../components/Loading";
 import { useLoad } from "../useLoad";
 import { getHours, saveHours, type TimeRange } from "./api";
 import { DayHours } from "./DayHours";
@@ -25,7 +26,7 @@ export function HoursEditor({ timezone }: { timezone: string }) {
   const { data: hours, error: loadError } = useLoad(getHours);
 
   if (loadError) return <ErrorMessage message={loadError} />;
-  if (!hours) return <p>Loading your working hours…</p>;
+  if (!hours) return <Loading label="Loading your working hours…" />;
   return <HoursForm initial={hours} timezone={timezone} />;
 }
 

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import type { User } from "../auth/AuthProvider";
 import { ErrorMessage } from "../components/ErrorMessage";
+import { Loading } from "../components/Loading";
 import { Role } from "../roles";
 import { useLoad } from "../useLoad";
 import { getMySessions, SessionList } from "./api";
@@ -51,7 +52,7 @@ export function MySessionsPage({ user }: { user: User }) {
       {loadError ? (
         <ErrorMessage message={loadError} />
       ) : !sessions ? (
-        <p className="hint">Loading your sessions…</p>
+        <Loading label="Loading your sessions…" />
       ) : (
         <>
           <div className="session-tabs" role="group" aria-label="Session lists">

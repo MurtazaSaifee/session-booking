@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { ErrorMessage } from "../components/ErrorMessage";
+import { Loading } from "../components/Loading";
 import { formatDay, formatTimeRange, localDate } from "../time/format";
 import { useLoad } from "../useLoad";
 import { rescheduleSession } from "../sessions/api";
@@ -103,7 +104,7 @@ export function SlotCalendar({ professionalId, professionalName, timezone, resch
       {loadError ? (
         <ErrorMessage message={loadError} />
       ) : !slots ? (
-        <p className="hint">Loading free times…</p>
+        <Loading label="Loading free times…" />
       ) : (
         <>
           <CalendarGrid

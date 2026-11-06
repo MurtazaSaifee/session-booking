@@ -4,6 +4,7 @@ import { AuthProvider, useAuth, type User } from "./auth/AuthProvider";
 import { LogInPage } from "./auth/LogInPage";
 import { SignUpPage } from "./auth/SignUpPage";
 import { Header } from "./components/Header";
+import { Loading } from "./components/Loading";
 import { ProfessionalPage } from "./directory/ProfessionalPage";
 import { ProfessionalsPage } from "./directory/ProfessionalsPage";
 import { NotificationsPage } from "./notifications/NotificationsPage";
@@ -31,6 +32,7 @@ function Shell() {
     <>
       <Header />
       <main className="narrow">
+        {loading && <Loading />}
         {!loading && (
           <Routes>
             <Route

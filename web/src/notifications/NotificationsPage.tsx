@@ -2,6 +2,7 @@ import { useLocation } from "react-router";
 import type { User } from "../auth/AuthProvider";
 import { BackNav } from "../components/BackNav";
 import { ErrorMessage } from "../components/ErrorMessage";
+import { Loading } from "../components/Loading";
 import { useLoad } from "../useLoad";
 import { openNotifications } from "./api";
 import { NotificationList } from "./NotificationList";
@@ -23,7 +24,7 @@ function NotificationsCard({ timezone }: { timezone: string }) {
       {error ? (
         <ErrorMessage message={error} />
       ) : !notifications ? (
-        <p className="hint">Loading your notifications…</p>
+        <Loading label="Loading your notifications…" />
       ) : (
         <NotificationList first={notifications} timezone={timezone} />
       )}

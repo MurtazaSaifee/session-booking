@@ -629,6 +629,37 @@ legend {
   }
 }
 
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Held back briefly, so a fast load shows nothing instead of a flicker. */
+.loading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  animation: fadeIn 150ms ease-out 150ms both;
+}
+
+.loading::before {
+  content: "";
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--teal-subtle);
+  border-top-color: var(--teal);
+  border-radius: 50%;
+  animation: spin 800ms linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading::before {
+    animation: none;
+  }
+}
+
 @media (max-width: 480px) {
   .card {
     padding: var(--space-5);

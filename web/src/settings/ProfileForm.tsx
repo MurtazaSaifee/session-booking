@@ -2,6 +2,7 @@ import { startTransition, useActionState, useState, type SubmitEvent } from "rea
 import { errorMessage } from "../api";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { Field } from "../components/Field";
+import { Loading } from "../components/Loading";
 import { useLoad } from "../useLoad";
 import { getProfile, saveProfile, type Profile } from "./api";
 import { formatNoticeDuration } from "./noticeDuration";
@@ -40,7 +41,7 @@ export function ProfileForm() {
   const { data: profile, error: loadError } = useLoad(getProfile);
 
   if (loadError) return <ErrorMessage message={loadError} />;
-  if (!profile) return <p>Loading your profile…</p>;
+  if (!profile) return <Loading label="Loading your profile…" />;
   return <ProfileFields initial={profile} />;
 }
 

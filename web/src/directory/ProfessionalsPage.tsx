@@ -1,6 +1,7 @@
 import type { Page } from "../api";
 import { BackNav } from "../components/BackNav";
 import { ErrorMessage } from "../components/ErrorMessage";
+import { Loading } from "../components/Loading";
 import { PageControls } from "../components/PageControls";
 import { usePager } from "../usePager";
 import { useLoad } from "../useLoad";
@@ -17,7 +18,7 @@ export function ProfessionalsPage() {
       {loadError ? (
         <ErrorMessage message={loadError} />
       ) : !first ? (
-        <p className="hint">Loading professionals…</p>
+        <Loading label="Loading professionals…" />
       ) : (
         <ProfessionalList first={first} />
       )}

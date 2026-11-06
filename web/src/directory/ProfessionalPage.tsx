@@ -4,6 +4,7 @@ import type { User } from "../auth/AuthProvider";
 import { SlotCalendar } from "../booking/SlotCalendar";
 import { BackNav } from "../components/BackNav";
 import { ErrorMessage } from "../components/ErrorMessage";
+import { Loading } from "../components/Loading";
 import { useLoad } from "../useLoad";
 import { getProfessional } from "./api";
 import { placeName } from "./place";
@@ -24,7 +25,7 @@ function ProfessionalDetails({ id, user }: { id: string; user: User }) {
   const { data: professional, error: loadError } = useLoad(load);
 
   if (loadError) return <ErrorMessage message={loadError} />;
-  if (!professional) return <p className="hint">Loading…</p>;
+  if (!professional) return <Loading />;
   return (
     <>
       <h1>{professional.name}</h1>
