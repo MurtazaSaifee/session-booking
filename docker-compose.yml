@@ -31,6 +31,9 @@ services:
       NODE_ENV: production
       SECURE_COOKIES: "false"
       SEED_DEMO_DATA: "true"
+      # No value here: passed through from the shell if set, otherwise the app uses its default.
+      DB_POOL_MAX:
+      BACKGROUND_CHECK_SECONDS:
 
   test:
     build:
