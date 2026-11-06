@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const REPO_ROOT = fileURLToPath(new URL("../../", import.meta.url));
 
-// Builds the web on this machine as part of a deploy. A teardown skips this, so it works from a fresh clone.
+// Builds the web on this machine as part of a deploy. A teardown skips this.
 export function webBuild(): ISource {
   return Source.asset(`${REPO_ROOT}web`, {
     assetHashType: AssetHashType.OUTPUT,
