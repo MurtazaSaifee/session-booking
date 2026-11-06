@@ -20,6 +20,8 @@ const app = createTestApp(db, clock.now);
 
 const TOO_LATE =
   "This session starts in less than 24 hours, so it can't be cancelled or rescheduled. It's still booked.";
+const ALREADY_ENDED = "This session has already ended, so it can't be cancelled or rescheduled.";
+const SESSION_END = "2027-01-18T04:20:00Z";
 
 beforeEach(() => {
   clock.set(CLOCK_START);
@@ -64,6 +66,13 @@ it.each([
 
   expect(res.status).toBe(409);
   expect(res.body.error).toBe(ErrorCode.TOO_LATE_TO_CHANGE);
+});
+
+it("once the session has ended, the refusal says so instead of calling it still booked", async () => {
+  const { res } = await memberCancelsAt(SESSION_END);
+
+  expect(res.status).toBe(409);
+  expect(res.body).toEqual({ error: ErrorCode.TOO_LATE_TO_CHANGE, message: ALREADY_ENDED });
 });
 
 it("the professional's reminders for a session the member cancelled are never delivered", async () => {

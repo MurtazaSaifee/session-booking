@@ -118,7 +118,6 @@ export type CancelTarget = {
   id: string;
   status: SessionStatus;
   start: Date;
-  end: Date;
   version: number;
   viewerName: string;
   otherPersonId: string;
@@ -140,7 +139,6 @@ export async function findToCancel(
       id: row.id,
       status: row.status,
       start: row.starts_at,
-      end: row.ends_at,
       version: row.version,
       viewerName: row.viewer_name,
       otherPersonId: row.other_person_id,

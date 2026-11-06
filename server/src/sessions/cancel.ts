@@ -1,5 +1,4 @@
 import type { AppDeps } from "../app.js";
-import { ErrorCode, HttpError } from "../errors.js";
 import { Role, type SignedInUser } from "../roles.js";
 import { SessionStatus } from "../session-status.js";
 import { formatSessionTime } from "../session-time.js";
@@ -23,12 +22,7 @@ async function tryCancel(deps: AppDeps, viewer: SignedInUser, sessionId: string)
   if (target.status === SessionStatus.CANCELLED) return true;
 
   const now = deps.now();
-  if (viewer.role === Role.MEMBER) {
-    if (target.end <= now) {
-      throw new HttpError(400, ErrorCode.VALIDATION, "A session that has already ended cannot be cancelled.");
-    }
-    refuseIfTooLateToChange(target.start, now);
-  }
+  if (viewer.role === Role.MEMBER) refuseIfTooLateToChange(target.start, now);
 
   return cancelSession(deps.db, {
     id: target.id,
