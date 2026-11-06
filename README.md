@@ -6,6 +6,8 @@ A member finds a professional, picks a time on their own clock, and books a 50-m
 
 **Stack:** TypeScript, React, Node, Express, PostgreSQL
 
+**Live demo:** https://booking.murtazasaifee.com. Log in with a [demo account](#demo-accounts) or sign up. Its data is fictional and shared, so please don't enter real details.
+
 ## Quick start
 
 You need Docker with Compose, and ports 3000 and 5433 free.
@@ -151,3 +153,47 @@ Other commands:
 | `npm run typecheck` | Type-checks server and web.                                                      |
 | `npm run lint`      | Runs Oxlint.                                                                     |
 | `npm run format`    | Runs Prettier.                                                                   |
+
+## Deploying to AWS
+
+The live demo is defined with AWS CDK in [infra/](infra/). It runs in Singapore on a free Supabase database, and costs about $0 a month at this traffic, plus the Route 53 zone.
+
+- **Web:** CloudFront serves the build from S3.
+- **API:** CloudFront sends `/api/*` to a Lambda running the same Express app, through the Lambda Web Adapter.
+- **Background checks:** a Lambda freezes between requests, so a second one runs them every minute on a schedule, in place of the loop.
+- **Migrations and demo data:** a third Lambda runs during the deploy, before the API goes live. If it fails, the deploy fails and the running API stays as it was.
+
+To deploy your own, you need the AWS CLI signed in, a Route 53 zone and a Supabase project. Put your domain in [infra/bin/app.ts](infra/bin/app.ts), then create `infra/.env.deploy`, which git ignores:
+
+```
+DATABASE_URL=postgresql://postgres.<project-id>:<url-encoded-password>@<pooler-host>:6543/postgres
+JWT_SECRET=<a long random string>
+```
+
+Use the Transaction pooler address from Supabase's Connect screen. The direct address is IPv6 only, and Lambda can't reach it.
+
+```bash
+npm ci
+```
+
+```bash
+cd infra && npm ci
+```
+
+Run these from `infra/`. The bootstrap is needed once per account:
+
+```bash
+npx cdk bootstrap aws://<account-id>/ap-southeast-1 aws://<account-id>/us-east-1
+```
+
+```bash
+npx cdk deploy --all
+```
+
+To tear it all down, also from `infra/` and with `.env.deploy` still in place:
+
+```bash
+npx cdk destroy --all
+```
+
+This leaves the Supabase project, which you delete from its dashboard.
