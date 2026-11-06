@@ -1,11 +1,13 @@
 import express from "express";
 import type { AppDeps } from "../app.js";
-import { currentUser, requireSignedIn } from "../auth/guards.js";
+import { currentUser, requireRole, requireSignedIn } from "../auth/guards.js";
 import { decodeCursor, timeCursorValueSchema } from "../paging.js";
+import { Role } from "../roles.js";
 import { parseInput } from "../validation.js";
 import { cancelMySession } from "./cancel.js";
 import { mySessionOr404 } from "./lookup.js";
-import { sessionsPageSchema } from "./schemas.js";
+import { rescheduleMySession } from "./reschedule.js";
+import { rescheduleSchema, sessionsPageSchema } from "./schemas.js";
 import { listMySessions, listNextSessions } from "./store.js";
 
 export function sessionRoutes(deps: AppDeps): express.Router {
@@ -30,6 +32,12 @@ export function sessionRoutes(deps: AppDeps): express.Router {
 
   router.post("/:id/cancel", requireSignedIn(deps), async (req, res) => {
     await cancelMySession(deps, currentUser(res), req.params.id);
+    res.status(204).end();
+  });
+
+  router.post("/:id/reschedule", requireRole(deps, Role.MEMBER), async (req, res) => {
+    const { start } = parseInput(rescheduleSchema, req.body);
+    await rescheduleMySession(deps, currentUser(res), req.params.id, new Date(start));
     res.status(204).end();
   });
 

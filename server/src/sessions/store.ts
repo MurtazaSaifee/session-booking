@@ -1,5 +1,6 @@
 import type { Db } from "../db.js";
 import { PAGE_QUERY_LIMIT, type Page, type Position } from "../paging.js";
+import { newRemindersCte, newRemindersParams } from "../reminders/new-reminders.js";
 import { ReminderStatus } from "../reminders/reminder-values.js";
 import { Role, type SignedInUser } from "../roles.js";
 import { SessionStatus } from "../session-status.js";
@@ -156,4 +157,47 @@ export async function cancelSession(db: Db, input: CancelInput): Promise<void> {
       reminderCancelled: ReminderStatus.CANCELLED,
     },
   );
+}
+
+type MoveInput = {
+  id: string;
+  // The start the checks were made on. If the session has changed since, the move is dropped.
+  currentStart: Date;
+  start: Date;
+  end: Date;
+  recipientId: string;
+  text: string;
+  now: Date;
+};
+
+// One statement, so the move, the old reminders going, the new ones and the notice all happen together or not
+// at all. Returns false when the session is no longer booked at currentStart, for instance after a cancel.
+export async function moveSession(db: Db, input: MoveInput): Promise<boolean> {
+  const result = await db.raw<{ rows: unknown[] }>(
+    `
+    with moved as (
+      update sessions
+      set starts_at = :start, ends_at = :end, updated_at = :now
+      where id = :id and status = :booked and starts_at = :currentStart
+      returning id, member_id, professional_id, starts_at
+    ),
+    dropped_reminders as (
+      update reminders set status = :reminderCancelled
+      where session_id in (select id from moved) and status = :pending
+    ),
+    ${newRemindersCte("moved")},
+    notice as (
+      insert into notifications (recipient_id, session_id, text, created_at)
+      select :recipientId, id, :text, cast(:now as timestamptz) from moved
+    )
+    select id from moved
+    `,
+    {
+      ...input,
+      ...newRemindersParams,
+      booked: SessionStatus.BOOKED,
+      reminderCancelled: ReminderStatus.CANCELLED,
+    },
+  );
+  return result.rows.length > 0;
 }

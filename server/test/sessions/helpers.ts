@@ -3,11 +3,13 @@ import type { Db } from "../../src/db.js";
 import { signUpAgent, testMember, testProfessional } from "../app.js";
 import {
   KOLKATA_FIRST,
+  SESSIONS_URL,
   SINGAPORE_SLOT,
   book,
   otherMember,
   signUpProfessional,
   singaporeProfessional,
+  type Agent,
 } from "../booking/helpers.js";
 
 export async function twoMembersAndTwoProfessionals(app: Express) {
@@ -41,4 +43,8 @@ export async function withTrigger(
   } finally {
     await db.raw(drop);
   }
+}
+
+export function reschedule(member: Agent, sessionId: string, start: string) {
+  return member.post(`${SESSIONS_URL}/${sessionId}/reschedule`).send({ start });
 }

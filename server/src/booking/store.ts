@@ -26,7 +26,7 @@ type BookingInput = { memberId: string; professionalId: string; start: Date; end
 const DEADLOCK_DETECTED = "40P01";
 
 // Two requests can both pass the check before either saves, so the database has the last word.
-function overlapRefusal(err: unknown): BookingRefusal | undefined {
+export function overlapRefusal(err: unknown): BookingRefusal | undefined {
   const pgError = err as { code?: string; constraint?: string };
   if (pgError.code !== "23P01") return undefined;
   if (pgError.constraint === "sessions_professional_overlap") return ErrorCode.SLOT_TAKEN;
