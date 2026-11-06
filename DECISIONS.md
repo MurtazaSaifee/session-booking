@@ -136,6 +136,17 @@ Building slots in SQL would save about 1 ms on something people do rarely, and c
 - **Previous page:** it shows the remembered page, so a session cancelled since then looks booked until a reload.
 - **Web tests:** the web has unit tests for its logic but no component tests. I checked the screens by hand in a browser.
 
+## The live demo
+
+The [live demo](https://booking.murtazasaifee.com) is the same Express app on AWS Lambda, behind CloudFront, with a free Supabase database in Singapore. I chose this over one small server because it costs about $0 a month at this traffic. Running on Lambda changed a few things.
+
+- **Start-up work moved out of the API.** A Lambda copy can start on any request and freezes between requests, so a loop can't run reliably and a member shouldn't wait on a migration check. The API only answers requests. One function runs migrations during the deploy, and another runs the background checks every minute. It's the same code the Docker loop calls, so reminders behave the same way.
+- **Connections go through Supabase's pooler.** The direct database address is IPv6 only, and a Lambda outside a private network can't reach it. Each copy has a pool of 2, and the account allows 10 copies, so that's at most 20 connections against a database limit of 60. A burst of 25 requests held 10. The connection is verified against Supabase's own root certificate, which is committed because it's public.
+- **Bursts over 10 requests get turned away.** That's the same limit of 10 copies. Ten requests at once all passed, and 25 at once had some refused with a `429`. It's fine for a demo. Production would ask AWS to raise the limit.
+- **Cold starts are short.** A new copy took about 0.5 seconds to start and 0.2 seconds to answer its first request. Other requests stay warm.
+- **The Lambda's own URL is open.** CloudFront's signed access to it needs a hash of every POST body, which browsers don't send. So someone who finds the URL can skip CloudFront, but they still face the same sign-in checks. Production would put API Gateway or a shared secret header in front.
+- **Secrets are in the Lambda settings and the deploy template.** They stay inside the AWS account and out of git, but anyone with read access to that account can see them. Production would use a secrets manager.
+
 ## Running this in production
 
 None of the following is built. Rate limiting, audit logs, consent records, encryption at rest and CI are all out of scope here, and a healthcare product needs every one of them.
@@ -168,7 +179,7 @@ What makes this product different is that the fact someone is seeing a counsello
 
 **Migrations and indexes**
 
-Production would run migrations as a deploy step, not at start-up. Today they run at start-up in one transaction, so a failed batch undoes itself and start-up waits for it.
+Production would run migrations as a deploy step, as the live demo does. In Docker they run at start-up in one transaction, so a failed batch undoes itself and start-up waits for it.
 
 To add an index to a big table, build it with `CREATE INDEX CONCURRENTLY` as a deploy step, because it can't run inside a transaction. The migration's `if not exists` then does nothing. Forgetting this step blocks writes to the table for the whole build. A failed concurrent build leaves an invalid index, which you drop and rebuild.
 
