@@ -23,7 +23,7 @@ export type Session = {
 
 type BookingInput = { memberId: string; professionalId: string; start: Date; end: Date; now: Date };
 
-// Two requests can both pass the check before either saves, so the database has the last word.
+// Two moves can both pass the check before either saves, so the database has the last word.
 export function overlapRefusal(err: unknown): BookingRefusal | undefined {
   const pgError = err as { code?: string; constraint?: string };
   if (pgError.code !== "23P01") return undefined;
@@ -32,13 +32,16 @@ export function overlapRefusal(err: unknown): BookingRefusal | undefined {
   return undefined;
 }
 
-// One statement saves the session and its reminders, so either all of them exist or none do.
-async function saveSession(db: Db, input: BookingInput): Promise<Session> {
+// One statement saves the session and its reminders, so either all of them exist or none do. Returns nothing
+// when an overlap rule refuses it. A plain insert racing others for a slot can deadlock while the rules are
+// checked; `on conflict` backs out of a clash instead of waiting on it.
+async function saveSession(db: Db, input: BookingInput): Promise<Session | undefined> {
   const result = await db.raw<{ rows: SessionRow[] }>(
     `
     with new_session as (
       insert into sessions (member_id, professional_id, starts_at, ends_at, status)
       values (:memberId, :professionalId, :start, :end, :booked)
+      on conflict do nothing
       returning *
     ),
     ${newRemindersCte("new_session")}
@@ -51,6 +54,7 @@ async function saveSession(db: Db, input: BookingInput): Promise<Session> {
     },
   );
   const row = result.rows[0];
+  if (!row) return undefined;
   return {
     id: row.id,
     professionalId: row.professional_id,
@@ -64,11 +68,15 @@ export async function insertSession(
   db: Db,
   input: BookingInput,
 ): Promise<{ session: Session } | { refusal: BookingRefusal }> {
-  try {
-    return { session: await retryOnDeadlock(() => saveSession(db, input)) };
-  } catch (err) {
-    const refusal = overlapRefusal(err);
-    if (refusal) return { refusal };
-    throw err;
-  }
+  const session = await retryOnDeadlock(() => saveSession(db, input));
+  if (session) return { session };
+
+  // `on conflict` doesn't say which rule refused it. The member's own clash comes first, so someone retrying
+  // after their session went through is told they already have it, not that someone else took it.
+  const ownClash = await db("sessions")
+    .where({ member_id: input.memberId, status: SessionStatus.BOOKED })
+    .where("starts_at", "<", input.end)
+    .where("ends_at", ">", input.start)
+    .first("id");
+  return { refusal: ownClash ? ErrorCode.MEMBER_OVERLAP : ErrorCode.SLOT_TAKEN };
 }

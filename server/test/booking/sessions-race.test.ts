@@ -20,8 +20,8 @@ import {
 
 const MEMBER_COUNT = 10;
 
-// Postgres takes about a second to settle each deadlock, and a busy machine can hit several in a row.
-const DEADLOCKS_TIME_LIMIT_MS = 20_000;
+// Signing up ten members hashes ten passwords, which is slow on a busy machine.
+const RACE_TIME_LIMIT_MS = 20_000;
 
 const clock = testClock(CLOCK_START);
 
@@ -71,7 +71,7 @@ it(
     }
     expect(await bookedCount()).toBe(1);
   },
-  DEADLOCKS_TIME_LIMIT_MS,
+  RACE_TIME_LIMIT_MS,
 );
 
 it("one member booking two professionals' overlapping slots at once gets only one", async () => {

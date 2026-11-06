@@ -48,7 +48,7 @@ async function tryReschedule(
   if (refusal) throw refuse(refusal);
 
   try {
-    // A booking for the same time can leave the two waiting on each other. The retry gets the normal refusal.
+    // Two moves to the same time can leave the two waiting on each other. The retry gets the normal refusal.
     return await retryOnDeadlock(() =>
       moveSession(deps.db, {
         id: session.id,
