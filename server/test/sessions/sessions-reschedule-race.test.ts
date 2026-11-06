@@ -1,17 +1,20 @@
 import { afterAll, beforeEach, expect, it } from "vitest";
 import { createDb } from "../../src/db.js";
+import { ErrorCode } from "../../src/errors.js";
+import { API_V1 } from "../../src/paths.js";
 import { deliverDueReminders } from "../../src/reminders/deliver.js";
 import { ReminderStatus } from "../../src/reminders/reminder-values.js";
 import { SessionStatus } from "../../src/session-status.js";
-import { createTestApp, resetDb, testClock } from "../app.js";
-import { CLOCK_START, KOLKATA_SECOND, SESSIONS_URL, type Agent } from "../booking/helpers.js";
+import { createTestApp, resetDb, testClock, testMember, testProfessional } from "../app.js";
+import { CLOCK_START, KOLKATA_SECOND, SESSIONS_URL, logIn, type Agent } from "../booking/helpers.js";
 import { testDatabaseUrl } from "../db.js";
-import { HOUR_BEFORE_DUE, bookOneSession, textsFor } from "../reminders/helpers.js";
+import { DAY_BEFORE_DUE, HOUR_BEFORE_DUE, bookOneSession, textsFor } from "../reminders/helpers.js";
 import { holdSave, reschedule, waitUntilStuck } from "./helpers.js";
 
 // One connection each for the hold, the two sides of a race, and watching them wait.
 const db = createDb(testDatabaseUrl, { max: 5 });
-const app = createTestApp(db, testClock(CLOCK_START).now);
+const clock = testClock(CLOCK_START);
+const app = createTestApp(db, clock.now);
 
 const THIRD_SLOT = "2027-01-18T05:30:00Z";
 // Each statement is found by a name only it contains.
@@ -33,7 +36,10 @@ const CANCEL_ON_SESSION = {
   atRow: 1,
 };
 
-beforeEach(() => resetDb(db));
+beforeEach(() => {
+  clock.set(CLOCK_START);
+  return resetDb(db);
+});
 
 afterAll(() => db.destroy());
 
@@ -46,8 +52,8 @@ async function remindersFor(agent: Agent) {
   return (await textsFor(agent)).filter((text) => text.startsWith("Your session with"));
 }
 
-function startCancel(professional: Agent, sessionId: string) {
-  return Promise.resolve(professional.post(`${SESSIONS_URL}/${sessionId}/cancel`).send({}));
+function startCancel(agent: Agent, sessionId: string) {
+  return Promise.resolve(agent.post(`${SESSIONS_URL}/${sessionId}/cancel`).send({}));
 }
 
 it("a checker that runs while a move holds the old reminders delivers none of them", async () => {
@@ -125,7 +131,7 @@ it("a move can't overwrite a cancel that saves first", async () => {
   expect(await remindersFor(professional)).toEqual([]);
 });
 
-it("a cancel that saves just after a move leaves no reminder that would still be delivered", async () => {
+it("a cancel that saves just after a move reads it again, cancels the new reminders and names the new time", async () => {
   const { member, professional, sessionId } = await bookOneSession(app);
 
   await holdSave(db, MOVE_ON_SESSION, async (release) => {
@@ -139,9 +145,44 @@ it("a cancel that saves just after a move leaves no reminder that would still be
   });
   await deliverDueReminders(db, new Date("2027-01-18T03:30:00Z"));
 
-  expect((await member.get(SESSIONS_URL)).body.cancelled.items).toHaveLength(1);
-  expect(await remindersFor(member)).toEqual([]);
+  expect((await member.get(SESSIONS_URL)).body.cancelled.items).toMatchObject([
+    { id: sessionId, start: "2027-01-18T04:30:00.000Z" },
+  ]);
+  expect(await textsFor(member)).toEqual(["Nora Quill cancelled your session on Mon 18 Jan at 12:30pm"]);
   expect(await remindersFor(professional)).toEqual([]);
+  // The old and the new reminders are all cancelled, not left pending for the checker to skip.
+  const statuses: string[] = await db("reminders").where({ session_id: sessionId }).pluck("status");
+  expect(statuses).toEqual(Array(8).fill(ReminderStatus.CANCELLED));
+});
+
+it("a member's cancel that waits for a move into the last 24 hours is refused", async () => {
+  const { member, professional, sessionId } = await bookOneSession(app);
+  const bothDays = [
+    { weekday: 1, start: "09:00", end: "12:00" },
+    { weekday: 7, start: "09:00", end: "12:00" },
+  ];
+  await professional.put(`${API_V1}/settings/hours`).send({ ranges: bothDays });
+  // Exactly 24 hours before the session, so moving or cancelling it is still allowed.
+  clock.set(DAY_BEFORE_DUE);
+  await logIn(member, testMember);
+  await logIn(professional, testProfessional);
+
+  let cancelled: { status: number; body: { error: string } } | undefined;
+  await holdSave(db, MOVE_ON_SESSION, async (release) => {
+    const move = startMove(member, sessionId, "2027-01-17T04:30:00Z");
+    await waitUntilStuck(db, MOVE_SAVING);
+    const cancel = startCancel(member, sessionId);
+    await waitUntilStuck(db, CANCEL_SAVING);
+    await release();
+    expect((await move).status).toBe(204);
+    cancelled = await cancel;
+  });
+
+  expect(cancelled?.status).toBe(409);
+  expect(cancelled?.body.error).toBe(ErrorCode.TOO_LATE_TO_CHANGE);
+  expect((await member.get(SESSIONS_URL)).body.upcoming.items).toMatchObject([
+    { id: sessionId, start: "2027-01-17T04:30:00.000Z" },
+  ]);
 });
 
 it("two moves at the same moment: the second reads the session again and moves it on, so it ends up once, at the last time", async () => {

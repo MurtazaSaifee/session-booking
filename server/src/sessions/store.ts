@@ -102,6 +102,7 @@ export async function findMySession(
 }
 
 type CancelTargetRow = SessionRow & {
+  version: number;
   viewer_name: string;
   other_person_timezone: string;
 };
@@ -110,6 +111,7 @@ export type CancelTarget = {
   id: string;
   status: SessionStatus;
   start: Date;
+  version: number;
   viewerName: string;
   otherPersonId: string;
   otherPersonTimezone: string;
@@ -123,13 +125,14 @@ export async function findToCancel(
   const row: CancelTargetRow | undefined = await ownSessions(db, viewer)
     .join("users as me", "me.id", sides[viewer.role].own)
     .where("s.id", id)
-    .select("me.name as viewer_name", "u.timezone as other_person_timezone")
+    .select("s.version", "me.name as viewer_name", "u.timezone as other_person_timezone")
     .first();
   return (
     row && {
       id: row.id,
       status: row.status,
       start: row.starts_at,
+      version: row.version,
       viewerName: row.viewer_name,
       otherPersonId: row.other_person_id,
       otherPersonTimezone: row.other_person_timezone,
@@ -137,16 +140,26 @@ export async function findToCancel(
   );
 }
 
-type CancelInput = { id: string; cancelledBy: string; recipientId: string; text: string; now: Date };
+type CancelInput = {
+  id: string;
+  // The version the checks were made on. If the session has changed since, the cancel is dropped.
+  version: number;
+  cancelledBy: string;
+  recipientId: string;
+  text: string;
+  now: Date;
+};
 
-// One statement, so the session, its reminders and the notice all change together or not at all.
-export async function cancelSession(db: Db, input: CancelInput): Promise<void> {
-  await db.raw(
+// One statement, so the session, its reminders and the notice all change together or not at all. Returns false
+// when the session is no longer booked at that version, for instance after a move.
+export async function cancelSession(db: Db, input: CancelInput): Promise<boolean> {
+  const result = await db.raw<{ rows: unknown[] }>(
     `
     with cancelled as (
       update sessions
-      set status = :cancelled, cancelled_by = :cancelledBy, cancelled_at = :now, updated_at = :now
-      where id = :id and status = :booked
+      set status = :cancelled, cancelled_by = :cancelledBy, cancelled_at = :now, updated_at = :now,
+        version = version + 1
+      where id = :id and status = :booked and version = :version
       returning id
     ),
     cancelled_reminders as (
@@ -167,6 +180,7 @@ export async function cancelSession(db: Db, input: CancelInput): Promise<void> {
       reminderCancelled: ReminderStatus.CANCELLED,
     },
   );
+  return result.rows.length > 0;
 }
 
 type MoveInput = {
