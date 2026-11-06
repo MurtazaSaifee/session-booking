@@ -84,3 +84,19 @@ export async function findUserByEmail(
 export async function findUserById(db: Db, id: string): Promise<PublicUser | undefined> {
   return db<PublicUser>("users").select(publicColumns).where({ id }).first();
 }
+
+export async function updateUser(
+  db: Db,
+  id: string,
+  changes: { name?: string; timezone?: string },
+): Promise<PublicUser | undefined> {
+  const rows = await db<PublicUser>("users")
+    .where({ id })
+    .update({
+      name: changes.name,
+      timezone: changes.timezone,
+    })
+    .returning(publicColumns);
+  return rows[0];
+}
+

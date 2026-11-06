@@ -44,3 +44,12 @@ export const loginSchema = z.object({
   email: z.string("Please enter your email address.").min(1, "Please enter your email address."),
   password: z.string("Please enter your password.").min(1, "Please enter your password."),
 });
+
+export const updateUserSchema = z
+  .object({
+    name: common.name,
+    timezone: common.timezone,
+  })
+  .partial()
+  .refine((changes) => Object.keys(changes).length > 0, "Nothing to update.");
+

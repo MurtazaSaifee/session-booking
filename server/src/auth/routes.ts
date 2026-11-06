@@ -7,9 +7,9 @@ import { clearSignIn, setSignInCookies } from "./cookies.js";
 import { notSignedIn, signedInUser } from "./guards.js";
 import { hashPassword, verifyPassword } from "./passwords.js";
 import { revokeRefreshToken, rotateRefreshToken } from "./refresh-token-store.js";
-import { loginSchema, signupSchema } from "./schemas.js";
+import { loginSchema, signupSchema, updateUserSchema } from "./schemas.js";
 import { createSignIn, finishSignIn, newRefreshTokenRecord } from "./sign-in.js";
-import { createUserWithRefreshToken, findUserByEmail, findUserById } from "./store.js";
+import { createUserWithRefreshToken, findUserByEmail, findUserById, updateUser } from "./store.js";
 import { hashRefreshToken } from "./tokens.js";
 
 // Checked against when the email is unknown, so a login takes about as long either way.
@@ -64,6 +64,15 @@ export function authRoutes(deps: AppDeps): express.Router {
     if (!row) throw notSignedIn();
 
     res.json({ user: row });
+  });
+
+  router.patch("/me", async (req, res) => {
+    const { id } = await signedInUser(req, deps);
+    const changes = parseInput(updateUserSchema, req.body);
+    const user = await updateUser(deps.db, id, changes);
+    if (!user) throw notSignedIn();
+
+    res.json({ user });
   });
 
   router.post("/refresh", async (req, res) => {
