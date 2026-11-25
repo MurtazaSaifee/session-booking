@@ -1,11 +1,12 @@
 import { App } from "aws-cdk-lib";
+import { createHmac } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { parseEnv } from "node:util";
 import { CertificateStack } from "../lib/certificate-stack.js";
 import { SiteStack } from "../lib/site-stack.js";
 
-const ZONE_NAME = "murtazasaifee.com";
-const DOMAIN_NAME = `booking.${ZONE_NAME}`;
+const ZONE_NAME = process.env.SITE_ZONE_NAME ?? "murtazasaifee.com";
+const DOMAIN_NAME = process.env.SITE_DOMAIN_NAME ?? `booking.${ZONE_NAME}`;
 
 // The CDK command line fills this in from whoever is signed in, so the account isn't written in the repo.
 const account = process.env.CDK_DEFAULT_ACCOUNT;
@@ -19,6 +20,11 @@ function secret(name: string): string {
   if (!value) throw new Error(`${name} is not set in infra/.env.deploy`);
   return value;
 }
+
+const jwtSecret = secret("JWT_SECRET");
+const originVerifySecret =
+  deploySecrets.ORIGIN_VERIFY_SECRET ??
+  createHmac("sha256", jwtSecret).update("cloudfront-origin-verify").digest("hex");
 
 const app = new App();
 
@@ -38,6 +44,7 @@ new SiteStack(app, "SessionBookingSite", {
   certificate,
   secrets: {
     databaseUrl: secret("DATABASE_URL"),
-    jwtSecret: secret("JWT_SECRET"),
+    jwtSecret,
+    originVerifySecret,
   },
 });

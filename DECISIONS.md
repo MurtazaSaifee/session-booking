@@ -144,12 +144,12 @@ The [live demo](https://booking.murtazasaifee.com) is the same Express app on AW
 - **Connections go through Supabase's pooler.** The direct database address is IPv6 only, and a Lambda outside a private network can't reach it. Each copy has a pool of 2, and the account allows 10 copies, so that's at most 20 connections against a database limit of 60. A burst of 25 requests held 10. The connection is verified against Supabase's own root certificate, which is committed because it's public.
 - **Bursts over 10 requests get turned away.** That's the same limit of 10 copies. Ten requests at once all passed, and 25 at once had some refused with a `429`. It's fine for a demo. Production would ask AWS to raise the limit.
 - **Cold starts are short.** A new copy took about 0.5 seconds to start and 0.2 seconds to answer its first request. Other requests stay warm.
-- **The Lambda's own URL is open.** CloudFront's signed access to it needs a hash of every POST body, which browsers don't send. So someone who finds the URL can skip CloudFront, but they still face the same sign-in checks. Production would put API Gateway or a shared secret header in front.
+- **The Lambda's own URL checks a CloudFront origin header.** CloudFront's signed access to a Function URL needs a hash of every POST body, which browsers don't send. Instead, CloudFront attaches a shared `x-origin-verify` header on `/api/*`, and Express rejects direct requests that lack it (`403`).
 - **Secrets are in the Lambda settings and the deploy template.** They stay inside the AWS account and out of git, but anyone with read access to that account can see them. Production would use a secrets manager.
 
 ## Running this in production
 
-None of the following is built. Rate limiting, audit logs, consent records, encryption at rest and CI are all out of scope here, and a healthcare product needs every one of them.
+This app already includes basic per-IP rate limiting (in Express behind CloudFront), strict CSP/security headers, a daily demo database reset, and GitHub Actions CI. However, audit logs, consent records, encryption at rest, and clinical compliance controls are out of scope here, and a real healthcare product needs every one of them.
 
 What makes this product different is that the fact someone is seeing a counsellor is itself sensitive, even with no clinical notes in the system. A booking row, a log line or a notification can reveal it. So the first question for each item below is who can see that a person is getting support.
 
@@ -163,7 +163,7 @@ What makes this product different is that the fact someone is seeing a counsello
 
 **Security**
 
-- Rate limiting on login, sign-up and booking.
+- Distributed rate limiting across edge/WAF (current `express-rate-limit` runs per Lambda container).
 - Encryption at rest, including backups, and TLS everywhere.
 - Secrets from a secrets manager, with a rotation plan for the signing key.
 - Reuse detection for refresh tokens, which ends every copy of a sign-in when a spent token comes back.
@@ -172,7 +172,6 @@ What makes this product different is that the fact someone is seeing a counsello
 
 **Reliability**
 
-- CI that runs the tests and the type check on every change.
 - Monitoring and alerts on errors, and on the age of the oldest pending reminder. A stuck checker should wake someone up, since a missed reminder is a missed session.
 - Tested backups and restores.
 - A `DB_POOL_MAX` set so that copies times pool size stays under the database's connection limit.

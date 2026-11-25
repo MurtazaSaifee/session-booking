@@ -1,6 +1,6 @@
 # AI usage
 
-AI wrote nearly all of this code. I made the design calls, reviewed the work and pushed back when it was wrong, and I can explain every line.
+I designed the architecture, database guarantees, and test strategy, and used AI coding tools for implementation—reviewing, challenging, and signing off on every diff.
 
 ## Tools
 

@@ -30,6 +30,8 @@ const app = createApp({
   jwtSecret,
   secureCookies,
   staticDir,
+  originVerifySecret: process.env.ORIGIN_VERIFY_SECRET,
+  rateLimit: process.env.DISABLE_RATE_LIMIT !== "true",
 });
 
 app.listen(port, (err) => {

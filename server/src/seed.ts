@@ -108,76 +108,99 @@ export async function seedIfEmpty(db: Db, now: Date): Promise<boolean> {
     );
     if (existing.rows[0].exists) return false;
 
-    const passwordHash = await hashPassword(DEMO_PASSWORD);
+    await insertDemoData(trx, now);
+    return true;
+  });
+}
 
-    const usersToInsert = [
-      ...DEMO_PROFESSIONALS.map((p) => ({
-        role: Role.PROFESSIONAL,
-        name: p.name,
-        email: p.email,
-        timezone: p.timezone,
-        title: p.title,
-        bio: p.bio,
-      })),
-      ...DEMO_MEMBERS.map((m) => ({
-        role: Role.MEMBER,
-        name: m.name,
-        email: m.email,
-        timezone: m.timezone,
-        title: null,
-        bio: null,
-      })),
-    ];
+// Replaces all demo and user-created rows with a fresh seed set in one transaction.
+// Guarded by ALLOW_DEMO_RESET so it can never wipe data by accident.
+export async function resetDemoDatabase(
+  db: Db,
+  now: Date,
+  env: { ALLOW_DEMO_RESET?: string },
+): Promise<void> {
+  if (env.ALLOW_DEMO_RESET !== "true") {
+    throw new Error("ALLOW_DEMO_RESET must be set to true to reset the database");
+  }
+  await db.transaction(async (trx) => {
+    await trx.raw("select pg_advisory_xact_lock(?)", [SEED_LOCK_ID]);
+    await trx.raw("truncate users, refresh_tokens cascade");
+    await insertDemoData(trx, now);
+  });
+}
 
-    const userRows = await trx.raw<{ rows: { id: string; email: string }[] }>(
-      `
+async function insertDemoData(trx: Db, now: Date): Promise<void> {
+  const passwordHash = await hashPassword(DEMO_PASSWORD);
+
+  const usersToInsert = [
+    ...DEMO_PROFESSIONALS.map((p) => ({
+      role: Role.PROFESSIONAL,
+      name: p.name,
+      email: p.email,
+      timezone: p.timezone,
+      title: p.title,
+      bio: p.bio,
+    })),
+    ...DEMO_MEMBERS.map((m) => ({
+      role: Role.MEMBER,
+      name: m.name,
+      email: m.email,
+      timezone: m.timezone,
+      title: null,
+      bio: null,
+    })),
+  ];
+
+  const userRows = await trx.raw<{ rows: { id: string; email: string }[] }>(
+    `
       insert into users (role, name, email, password_hash, timezone, title, bio)
       select role, name, email, :passwordHash, timezone, title, bio
       from json_to_recordset(cast(:users as json))
         as (role text, name text, email text, timezone text, title text, bio text)
       returning id, email
       `,
-      {
-        passwordHash,
-        users: JSON.stringify(usersToInsert),
-      },
-    );
+    {
+      passwordHash,
+      users: JSON.stringify(usersToInsert),
+    },
+  );
 
-    const userMap = new Map(userRows.rows.map((r) => [r.email, r.id]));
+  const userMap = new Map(userRows.rows.map((r) => [r.email, r.id]));
 
-    const hoursToInsert = DEMO_PROFESSIONALS.flatMap((p) => {
-      const professionalId = userMap.get(p.email)!;
-      return p.ranges.map((r) => ({
-        professional_id: professionalId,
-        weekday: r.weekday,
-        start_time: r.start,
-        end_time: r.end,
-      }));
-    });
+  const hoursToInsert = DEMO_PROFESSIONALS.flatMap((p) => {
+    const professionalId = userMap.get(p.email)!;
+    return p.ranges.map((r) => ({
+      professional_id: professionalId,
+      weekday: r.weekday,
+      start_time: r.start,
+      end_time: r.end,
+    }));
+  });
 
-    await trx.raw(
-      `
+  await trx.raw(
+    `
       insert into working_hours (professional_id, weekday, start_time, end_time)
       select professional_id, weekday, start_time, end_time
       from json_to_recordset(cast(:hours as json))
         as (professional_id uuid, weekday smallint, start_time time, end_time time)
       `,
-      { hours: JSON.stringify(hoursToInsert) },
-    );
+    { hours: JSON.stringify(hoursToInsert) },
+  );
 
-    const samId = userMap.get("sam@example.com")!;
-    const priyaId = userMap.get("priya@example.com")!;
+  const samId = userMap.get("sam@example.com")!;
+  const priyaId = userMap.get("priya@example.com")!;
 
-    // Align to the nearest minute so times display cleanly.
-    const startMinute = Math.floor(now.getTime() / 60_000) * 60_000;
-    const upcomingStart = new Date(startMinute + 70 * 60_000);
-    const upcomingEnd = new Date(upcomingStart.getTime() + 50 * 60_000);
+  // Align to the nearest minute so times display cleanly.
+  const startMinute = Math.floor(now.getTime() / 60_000) * 60_000;
+  const upcomingStart = new Date(startMinute + 70 * 60_000);
+  const upcomingEnd = new Date(upcomingStart.getTime() + 50 * 60_000);
 
-    const pastStart = new Date(startMinute - 48 * 60 * 60_000);
-    const pastEnd = new Date(pastStart.getTime() + 50 * 60_000);
+  const pastStart = new Date(startMinute - 48 * 60 * 60_000);
+  const pastEnd = new Date(pastStart.getTime() + 50 * 60_000);
 
-    await trx.raw(
-      `
+  await trx.raw(
+    `
       with seeded_sessions as (
         insert into sessions (member_id, professional_id, starts_at, ends_at, status)
         values
@@ -188,19 +211,16 @@ export async function seedIfEmpty(db: Db, now: Date): Promise<boolean> {
       ${newRemindersCte("seeded_sessions")}
       select id from seeded_sessions
       `,
-      {
-        memberId: samId,
-        professionalId: priyaId,
-        upcomingStart,
-        upcomingEnd,
-        pastStart,
-        pastEnd,
-        now,
-        ...newRemindersParams,
-        booked: SessionStatus.BOOKED,
-      },
-    );
-
-    return true;
-  });
+    {
+      memberId: samId,
+      professionalId: priyaId,
+      upcomingStart,
+      upcomingEnd,
+      pastStart,
+      pastEnd,
+      now,
+      ...newRemindersParams,
+      booked: SessionStatus.BOOKED,
+    },
+  );
 }

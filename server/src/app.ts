@@ -10,6 +10,7 @@ import { sessionRoutes } from "./sessions/routes.js";
 import { settingsRoutes } from "./settings/routes.js";
 import { slotRoutes } from "./slots/routes.js";
 import { ErrorCode, HttpError } from "./errors.js";
+import { createRateLimiters, verifyOriginSecret } from "./security.js";
 import type { Db } from "./db.js";
 
 export type AppDeps = {
@@ -19,10 +20,17 @@ export type AppDeps = {
   jwtSecret: string;
   secureCookies: boolean;
   staticDir?: string;
+  originVerifySecret?: string;
+  rateLimit?: boolean;
 };
 
 export function createApp(deps: AppDeps) {
   const app = express();
+  app.disable("x-powered-by");
+
+  if (deps.originVerifySecret) {
+    app.use("/api", verifyOriginSecret(deps.originVerifySecret));
+  }
 
   // With SameSite cookies, this blocks cross-site form posts (a CSRF defence).
   app.use("/api", (req, res, next) => {
@@ -35,10 +43,16 @@ export function createApp(deps: AppDeps) {
     }
     next();
   });
-  app.use(express.json());
+  app.use(express.json({ limit: "16kb" }));
   app.use(cookieParser());
 
   const v1 = express.Router();
+  if (deps.rateLimit) {
+    const { apiLimiter, authLimiter } = createRateLimiters(Boolean(deps.originVerifySecret));
+    v1.use(apiLimiter);
+    v1.use("/auth/login", authLimiter);
+    v1.use("/auth/signup", authLimiter);
+  }
 
   v1.use("/health", healthRoutes(deps));
   v1.use("/auth", authRoutes(deps));
@@ -72,6 +86,10 @@ export function createApp(deps: AppDeps) {
     }
     if (typeof err === "object" && err !== null && "type" in err && err.type === "entity.parse.failed") {
       res.status(400).json({ error: ErrorCode.VALIDATION, message: "The request body isn't valid JSON." });
+      return;
+    }
+    if (typeof err === "object" && err !== null && "type" in err && err.type === "entity.too.large") {
+      res.status(413).json({ error: ErrorCode.VALIDATION, message: "Request body is too large." });
       return;
     }
     console.error(err);

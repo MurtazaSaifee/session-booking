@@ -35,3 +35,18 @@ export function addReminderSchedule(scope: Construct, secrets: ServerSecrets): v
     target: new LambdaInvoke(check, { retryAttempts: 0 }),
   });
 }
+
+// Resets demo data nightly (03:00 SGT / 19:00 UTC) so shared demo accounts stay clean and the upcoming session stays fresh.
+export function addDemoResetSchedule(scope: Construct, secrets: ServerSecrets): void {
+  const reset = serverFunction(scope, "ResetDemo", {
+    entry: "server/src/lambda/reset-demo.ts",
+    handler: "handler",
+    timeout: SETUP_TIMEOUT,
+    secrets,
+    environment: { ALLOW_DEMO_RESET: "true" },
+  });
+  new Schedule(scope, "DailyDemoReset", {
+    schedule: ScheduleExpression.cron({ minute: "0", hour: "19" }),
+    target: new LambdaInvoke(reset, { retryAttempts: 1 }),
+  });
+}

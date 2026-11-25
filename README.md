@@ -1,12 +1,35 @@
 # Session Booking
 
+[![CI](https://github.com/MurtazaSaifee/session-booking/actions/workflows/ci.yml/badge.svg)](https://github.com/MurtazaSaifee/session-booking/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 When someone reaches out for mental health support, a double-booked session or a missed reminder means they don't get it. Session Booking is a full-stack app built so that doesn't happen, for members and professionals spread across timezones.
 
 A member finds a professional, picks a time on their own clock, and books a 50-minute session. Two members can press Book at the same instant, a country can change its clocks, and the server can restart mid-delivery: the session still belongs to one member, it stays at the right time, and each reminder arrives exactly once.
 
-**Stack:** TypeScript, React, Node, Express, PostgreSQL
+**Stack:** TypeScript, React, Node, Express, PostgreSQL, AWS CDK (CloudFront + S3 + Lambda + EventBridge)
 
-**Live demo:** https://booking.murtazasaifee.com. Log in with a [demo account](#demo-accounts) or sign up. Its data is fictional and shared, so please don't enter real details.
+**Live demo:** https://booking.murtazasaifee.com. Log in with a [demo account](#demo-accounts) or sign up. Demo data is fictional, shared, and resets daily at 03:00 SGT—please don't enter real details.
+
+### Engineering highlights
+
+- **Database-enforced concurrency safety:** PostgreSQL `EXCLUDE USING gist` constraints prevent double-bookings and overlapping member sessions even under parallel requests, without slow table locks.
+- **Timezone & DST correctness:** Sessions store UTC instants while working hours store wall-clock times in the professional's timezone; Luxon computes slots across DST transitions (skipping nonexistent hours and disambiguating repeated hours with UTC offsets).
+- **Exactly-once in-app reminders:** Reminders are inserted/cancelled in the same SQL statement as the session change and claimed with `FOR UPDATE SKIP LOCKED` + a unique constraint backstop.
+- **Zero-idle-cost AWS deployment:** Static React on S3 behind CloudFront, Express on ARM64 Lambda behind an `x-origin-verify` secret header and strict CSP, plus EventBridge Scheduler for reminders and nightly demo resets.
+
+## Screenshots
+
+| Booking calendar (timezone-converted slots)                | My sessions (Upcoming / Past / Cancelled)        |
+| ---------------------------------------------------------- | ------------------------------------------------ |
+| ![Booking calendar](docs/screenshots/booking-calendar.png) | ![My sessions](docs/screenshots/my-sessions.png) |
+
+<details>
+<summary>Professionals directory</summary>
+
+![Professionals directory](docs/screenshots/professionals.png)
+
+</details>
 
 ## Quick start
 
@@ -75,7 +98,7 @@ Slots start at the beginning of each working-hours range and repeat hourly: a 50
 
 - Blocking off specific dates.
 - Password reset, email verification, social login, payments, video calls, recurring sessions, external calendar sync, and real email, SMS or push.
-- Rate limiting, audit logs, consent records, encryption at rest and CI. See [what production needs](DECISIONS.md#running-this-in-production).
+- Audit logs, consent records, encryption at rest, and compliance workflows required for real patient data. See [what production needs](DECISIONS.md#running-this-in-production).
 
 ## Architecture
 
@@ -161,7 +184,9 @@ The live demo is defined with AWS CDK in [infra/](infra/). It runs in Singapore 
 - **Web:** CloudFront serves the build from S3.
 - **API:** CloudFront sends `/api/*` to a Lambda running the same Express app, through the Lambda Web Adapter.
 - **Background checks:** a Lambda freezes between requests, so a second one runs them every minute on a schedule, in place of the loop.
-- **Migrations and demo data:** a third Lambda runs during the deploy, before the API goes live. If it fails, the deploy fails and the running API stays as it was.
+- **Nightly demo reset:** a scheduled Lambda resets the shared demo data daily at 03:00 SGT so the upcoming demo session stays fresh.
+- **Migrations and demo data:** a fourth Lambda runs during the deploy, before the API goes live. If it fails, the deploy fails and the running API stays as it was.
+- **Edge & abuse protection:** CloudFront enforces a strict Content-Security-Policy, attaches a secret `x-origin-verify` header so direct hits to the Lambda URL are rejected (`403`), and Express rate-limits auth and API traffic per viewer IP.
 
 To deploy your own, you need the AWS CLI signed in, a Route 53 zone and a Supabase project. Put your domain in [infra/bin/app.ts](infra/bin/app.ts), then create `infra/.env.deploy`, which git ignores:
 

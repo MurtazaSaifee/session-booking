@@ -27,6 +27,7 @@ const UNUSED_DRIVERS = [
 export type ServerSecrets = {
   databaseUrl: string;
   jwtSecret: string;
+  originVerifySecret: string;
 };
 
 type ServerFunctionProps = {

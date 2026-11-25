@@ -8,6 +8,8 @@ import {
   FunctionCode,
   FunctionEventType,
   FunctionRuntime,
+  HeadersFrameOption,
+  HeadersReferrerPolicy,
   OriginRequestPolicy,
   PriceClass,
   ResponseHeadersPolicy,
@@ -21,7 +23,7 @@ import { BlockPublicAccess, Bucket } from "aws-cdk-lib/aws-s3";
 import { BucketDeployment } from "aws-cdk-lib/aws-s3-deployment";
 import type { Construct } from "constructs";
 import { fileURLToPath } from "node:url";
-import { addDatabaseSetup, addReminderSchedule } from "./background-work.js";
+import { addDatabaseSetup, addDemoResetSchedule, addReminderSchedule } from "./background-work.js";
 import { type ServerSecrets, serverFunction } from "./server-function.js";
 import { webBuild } from "./web-build.js";
 
@@ -56,14 +58,16 @@ export class SiteStack extends Stack {
         AWS_LAMBDA_EXEC_WRAPPER: "/opt/bootstrap",
         PORT: "8080",
         API_ONLY: "true",
+        ORIGIN_VERIFY_SECRET: props.secrets.originVerifySecret,
       },
     });
-    // CloudFront's signed access to a function URL needs each POST to carry a hash of its body, which browsers
-    // don't send. So the URL is open, and the app's own sign-in checks protect it as they do behind CloudFront.
+    // CloudFront's IAM signing for Lambda URLs requires browsers to hash every POST body. Instead, CloudFront
+    // attaches a shared secret header that Express verifies before serving /api/*.
     const apiUrl = api.addFunctionUrl({ authType: FunctionUrlAuthType.NONE });
 
     addDatabaseSetup(this, props.secrets, api);
     addReminderSchedule(this, props.secrets);
+    addDemoResetSchedule(this, props.secrets);
 
     const web = new Bucket(this, "Web", {
       blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
@@ -79,6 +83,28 @@ export class SiteStack extends Stack {
       }),
     });
 
+    const securityHeaders = new ResponseHeadersPolicy(this, "SecurityHeaders", {
+      securityHeadersBehavior: {
+        contentSecurityPolicy: {
+          contentSecurityPolicy:
+            "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+          override: true,
+        },
+        contentTypeOptions: { override: true },
+        frameOptions: { frameOption: HeadersFrameOption.DENY, override: true },
+        referrerPolicy: {
+          referrerPolicy: HeadersReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN,
+          override: true,
+        },
+        strictTransportSecurity: {
+          accessControlMaxAge: Duration.days(365),
+          includeSubdomains: true,
+          override: true,
+        },
+        xssProtection: { protection: true, modeBlock: true, override: true },
+      },
+    });
+
     const distribution = new Distribution(this, "Distribution", {
       domainNames: [props.domainName],
       certificate: props.certificate,
@@ -89,18 +115,20 @@ export class SiteStack extends Stack {
         origin: S3BucketOrigin.withOriginAccessControl(web),
         viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: CachePolicy.CACHING_OPTIMIZED,
-        responseHeadersPolicy: ResponseHeadersPolicy.SECURITY_HEADERS,
+        responseHeadersPolicy: securityHeaders,
         functionAssociations: [{ eventType: FunctionEventType.VIEWER_REQUEST, function: webRoutes }],
       },
       additionalBehaviors: {
         "/api/*": {
-          origin: new FunctionUrlOrigin(apiUrl),
+          origin: new FunctionUrlOrigin(apiUrl, {
+            customHeaders: { "x-origin-verify": props.secrets.originVerifySecret },
+          }),
           viewerProtocolPolicy: ViewerProtocolPolicy.HTTPS_ONLY,
           allowedMethods: AllowedMethods.ALLOW_ALL,
           cachePolicy: CachePolicy.CACHING_DISABLED,
           // Passes cookies and query strings through. A function URL rejects the site's own Host header.
           originRequestPolicy: OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
-          responseHeadersPolicy: ResponseHeadersPolicy.SECURITY_HEADERS,
+          responseHeadersPolicy: securityHeaders,
         },
       },
     });
